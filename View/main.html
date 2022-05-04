@@ -3,13 +3,13 @@
 <head>
 <title>Elle web viewer</title>
 <meta charset="utf-8" />
-
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
 <script src="http://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
-<script src="easeljs.js"></script>
+<script src="/static/js/easeljs.js"></script>
 <script src="https://code.createjs.com/1.0.0/createjs.min.js"></script>
 <script src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r71/three.min.js"></script>
-<script src="ros2djs/build/ros2d.js"></script>
+<script src="/static/js/ros2d.js"></script>
 <script>
 
 function openPage(pageName, elmnt, color) {
@@ -31,6 +31,20 @@ function openPage(pageName, elmnt, color) {
 
   // Add the specific color to the button used to open the tab content
   elmnt.style.backgroundColor = color;
+  if (pageName == "Dashboard")
+    document.getElementById(pageName).innerHTML = '<object type="text/html" data="../view/Dashboard.html" width="100%" height="600px"></object>';
+  else  if (pageName == "Setup")
+    document.getElementById(pageName).innerHTML = '<object type="text/html" data="../view/Setup.html" width="100%" height="600px"></object>';
+  else  if (pageName == "System")
+    document.getElementById(pageName).innerHTML = '<object type="text/html" data="../view/System.html" width="100%" height="600px"></object>';
+  else  if (pageName == "Log")
+    document.getElementById(pageName).innerHTML = '<object type="text/html" data="../view/Log.html" width="100%" height="600px"></object>';
+}
+
+function Logout(){
+
+
+
 }
 
 function init(){
@@ -57,9 +71,11 @@ function init(){
       border: none;
       outline: none;
       cursor: pointer;
-      padding: 14px 16px;
+      padding: 14px;
       font-size: 17px;
-      width: 25%;
+      width: 18%;
+      border-radius: 15px;
+      margin: 1%;
     }
     
     .tablink:hover {
@@ -68,51 +84,46 @@ function init(){
     
     /* Style the tab content (and add height:100% for full page content) */
     .tabcontent {
-      color: white;
+      color: rgb(34, 32, 32);
       display: none;
       padding: 100px 20px;
-      height: 100%;
     }
     
-    #Dashboard {background-color: rgb(241, 171, 171);}
-    #Setup {background-color: rgb(163, 204, 163);}
-    #System {background-color: rgb(145, 145, 240);}
-    #Log {background-color: rgb(209, 176, 115);}
-    </style>
 
+    /* Style tab links */
+    .tablogout {
+        background-color: #555;
+        color: white;
+        float: left;
+        border: none;
+        outline: none;
+        cursor: pointer;
+        padding: 14px;
+        font-size: 17px;
+        width: 16%;
+        border-radius: 15px;
+        margin: 1%;
+        }
+
+    #Dashboard {background-color: rgb(235, 210, 210);}
+    #Setup {background-color: rgb(221, 235, 221);}
+    #System {background-color: rgb(200, 200, 237);}
+    #Log {background-color: rgb(231, 219, 198);}
+    </style>
 </head>
 <body  onload="init()">
+    <button class="tablink" onclick="openPage('Dashboard', this, '#0085FC')" id="defaultOpen">Dashboard</button>
+    <button class="tablink" onclick="openPage('Setup', this, '#0085FC')" >Setup</button>
+    <button class="tablink" onclick="openPage('System', this, '#0085FC')">System</button>
+    <button class="tablink" onclick="openPage('Log', this, '#0085FC')">Log</button>
+    <button class="tablogout" onclick="Logout()">Log out</button>
 
-    <button class="tablink" onclick="openPage('Dashboard', this, 'red')" id="defaultOpen">Dashboard</button>
-    <button class="tablink" onclick="openPage('Setup', this, 'green')" >Setup</button>
-    <button class="tablink" onclick="openPage('System', this, 'blue')">System</button>
-    <button class="tablink" onclick="openPage('Log', this, 'orange')">Log</button>
-    <button class="tablink" onclick="openPage('Log', this, 'orange')">Log out</button>
-
-    <div id="Dashboard" class="tabcontent">
-      <p>Target audience: Operator</p>
-      <ul><li>Navagation Info (Map)</li><li>Mission Control</li><li>Status Monitoring</li><ul><li>Baterry Voltage</li><li>System usage (CPU/Network)</li></ul></ul>
+    <div id="Dashboard" class="tabcontent"></div>
+    <div id="Setup" class="tabcontent"></div>    
+    <div id="System" class="tabcontent"></div>
+    <div id="Log" class="tabcontent"></div>
+    <div id="Logout" class="tabcontent">
+        $.get('View/login.html',function(html){  });   
     </div>
-    
-    <div id="Setup" class="tabcontent">
-      <p>Target audience: On site Engineer </p>
-      Feature:
-      <ul><li>Map editor</li><li> Path editor </li> <li> Mission editor </li> <li> IO Modules configuration</li></ul>
-    </div>
-    
-    <div id="System" class="tabcontent">
-      <p>Target audience: System Integrator</p>
-      Feature:
-      <ul><li>Robot Setup</li><li>Network Setup</li><li>Diagonstic</li><ul><li>/rosout</li><li>dmesg</li></ul></ul>
-      <p></p>
-    </div>
-    
-    <div id="Log" class="tabcontent">
-      <p>Target audience: On site Engineer </p>
-      <ul><li>Mission log</li><li>Event log</li><li>ROS log</li></ul>
-    </div>
-
-
-
 </body>
 </html>

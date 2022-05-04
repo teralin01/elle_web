@@ -1,17 +1,7 @@
-from optparse import TitledHelpFormatter
 import tornado.web
 from tornado.web import RequestHandler
 import time
 import json
-
-class MainHandler(tornado.web.RequestHandler):
-    def get(self, *args, **kwargs ):
-        self.set_header("Content-Type","text/html;charset=UTF-8")
-        self.set_status(200,"OK")
-        
-        print ("Root request coming",time.time())
-        self.write('Hello, world')
-        self.finish()
 
 class HomeHandler(tornado.web.RequestHandler):
     # def get_current_user(self):
@@ -115,9 +105,13 @@ class LoginHandler(RequestHandler):
             self.redirect(next+"?flag=logined")
         else:
             next = self.get_argument("next","/")
-            self.redirect("/login?next="+next)
-
-    
+            self.redirect("/login?next="+next)   
+            
 class DashboardHandler(RequestHandler):
     def get(self,*args,**kwargs):
-        self.render('Dashboard.html')
+        self.render('../view/Dashboard.html')
+        
+        
+class MainHandler(RequestHandler):
+    def get(self,*args,**kwargs):
+        self.render('main.html')        
