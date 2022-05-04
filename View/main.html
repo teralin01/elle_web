@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Elle web viewer</title>
+<meta charset="utf-8" />
+
+<script src="https://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+<script src="http://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+<script src="easeljs.js"></script>
+<script src="https://code.createjs.com/1.0.0/createjs.min.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r71/three.min.js"></script>
+<script src="ros2djs/build/ros2d.js"></script>
+<script>
+
+function openPage(pageName, elmnt, color) {
+  // Hide all elements with class="tabcontent" by default */
+  var i, tabcontent, tablinks;
+  tabcontent = document.getElementsByClassName("tabcontent");
+  for (i = 0; i < tabcontent.length; i++) {
+    tabcontent[i].style.display = "none";
+  }
+
+  // Remove the background color of all tablinks/buttons
+  tablinks = document.getElementsByClassName("tablink");
+  for (i = 0; i < tablinks.length; i++) {
+    tablinks[i].style.backgroundColor = "";
+  }
+
+  // Show the specific tab content
+  document.getElementById(pageName).style.display = "block";
+
+  // Add the specific color to the button used to open the tab content
+  elmnt.style.backgroundColor = color;
+}
+
+function init(){
+    // Get the element with id="defaultOpen" and click on it
+    document.getElementById("defaultOpen").click();
+};    
+</script>
+
+<style>
+    * {box-sizing: border-box}
+    
+    /* Set height of body and the document to 100% */
+    body, html {
+      height: 100%;
+      margin: 0;
+      font-family: Arial;
+    }
+    
+    /* Style tab links */
+    .tablink {
+      background-color: #555;
+      color: white;
+      float: left;
+      border: none;
+      outline: none;
+      cursor: pointer;
+      padding: 14px 16px;
+      font-size: 17px;
+      width: 25%;
+    }
+    
+    .tablink:hover {
+      background-color: #777;
+    }
+    
+    /* Style the tab content (and add height:100% for full page content) */
+    .tabcontent {
+      color: white;
+      display: none;
+      padding: 100px 20px;
+      height: 100%;
+    }
+    
+    #Dashboard {background-color: rgb(241, 171, 171);}
+    #Setup {background-color: rgb(163, 204, 163);}
+    #System {background-color: rgb(145, 145, 240);}
+    #Log {background-color: rgb(209, 176, 115);}
+    </style>
+
+</head>
+<body  onload="init()">
+
+    <button class="tablink" onclick="openPage('Dashboard', this, 'red')" id="defaultOpen">Dashboard</button>
+    <button class="tablink" onclick="openPage('Setup', this, 'green')" >Setup</button>
+    <button class="tablink" onclick="openPage('System', this, 'blue')">System</button>
+    <button class="tablink" onclick="openPage('Log', this, 'orange')">Log</button>
+    <button class="tablink" onclick="openPage('Log', this, 'orange')">Log out</button>
+
+    <div id="Dashboard" class="tabcontent">
+      <p>Target audience: Operator</p>
+      <ul><li>Navagation Info (Map)</li><li>Mission Control</li><li>Status Monitoring</li><ul><li>Baterry Voltage</li><li>System usage (CPU/Network)</li></ul></ul>
+    </div>
+    
+    <div id="Setup" class="tabcontent">
+      <p>Target audience: On site Engineer </p>
+      Feature:
+      <ul><li>Map editor</li><li> Path editor </li> <li> Mission editor </li> <li> IO Modules configuration</li></ul>
+    </div>
+    
+    <div id="System" class="tabcontent">
+      <p>Target audience: System Integrator</p>
+      Feature:
+      <ul><li>Robot Setup</li><li>Network Setup</li><li>Diagonstic</li><ul><li>/rosout</li><li>dmesg</li></ul></ul>
+      <p></p>
+    </div>
+    
+    <div id="Log" class="tabcontent">
+      <p>Target audience: On site Engineer </p>
+      <ul><li>Mission log</li><li>Event log</li><li>ROS log</li></ul>
+    </div>
+
+
+
+</body>
+</html>
