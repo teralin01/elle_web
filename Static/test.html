@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Elle web viewer</title>
+<meta charset="utf-8" />
+
+<script src="https://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+<script src="http://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+<script src="/static/js/easeljs.js"></script>
+<script src="https://code.createjs.com/1.0.0/createjs.min.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r71/three.min.js"></script>
+<script src="/static/js/ros2d.js"></script>
+<script>
+  // Connecting to ROS
+  // -----------------
+  var ros = new ROSLIB.Ros();
+
+  // If there is an error on the backend, an 'error' emit will be emitted.
+  ros.on('error', function(error) {
+    console.log(error);
+    document.getElementById('connecting').style.display = 'none';
+    document.getElementById('connected').style.display = 'none';
+    document.getElementById('closed').style.display = 'none';
+    document.getElementById('error').style.display = 'inline';
+  });
+
+  // Find out exactly when we made a connection.
+  ros.on('connection', function() {
+    console.log('Connection made!');
+    document.getElementById('connecting').style.display = 'none';
+    document.getElementById('error').style.display = 'none';
+    document.getElementById('closed').style.display = 'none';
+    document.getElementById('connected').style.display = 'inline';
+  });
+
+  ros.on('close', function() {
+    console.log('Connection closed.');
+    document.getElementById('connecting').style.display = 'none';
+    document.getElementById('connected').style.display = 'none';
+    document.getElementById('closed').style.display = 'inline';
+  });
+
+  // Create a connection to the rosbridge WebSocket server.
+  ros.connect('ws://10.1.30.172:9090');
+  var width = 1024;
+  var height = 700;
+  var panOn = false;
+  function init(){
+    window.viewer = new window.ROS2D.Viewer({
+        divID : 'nav',
+        width : width,
+        height : height,
+        background: '#c2dfc2'
+      });      
+
+      var gridClient = new window.ROS2D.OccupancyGridClient({
+        ros : ros,
+        rootObject : viewer.scene,
+        topic: '/map',
+        // topic: '/global_costmap/costmap',
+        // continuous : true,
+      });
+
+      gridClient.on('change', function(){
+        viewer.scaleToDimensions(gridClient.currentGrid.width, gridClient.currentGrid.height);
+        viewer.shift(gridClient.currentGrid.pose.position.x, gridClient.currentGrid.pose.position.y);
+      });
+
+      // pub grid
+      var grid3 = new window.ROS2D.Grid({
+        size : 50,
+        cellSize :1,
+        lineWidth : 0.01
+      });
+      viewer.scene.addChild(grid3);
+
+      //  put car icon
+      var navigationImage = new window.ROS2D.NavigationImage({ 
+        image : '/static/image/AxiomTek.jpg',
+        stage: viewer.scene,
+        size: 1,
+        //pulse: true
+      });
+      viewer.scene.addChild(navigationImage);
+
+      // update car location
+      var poseSubscriber = new window.ROSLIB.Topic({
+        ros:ros,
+        name: "amcl_pose",
+        messageType: "geometry_msgs/msg/PoseWithCovarianceStamped"
+      });
+      poseSubscriber.subscribe((message) => {  
+        // update icon location
+        navigationImage.x = message.pose.pose.position.x;
+        navigationImage.y = - message.pose.pose.position.y;
+        
+        // rotation icon
+        navigationImage.rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion(
+              message.pose.pose.orientation.x,
+              message.pose.pose.orientation.y,
+              message.pose.pose.orientation.z,
+              message.pose.pose.orientation.w
+            )).z * -180 / 3.14159 ;
+      });
+
+      // show path
+      // var traceShape = new window.ROS2D.TraceShape({
+      //     strokeSize : 3,
+      //     strokeColor : '#c2dfc2'
+      // });
+        
+      // var listenerforPath = new ROSLIB.Topic ({
+      //     ros : this.ros,
+      //     name : '/global_plan',
+      //     messageType : 'nav_msgs/Path'
+      // });
+
+      // viewer.scene.addChild(traceShape);
+      // listenerforPath.subscribe((message)=> {
+      //     console.log(message)
+      //     traceShape.addPose(message);
+      // });
+
+      // init zoom view
+      window.zoomView = new ROS2D.ZoomView({
+        rootObject : viewer.scene,
+        minScale : 0.1
+      });
+
+      // init pan view
+      window.panView = new ROS2D.PanView({
+        rootObject : viewer.scene
+      });
+
+      window.triggerPan = function(options) {
+        var viewer = window.viewer;
+        var panView = window.panView;
+
+        if(options.enable || false) {
+          viewer.scene.addEventListener('stagemousedown', 
+            this.panStartEventHandle = function(event) {
+            if(event.nativeEvent.which === 1) 
+              if (viewer.scene.mouseInBounds === true)
+                panView.startPan(event.stageX, event.stageY);
+
+            viewer.scene.addEventListener('stagemousemove', 
+              this.panMoveEventHandle = function(event) {
+              if(event.nativeEvent.which === 1) 
+                if (viewer.scene.mouseInBounds === true) 
+                  panView.pan(event.stageX, event.stageY);
+            });
+
+            viewer.scene.addEventListener('stagemouseup', 
+              this.panEndEventHandle = function(event) {
+              if(event.nativeEvent.which === 1) 
+                if (viewer.scene.mouseInBounds === true) {
+                  viewer.scene.removeEventListener(
+                    'stagemousemove', this.panMoveEventHandle);
+                  viewer.scene.removeEventListener(
+                    'stagemouseup', this.panEndEventHandle);
+                }
+            });
+
+          });
+        } else {
+          viewer.scene.removeEventListener(
+            'stagemousedown', this.panStartEventHandle);
+        }
+      };
+
+    MissionStatus();
+    setInterval(MissionStatus,5000);
+  }
+
+  function zoomin()
+  {
+    zoomView.startZoom(width/2, height/2);
+    zoomView.zoom(1.5);
+  }
+
+  function zoomout()
+  {
+    zoomView.startZoom(width/2, height/2);
+    zoomView.zoom(1/1.5);
+  }
+
+  function pan(btn)
+  {
+    panOn = !panOn;
+    if(panOn) {
+      btn.style.backgroundColor = '#FF0000';
+      window.triggerPan({ enable: true });
+    } else {
+      btn.style.backgroundColor = '#DDDDDD';
+      triggerPan({ enable: false });
+    }
+  }
+
+  function MissionEvent(event){
+    console.log("Event:", event);
+      var missionEvent = new ROSLIB.Service({
+        ros : ros,
+        name : '/mission_control/command',
+        serviceType : 'elle_interfaces/srv/MissionControlCmd'
+      }); 
+      var request = new ROSLIB.ServiceRequest({
+        mission_cmd : event
+      });
+      missionEvent.callService(request, function(response) {
+        console.log("Mission Trigger Result",response);
+        document.getElementById("MissionEventResponse").innerHTML =  response.state;
+      });
+    }
+
+  function MissionStatus(){
+    var missionStatus = new ROSLIB.Service({
+        ros : ros,
+        name : '/mission_control/state_report',
+        serviceType : 'elle_interfaces/srv/MissionControlState'
+      }); 
+      var request = new ROSLIB.ServiceRequest({
+      });
+      missionStatus.callService(request, function(response) {
+        document.getElementById("missionInfo").innerHTML =  JSON.stringify(response);
+      });
+  }
+
+</script>
+</head>
+
+<body onload="init()">
+
+  <div style="background-color:#FFD382;padding:10px;margin-bottom:5px;width:1024px;">
+    <h3>Mission Control</h3> Mission Button: 
+    <input type="button" value="Mission start" onClick="MissionEvent('start')">
+    <input type="button" value="Mission pause" onClick="MissionEvent('pause')">
+    <br><label>Trigger Mission result: </label>
+    <label id = "MissionEventResponse" style="color:#0b387c"> </label>
+  </div>
+  <div style="background-color:#9c949c;padding:10px;margin-bottom:5px;width:1024px;">
+    <h3 id="missionStatus">Mission Status </h3>
+    <label id="missionInfo"></label>
+  </div>
+  <div style="background-color:#97e484;padding:10px;margin-bottom:5px;width:1024px;">
+    <h3>Canvas control</h3>
+    <button onclick = "zoomin()">In</button>
+    <button onclick = "zoomout()">Out</button>
+    <button onclick = "pan(this)">Pan</button>
+  </div>
+  <div id="nav" style="color:#ced6ce"></div>
+  <div id="statusIndicator">
+    <p id="connecting">
+      Connecting to rosbridge...
+    </p>
+    <p id="connected" style="color:#00D600; display:none">
+      Web socket Connected
+    </p>
+    <p id="error" style="color:#FF0000; display:none">
+      Web socket Error in the backend!
+    </p>
+    <p id="closed" style="display:none">
+      Web socket Connection closed.
+    </p>
+  </div>
+</body>
+</html>

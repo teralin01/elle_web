@@ -1,16 +1,228 @@
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+<script src="http://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+<script src="/static/js/easeljs.js"></script>
+<script src="/static/js/createjs.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r71/three.min.js"></script>
+<script src="/static/js/ros2d.js" defer></script>
 
-        <p>Battery: 80%</p>
-        <p>AMR Status: Running</p>
-        <p>Status code: None</p>
-        <p>Mission: From A to C, under path B->C </p>
-        <p><img src="/static/image/map/demo_map.png" style="width: 100%;height: auto; max-width:1024"></p>
 
 
+
+<script>
+    // Connecting to ROS
+    // -----------------
+    var ros = new ROSLIB.Ros();
+    
+    // If there is an error on the backend, an 'error' emit will be emitted.
+    ros.on('error', function(error) {
+      console.log('Web Socket Connection error: '+error);
+    });
+    
+    // Find out exactly when we made a connection.
+    ros.on('connection', function() {
+      console.log('Web Socket Connection made!');
+    });
+    
+    ros.on('close', function() {
+      console.log('Web Socket Connection closed.');
+    });
+    
+    // Create a connection to the rosbridge WebSocket server.
+    ros.connect('ws://10.1.30.172:9090');
+    var width = 1024;
+    var height = 700;
+    var panOn = false;
+    function init(){
+      window.viewer = new window.ROS2D.Viewer({
+          divID : 'mapdisplay',
+          width : width,
+          height : height,
+          background: '#c2dfc2'
+        });      
+    
+        var gridClient = new window.ROS2D.OccupancyGridClient({
+          ros : ros,
+          rootObject : viewer.scene,
+          topic: '/map',
+          //topic: '/global_costmap/costmap',
+          //continuous : true,
+        });
+    
+        gridClient.on('change', function(){
+          viewer.scaleToDimensions(gridClient.currentGrid.width, gridClient.currentGrid.height);
+          viewer.shift(gridClient.currentGrid.pose.position.x, gridClient.currentGrid.pose.position.y);
+        });
+    
+        // pub grid
+        var grid3 = new window.ROS2D.Grid({
+          size : 50,
+          cellSize :1,
+          lineWidth : 0.01
+        });
+        viewer.scene.addChild(grid3);
+    
+        //  put car icon
+        var navigationImage = new window.ROS2D.NavigationImage({ 
+          image : '/static/image/arrow.png',
+          stage: viewer.scene,
+          size: 1,
+          //pulse: true
+        });
+        viewer.scene.addChild(navigationImage);
+    
+        // update car location
+        var poseSubscriber = new window.ROSLIB.Topic({
+          ros:ros,
+          name: "amcl_pose",
+          messageType: "geometry_msgs/msg/PoseWithCovarianceStamped"
+        });
+        poseSubscriber.subscribe((message) => {  
+          // update icon location
+          navigationImage.x = message.pose.pose.position.x;
+          navigationImage.y = - message.pose.pose.position.y;
+          
+          // rotation icon
+          navigationImage.rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion(
+                message.pose.pose.orientation.x,
+                message.pose.pose.orientation.y,
+                message.pose.pose.orientation.z,
+                message.pose.pose.orientation.w
+              )).z * -180 / 3.14159 ;
+        });
+    
+        // init zoom view
+        window.zoomView = new ROS2D.ZoomView({
+          rootObject : viewer.scene,
+          minScale : 0.1
+        });
+    
+        // init pan view
+        window.panView = new ROS2D.PanView({
+          rootObject : viewer.scene
+        });
+    
+        window.triggerPan = function(options) {
+          var viewer = window.viewer;
+          var panView = window.panView;
+    
+          if(options.enable || false) {
+            viewer.scene.addEventListener('stagemousedown', 
+              this.panStartEventHandle = function(event) {
+              if(event.nativeEvent.which === 1) 
+                if (viewer.scene.mouseInBounds === true)
+                  panView.startPan(event.stageX, event.stageY);
+    
+              viewer.scene.addEventListener('stagemousemove', 
+                this.panMoveEventHandle = function(event) {
+                if(event.nativeEvent.which === 1) 
+                  if (viewer.scene.mouseInBounds === true) 
+                    panView.pan(event.stageX, event.stageY);
+              });
+    
+              viewer.scene.addEventListener('stagemouseup', 
+                this.panEndEventHandle = function(event) {
+                if(event.nativeEvent.which === 1) 
+                  if (viewer.scene.mouseInBounds === true) {
+                    viewer.scene.removeEventListener(
+                      'stagemousemove', this.panMoveEventHandle);
+                    viewer.scene.removeEventListener(
+                      'stagemouseup', this.panEndEventHandle);
+                  }
+              });
+    
+            });
+          } else {
+            viewer.scene.removeEventListener(
+              'stagemousedown', this.panStartEventHandle);
+          }
+        };
+    
+    }
+    
+    function zoomin()
+    {
+      zoomView.startZoom(width/2, height/2);
+      zoomView.zoom(1.5);
+    }
+    
+    function zoomout()
+    {
+      zoomView.startZoom(width/2, height/2);
+      zoomView.zoom(1/1.5);
+    }
+    
+    function pan(btn)
+    {
+      panOn = !panOn;
+      if(panOn) {
+        btn.style.backgroundColor = '#FF0000';
+        window.triggerPan({ enable: true });
+      } else {
+        btn.style.backgroundColor = '#DDDDDD';
+        triggerPan({ enable: false });
+      }
+    }
+    
+    window.onload = function() {
+        console.log("dashboard loaded")
+
+        $.ajax({
+            type: "get",
+            //data: {start},
+            url: "/control/statusController",
+            success: function (result){
+              $("#statusBlock").html(result);
+            }
+          });
+
+          $.ajax({
+            type: "get",
+            //data: {start},
+            url: "/control/missionController",
+            success: function (result){
+              $("#missionBlock").html(result);
+            }
+          });
+          /*
+          $.ajax({
+            type: "get",
+            //data: {start},
+            url: "/control/mapController",
+            success: function (result){
+              $("#mapBlock").html(result);
+              
+            }
+          });          */
+          
+      };
+
+      $(document).ready(function() {
+        console.log("init ROS2D")
+        init();
+    })
+
+</script>
+
+        <!-- 
         Task:
         <ul>
             <li>Show Map block, Status block, Mission block</li>
             <li>Use dynaic loading to show/hide block by user privilege</li>
             <li>Control the content inside blocks </li>
 
-        </ul>
+        </ul> -->
         
+
+        <p id="statusBlock">status block</p>
+        <p id="missionBlock">mission block</p>
+
+        
+        <div style="background-color:#97e484;padding:10px;margin-bottom:5px;width:1024px;">
+            <h3>Canvas control</h3>
+            <button onclick = "zoomin()">In</button>
+            <button onclick = "zoomout()">Out</button>
+            <button onclick = "pan(this)">Pan</button>
+        </div>
+        
+        <div id="mapdisplay" style="color:#ced6ce"></div>

@@ -1,7 +1,17 @@
+from optparse import TitledHelpFormatter
 import tornado.web
 from tornado.web import RequestHandler
 import time
 import json
+
+class MainHandler(tornado.web.RequestHandler):
+    def get(self, *args, **kwargs ):
+        self.set_header("Content-Type","text/html;charset=UTF-8")
+        self.set_status(200,"OK")
+        
+        print ("Root request coming",time.time())
+        self.write('Hello, world')
+        self.finish()
 
 class HomeHandler(tornado.web.RequestHandler):
     # def get_current_user(self):
@@ -51,7 +61,8 @@ class URLPathHandler(RequestHandler):
         
 class GetReqHandler(RequestHandler):
     def get(self,*args,**kwargs):
-        flag = self.get_query_argument("Flag",default="None", strip=True)   
+        flag = self.get_query_argument("Flag",default="None", strip=True)
+        #flag = self.get_query_arguments("Flag")  get list for expression ?Flag=1&Flag=2
         print ("Home request coming",time.time(),"   ",flag)
         self.write("Query string: "+flag)
 
@@ -60,6 +71,7 @@ class PostReqHandler(RequestHandler):
         self.render('postDemo.html')
     def post(self,*args,**kwargs):        
         name = self.get_body_argument("name")
+        #list = self.get_body_arguments("list")  used for multiple choice
         self.write("Post name"+ name)        
         self.finish()
         
@@ -105,10 +117,7 @@ class LoginHandler(RequestHandler):
             self.redirect(next+"?flag=logined")
         else:
             next = self.get_argument("next","/")
-            self.redirect("/login?next="+next)   
-            
-class MainHandler(RequestHandler):
-    def get(self,*args,**kwargs):
-        self.set_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-        demoUser = "operator"
-        self.render('main.html', user = demoUser)        
+            self.redirect("/login?next="+next)
+
+    
+    

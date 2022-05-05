@@ -5,4 +5,4 @@ import json
 
 class InitHandler (RequestHandler):
     def get(self,*args,**kwargs):
-        self.render('Dashboard.html')
+        self.render('..//view/dashboard/mission.html')
