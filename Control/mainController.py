@@ -99,27 +99,23 @@ class ClearCookieHandler(BaseHandler):
 class LoginHandler(BaseHandler):
     def get(self,*args,**kwargs):
         status = self.get_argument("status","0")
-        url = 'login'
-        print("status:"+status)
-        self.render("login.html", url = url, status = status)
+        self.render("login.html",  status = status)
     def post(self,*args,**kwargs):
         account = self.get_argument("username")
         pwd = self.get_argument("password")        
         
-        # TODO: Use database to store and confirm user name/password
-        
         ret = AuthDB(account,pwd)
         if ret == 1:
-            self.redirect("/login?status=1") #TODO Add paramrter for auth fail due to user not found
+            self.redirect("/login?status=1") 
         if ret == 2:
-            self.redirect("/login?status=2") #TODO Add paramrter for auth fail due to password incorrect
+            self.redirect("/login?status=2") 
             
         self.set_secure_cookie("user", account)    
         self.redirect("/main")
             
-        # if account == "admin" and pwd == "axadmin":   
-        # elif account == "user" and pwd == "axuser":
-        # elif account == "dev" and pwd == "!elledev":
+        # default account  "admin" / "axadmin"
+        #                  "user"  / "axuser"
+        #                  "dev"   / "!elledev"
             
 
 class LogoutHandler(BaseHandler):
