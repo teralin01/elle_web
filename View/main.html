@@ -3,15 +3,10 @@
 <head>
 <title>Elle web viewer</title>
 <meta charset="utf-8" />
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
-<script src="http://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
-<script src="/static/js/easeljs.js"></script>
-<script src="https://code.createjs.com/1.0.0/createjs.min.js"></script>
-<script src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r71/three.min.js"></script>
-<script src="/static/js/ros2d.js"></script>
-<script>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    
 function openPage(pageName, elmnt, color) {
   // Hide all elements with class="tabcontent" by default */
   var i, tabcontent, tablinks;
@@ -32,21 +27,42 @@ function openPage(pageName, elmnt, color) {
   // Add the specific color to the button used to open the tab content
   elmnt.style.backgroundColor = color;
   if (pageName == "Dashboard")
-    document.getElementById(pageName).innerHTML = '<object type="text/html" data="../view/Dashboard.html" width="100%" height="600px"></object>';
+    document.getElementById(pageName).innerHTML = '<object type="text/html" data="../view/Dashboard.html" width="100%" height="800px"></object>';
   else  if (pageName == "Setup")
-    document.getElementById(pageName).innerHTML = '<object type="text/html" data="../view/Setup.html" width="100%" height="600px"></object>';
+    document.getElementById(pageName).innerHTML = '<object type="text/html" data="../view/Setup.html" width="100%" height="800px"></object>';
   else  if (pageName == "System")
-    document.getElementById(pageName).innerHTML = '<object type="text/html" data="../view/System.html" width="100%" height="600px"></object>';
+    document.getElementById(pageName).innerHTML = '<object type="text/html" data="../view/System.html" width="100%" height="800px"></object>';
   else  if (pageName == "Log")
-    document.getElementById(pageName).innerHTML = '<object type="text/html" data="../view/Log.html" width="100%" height="600px"></object>';
+    document.getElementById(pageName).innerHTML = '<object type="text/html" data="../view/Log.html" width="100%" height="800px"></object>';
+}
+
+function deleteAllCookies() {
+  var cookies = document.cookie.split(";");
+  for (var i = 0; i < cookies.length; i++) {
+      var cookie = cookies[i];
+      var eqPos = cookie.indexOf("=");
+      var name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+      document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  }
 }
 
 function Logout(){
-
-
-
+  console.log("Clear all cookies");
+  deleteAllCookies();
+  // TODO: call backend to clear cookie
+  $.ajax({
+    type: "get",
+    //data: {start},
+    url: "/logout",
+    success: function (result){
+      location.href = '/login';
+    }
+  });
+  
+  
 }
 
+  
 function init(){
     // Get the element with id="defaultOpen" and click on it
     document.getElementById("defaultOpen").click();
@@ -122,8 +138,6 @@ function init(){
     <div id="Setup" class="tabcontent"></div>    
     <div id="System" class="tabcontent"></div>
     <div id="Log" class="tabcontent"></div>
-    <div id="Logout" class="tabcontent">
-        $.get('View/login.html',function(html){  });   
-    </div>
+    <div id="Logout" class="tabcontent"></div>
 </body>
 </html>

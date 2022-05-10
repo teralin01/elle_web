@@ -1,9 +1,13 @@
 import tornado.web
 from tornado.web import RequestHandler
+from DataModel.mongoDBQuery import MongoDB
 import time
 import json
 
-class HomeHandler(tornado.web.RequestHandler):
+class BaseHandler(tornado.web.RequestHandler):
+    def get_current_user(self):
+        return self.get_secure_cookie("user")
+class HomeHandler(BaseHandler):
     # def get_current_user(self):
     #     flag = self.get_argument("flag")
     #     return flag
@@ -18,13 +22,13 @@ class HomeHandler(tornado.web.RequestHandler):
         self.finish()
         
 
-class TokenHandler(tornado.web.RequestHandler):
+class TokenHandler(BaseHandler):
     def get(self, *args, **kwargs ):
         print ("Token request coming",time.time())
         token = {"time":time.time()}
         self.write(token)        
         
-class HeaderHandler(RequestHandler):
+class HeaderHandler(BaseHandler):
     def set_default_header(self):  # Step 1 function call
         self.set_header("Content-Type","text/html;charset=UTF-8")
         self.set_status(200,"OK")
@@ -45,17 +49,17 @@ class HeaderHandler(RequestHandler):
     def get(self,*args,**kwargs):
         pass
 
-class URLPathHandler(RequestHandler):
+class URLPathHandler(BaseHandler):
     def get(self,h1,h2,*args,**kwargs):
         self.write(h1+"--"+h2+" --")
         
-class GetReqHandler(RequestHandler):
+class GetReqHandler(BaseHandler):
     def get(self,*args,**kwargs):
         flag = self.get_query_argument("Flag",default="None", strip=True)   
         print ("Home request coming",time.time(),"   ",flag)
         self.write("Query string: "+flag)
 
-class PostReqHandler(RequestHandler):
+class PostReqHandler(BaseHandler):
     def get(self,*args,**kwargs):
         self.render('postDemo.html')
     def post(self,*args,**kwargs):        
@@ -63,36 +67,36 @@ class PostReqHandler(RequestHandler):
         self.write("Post name"+ name)        
         self.finish()
         
-class ReqHandler(RequestHandler):
+class ReqHandler(BaseHandler):
     def get(self,*args,**kwargs):
         self.render('postDemo.html')
     def post(self,*args,**kwargs):        
         name = self.get_argument("name")   # retrieve param from both Get & Post request
         self.write("Post name"+ name)                
     
-class DataBaseHandler(RequestHandler):
+class DataBaseHandler(BaseHandler):
     def get(self,*args,**kwargs):
         pass
     
-class setCookieHandler(RequestHandler):
+class setCookieHandler(BaseHandler):
     def get(self,*args,**kwargs):
         self.set_cookie("Elle","beta")
         #self.set_secure_cookie("SecureElle","sCookie")
         self.write("ok")
         
-class getCookieHandler(RequestHandler):
+class getCookieHandler(BaseHandler):
     def get(self,*args,**kwargs):
         cookie = self.get_cookie("Elle",default=None)            
         #cookie = self.secure_get_cookie("SecureElle")        
         print ("cookie: ",cookie)
         self.write("ok")
 
-class ClearCookieHandler(RequestHandler):
+class ClearCookieHandler(BaseHandler):
     def get(self,*args,**kwargs):
         self.clear_cookie()
         self.write("ok")        
         
-class LoginHandler(RequestHandler):
+class LoginHandler(BaseHandler):
     def get(self,*args,**kwargs):
         next = self.get_argument("next","/")
         url = 'login?next='+next
@@ -100,15 +104,42 @@ class LoginHandler(RequestHandler):
     def post(self,*args,**kwargs):
         account = self.get_argument("username")
         pwd = self.get_argument("password")        
-        if account == "admin" and pwd == "admin":
-            next = self.get_argument("next","/")
-            self.redirect(next+"?flag=logined")
+        
+        # TODO: Use database to store and confirm user name/password
+        # dbinstance = MongoDB("elle")
+        # query = "{ username:"+account+"}"
+        # dbinstance.get_single_data("account",query)
+        
+        if account == "admin" and pwd == "axadmin":
+            # self.set_cookie("Elle","admin")
+            # next = self.get_argument("next","/")
+            self.set_secure_cookie("user", self.get_argument("username"))
+            self.redirect("/main")
+        elif account == "user" and pwd == "axuser":
+            # next = self.get_argument("next","/")
+            # self.set_cookie("Elle","user")
+            self.set_secure_cookie("user", self.get_argument("username"))
+            self.redirect("/main")
+        elif account == "dev" and pwd == "!elledev":
+            # next = self.get_argument("next","/")
+            # self.set_cookie("Elle","dev")
+            self.set_secure_cookie("user", self.get_argument("username"))
+            self.redirect("/main")            
         else:
-            next = self.get_argument("next","/")
-            self.redirect("/login?next="+next)   
-            
-class MainHandler(RequestHandler):
+            self.redirect("/login")    
+
+class LogoutHandler(BaseHandler):
     def get(self,*args,**kwargs):
-        self.set_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-        demoUser = "operator"
-        self.render('main.html', user = demoUser)        
+        #TODO: clear server side resource
+        self.clear_cookie("user")
+        self.write("Logout success")
+            
+class MainHandler(BaseHandler):
+    @tornado.web.authenticated
+    # Above python decorator is equal to the following code: 
+    # if not self.current_user:
+    # self.redirect("/login")
+    # return
+    def get(self,*args,**kwargs):
+        #self.set_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+        self.render('main.html')        

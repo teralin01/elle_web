@@ -1,7 +1,7 @@
 import tornado.ioloop
 import tornado.web
 import tornado.httpserver
-import debugpy
+#import debugpy
 import config
 from application import Application
 

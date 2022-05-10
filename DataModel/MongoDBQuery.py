@@ -1,4 +1,4 @@
-class myclass():
+class MongoDB():
     """docstring for myclass."""
     def __init__(self,mydb_Name):
         #連接本地端mongoDB
@@ -18,6 +18,13 @@ class myclass():
         self.mycol.insert_one(self.mydata)   #單筆插入資料指令
         print("資料單筆新增成功")
 
+    def get_single_data(self, collection, myquery = {}):  #獲得資料
+        self.mycol = self.mydb[collection]
+        self.myquery = myquery  #要搜尋的資料 空白全部搜尋，填值搜尋特定值。
+        print("Mongo DB Query String: "+ myquery)
+        self.myfind = self.mycol.find_one(myquery)
+        return self.myfind
+    
     def get_data(self, collection, myquery = {}, noquery={"_id": 0}):  #獲得資料
         self.mycol = self.mydb[collection]
         self.myquery = myquery  #要搜尋的資料 空白全部搜尋，填值搜尋特定值。
