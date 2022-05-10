@@ -8,6 +8,11 @@ Body {
   font-family: Calibri, Helvetica, sans-serif;  
   background-color: pink;  
 }  
+
+#AuthFailWarn {
+    color:red;
+}
+
 button {   
        background-color: #4CAF50;   
        width: 100%;  
@@ -37,7 +42,6 @@ button {
         margin: 10px 5px;  
     }   
         
-     
  .container {   
         width: 300px;
         padding: 25px;           
@@ -58,10 +62,14 @@ button {
             <input type="text" value="admin" name="username" required>  
             <label>Password : </label>   
             <input type="password" value="axadmin" name="password" required>  
-            <button type="submit">Login</button>   
-            <!-- <input type="checkbox" checked="checked"> Remember me   
-            <button type="button" class="cancelbtn"> Cancel</button>    -->
-              
+            
+            {% if status == "1" %}
+              <label id="AuthFailWarn">Login fail, incorrect user name </label>   
+            {% elif status == "2" %}
+              <label id="AuthFailWarn">Login fail, incorrect password </label>   
+            {% end %}
+
+            <button type="submit">Login</button>                 
         </div>   
     </form>     
 </body>     

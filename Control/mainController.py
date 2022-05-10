@@ -1,6 +1,6 @@
 import tornado.web
 from tornado.web import RequestHandler
-from DataModel.mongoDBQuery import MongoDB
+from dataModel.AuthModel import AuthDB
 import time
 import json
 
@@ -98,35 +98,29 @@ class ClearCookieHandler(BaseHandler):
         
 class LoginHandler(BaseHandler):
     def get(self,*args,**kwargs):
-        next = self.get_argument("next","/")
-        url = 'login?next='+next
-        self.render("login.html", url = url)
+        status = self.get_argument("status","0")
+        url = 'login'
+        print("status:"+status)
+        self.render("login.html", url = url, status = status)
     def post(self,*args,**kwargs):
         account = self.get_argument("username")
         pwd = self.get_argument("password")        
         
         # TODO: Use database to store and confirm user name/password
-        # dbinstance = MongoDB("elle")
-        # query = "{ username:"+account+"}"
-        # dbinstance.get_single_data("account",query)
         
-        if account == "admin" and pwd == "axadmin":
-            # self.set_cookie("Elle","admin")
-            # next = self.get_argument("next","/")
-            self.set_secure_cookie("user", self.get_argument("username"))
-            self.redirect("/main")
-        elif account == "user" and pwd == "axuser":
-            # next = self.get_argument("next","/")
-            # self.set_cookie("Elle","user")
-            self.set_secure_cookie("user", self.get_argument("username"))
-            self.redirect("/main")
-        elif account == "dev" and pwd == "!elledev":
-            # next = self.get_argument("next","/")
-            # self.set_cookie("Elle","dev")
-            self.set_secure_cookie("user", self.get_argument("username"))
-            self.redirect("/main")            
-        else:
-            self.redirect("/login")    
+        ret = AuthDB(account,pwd)
+        if ret == 1:
+            self.redirect("/login?status=1") #TODO Add paramrter for auth fail due to user not found
+        if ret == 2:
+            self.redirect("/login?status=2") #TODO Add paramrter for auth fail due to password incorrect
+            
+        self.set_secure_cookie("user", account)    
+        self.redirect("/main")
+            
+        # if account == "admin" and pwd == "axadmin":   
+        # elif account == "user" and pwd == "axuser":
+        # elif account == "dev" and pwd == "!elledev":
+            
 
 class LogoutHandler(BaseHandler):
     def get(self,*args,**kwargs):
@@ -136,10 +130,5 @@ class LogoutHandler(BaseHandler):
             
 class MainHandler(BaseHandler):
     @tornado.web.authenticated
-    # Above python decorator is equal to the following code: 
-    # if not self.current_user:
-    # self.redirect("/login")
-    # return
     def get(self,*args,**kwargs):
-        #self.set_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
         self.render('main.html')        

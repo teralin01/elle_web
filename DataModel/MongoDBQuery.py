@@ -21,7 +21,7 @@ class MongoDB():
     def get_single_data(self, collection, myquery = {}):  #獲得資料
         self.mycol = self.mydb[collection]
         self.myquery = myquery  #要搜尋的資料 空白全部搜尋，填值搜尋特定值。
-        print("Mongo DB Query String: "+ myquery)
+
         self.myfind = self.mycol.find_one(myquery)
         return self.myfind
     
