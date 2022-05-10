@@ -19,8 +19,7 @@ class HomeHandler(BaseHandler):
         def mySum(n1,n2):
             return n1+n2
         self.render('home.html', vars = vars, waypoints = waypoints, mySum = mySum )
-        self.finish()
-        
+        self.finish()   
 
 class TokenHandler(BaseHandler):
     def get(self, *args, **kwargs ):
@@ -73,10 +72,6 @@ class ReqHandler(BaseHandler):
     def post(self,*args,**kwargs):        
         name = self.get_argument("name")   # retrieve param from both Get & Post request
         self.write("Post name"+ name)                
-    
-class DataBaseHandler(BaseHandler):
-    def get(self,*args,**kwargs):
-        pass
     
 class setCookieHandler(BaseHandler):
     def get(self,*args,**kwargs):
