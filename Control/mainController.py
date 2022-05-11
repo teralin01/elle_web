@@ -18,7 +18,7 @@ class HomeHandler(BaseHandler):
         waypoints = ([{"Name":"charging","location":1},{"Name":"april tag","location":3}])
         def mySum(n1,n2):
             return n1+n2
-        self.render('home.html', vars = vars, waypoints = waypoints, mySum = mySum )
+        self.render('TemplateExample.html', vars = vars, waypoints = waypoints, mySum = mySum )
         self.finish()   
 
 class TokenHandler(BaseHandler):

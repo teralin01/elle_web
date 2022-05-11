@@ -57,9 +57,9 @@ function init(){
     var gridClient = new window.ROS2D.OccupancyGridClient({
         ros : ros,
         rootObject : viewer.scene,
-        topic: '/map',
-        //topic: '/global_costmap/costmap',
-        //continuous : true,
+        //topic: '/map',
+        topic: '/global_costmap/costmap',
+        continuous : true,
     });
 
     gridClient.on('change', function(){
@@ -103,6 +103,82 @@ function init(){
             message.pose.pose.orientation.w
             )).z * -180 / 3.14159 ;
     });
+
+    // update global path
+    /*
+    var pathShapeGlobal = new window.ROS2D.PathShape({
+      strokeSize : 3,
+      strokeColor:'#0085FC'
+      });
+    
+    var listenerforPathGlobal = new window.ROSLIB.Topic ({
+      ros : this.ros,
+      name : '/global_plan',
+      messageType : 'nav_msgs/msg/Path'
+      });
+    
+    viewer.scene.addChild(pathShapeGlobal);
+    var pathUpdateTime = Date.now();
+    listenerforPathGlobal.subscribe((message)=> {
+      
+      currentTime = Date.now();
+      if ( currentTime > pathUpdateTime + 3000 )
+      {
+        console.log(message);
+        pathShapeGlobal.setPath(message);
+        pathUpdateTime = currentTime;
+      }
+      
+    });*/
+
+    // update local path
+    /*
+    var pathShapeLocal = new window.ROS2D.PathShape({
+      strokeSize : 3,
+      strokeColor: '#4CAF50'
+      });
+    
+    var listenerforPathLocal = new window.ROSLIB.Topic ({
+      ros : this.ros,
+      name : '/local_plan',
+      messageType : 'nav_msgs/msg/Path'
+      });
+    
+    viewer.scene.addChild(pathShapeLocal);
+    
+    listenerforPathLocal.subscribe((message)=> {
+      console.log(message)
+      pathShapeLocal.setPath(message);
+    });
+    */
+
+   // update lidar info
+   /* 
+
+  var pointCloud = new window.PointCloud2D({
+    rootObject : viewer.scene,
+    viewer : viewer,
+    size : 0.5
+  });
+
+
+  var lidar  = new window.ROSLIB.Topic ({
+    ros : this.ros,
+    name : '/scan',
+    messageType : 'sensor_msgs/LaserScan'
+    });
+
+  pointCloud.visible({ enable: true });
+  viewer.scene.addChild(pathShapeGlobal);
+  
+  lidar.subscribe(function(message) {
+  if (message !== 'undefined') {
+      pointCloud.update({ scan: message, interval: 10 });
+    }
+  });
+
+  */
+
 
     // init zoom view
     window.zoomView = new ROS2D.ZoomView({

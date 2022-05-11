@@ -173,25 +173,54 @@ ROS2D.OccupancyGrid = function(options) {
       var mapI = col + ((this.height - row - 1) * this.width);
       // determine the value
       var data = message.data[mapI];
-      var val;
-      if (data === 100) {
-        val = 0;
-      } else if (data === 0) {
-        val = 255;
-      } else {
-        val = 127;
+      //var val;
+
+      // The following color setting is reference from Rviz http://docs.ros.org/en/jade/api/rviz/html/c++/map__display_8cpp_source.html
+      var r=0,g=0,b=0,a=0;
+      if (data === 100) { // lethal obstacle values (100) in yellow
+        r = 0;
+        g = 0;
+        b = 0;
+        a = 255;
+      } else if (data === 99 ) {   // inscribed obstacle values (99) in cyan
+        r = 0;
+        g = 255;
+        b = 255;
+        a = 255;
+      } else if (data >= 1 && data <= 98 ) {  //  Blue to red spectrum for most normal cost values
+        v = (255 * data) / 100;
+        r = v;
+        g = 0;
+        b = 255 - v;
+        a = 255;
+      } else if (data >= 101 && data <= 127 ) {  
+        r = 0;
+        g = 255;
+        b = 0;
+        a = 255;  
+      } else if (data > 127) {
+        r = 255;
+        g = (255*(data-128))/(254-128); 
+        b = 0;
+        a = 255;
       }
+       else if (data <= 0) {
+        r = 0;
+        g = 0;
+        b = 0;
+        a = 0;
+       }
 
       // determine the index into the image data array
       var i = (col + (row * this.width)) * 4;
       // r
-      imageData.data[i] = val;
+      imageData.data[i] = r;
       // g
-      imageData.data[++i] = val;
+      imageData.data[++i] = g;
       // b
-      imageData.data[++i] = val;
+      imageData.data[++i] = b;
       // a
-      imageData.data[++i] = 255;
+      imageData.data[++i] = a;
     }
   }
   context.putImageData(imageData, 0, 0);
@@ -1083,7 +1112,8 @@ ROS2D.Viewer = function(options) {
   document.getElementById(divID).appendChild(canvas);
 
   // update at 30fps
-  createjs.Ticker.setFPS(30);
+  //createjs.Ticker.setFPS(30);   // remove this line due to method Deprecated at createjs.js:233
+  createjs.Ticker.framerate = 30;
   createjs.Ticker.addEventListener('tick', this.scene);
 };
 
