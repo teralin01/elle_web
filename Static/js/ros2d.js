@@ -175,9 +175,9 @@ ROS2D.OccupancyGrid = function(options) {
       var data = message.data[mapI];
       //var val;
 
-      // The following color setting is reference from Rviz http://docs.ros.org/en/jade/api/rviz/html/c++/map__display_8cpp_source.html
+      // The following color setting is reference from Rviz http://docs.ros.org/en/jade/api/rviz/html/c++/map__display_8cpp_source.html  +00166 makeCostmapPalette()
       var r=0,g=0,b=0,a=0;
-      if (data === 100) { // lethal obstacle values (100) in yellow
+      if (data === 100) { // lethal obstacle values (100) in black
         r = 0;
         g = 0;
         b = 0;
@@ -204,13 +204,13 @@ ROS2D.OccupancyGrid = function(options) {
         b = 0;
         a = 255;
       }
-       else if (data <= 0) {
+       else if (data <= 0) {  // impossible area
         r = 0;
         g = 0;
         b = 0;
         a = 0;
        }
-
+      a = a * 0.3;  // adjustable alpha value
       // determine the index into the image data array
       var i = (col + (row * this.width)) * 4;
       // r
