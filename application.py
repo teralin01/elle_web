@@ -13,12 +13,8 @@ class Application(tornado.web.Application):
         handlers = [
             (r"/", mainController.MainHandler),
             (r"/main", mainController.MainHandler),
-            (r'/setCookie',mainController.setCookieHandler),
-            (r'/getCookie',mainController.getCookieHandler),
-            (r'/clearCookie',mainController.ClearCookieHandler),
             (r'/login',mainController.LoginHandler),
             (r'/logout',mainController.LogoutHandler),
-            (r"/parseURLPath/(\w*)/(\w*)", mainController.URLPathHandler),
             (r"/control/statusController", statusController.InitHandler),
             (r"/control/missionController", missionController.InitHandler),
             (r"/control/mapController", mapController.InitHandler),
