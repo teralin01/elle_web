@@ -53,7 +53,7 @@ class LoginHandler(BaseHandler):
         if ret == 2:
             self.redirect("/login?status=2") 
             
-        self.set_secure_cookie("user", account)    
+        self.set_secure_cookie("user", account, expires=time.time()+86400) #cookie timeout after 1 day
         self.redirect("/main")
             
         # default account  "admin" / "axadmin"
