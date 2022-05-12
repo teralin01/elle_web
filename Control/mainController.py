@@ -6,28 +6,10 @@ import json
 
 class BaseHandler(tornado.web.RequestHandler):
     def get_current_user(self):
-        return self.get_secure_cookie("user")
-class HomeHandler(BaseHandler):
-    # def get_current_user(self):
-    #     flag = self.get_argument("flag")
-    #     return flag
-    
-    @tornado.web.authenticated
-    def get(self, *args, **kwargs ):
-        vars = {"Name":"Tera", "resource":10}
-        waypoints = ([{"Name":"charging","location":1},{"Name":"april tag","location":3}])
-        def mySum(n1,n2):
-            return n1+n2
-        self.render('TemplateExample.html', vars = vars, waypoints = waypoints, mySum = mySum )
-        self.finish()   
-
-class TokenHandler(BaseHandler):
-    def get(self, *args, **kwargs ):
-        print ("Token request coming",time.time())
-        token = {"time":time.time()}
-        self.write(token)        
+        return self.get_secure_cookie("user")     
         
-class HeaderHandler(BaseHandler):
+# An example code to show the life time of http request in Tornado
+class HeaderHandler(BaseHandler): 
     def set_default_header(self):  # Step 1 function call
         self.set_header("Content-Type","text/html;charset=UTF-8")
         self.set_status(200,"OK")
@@ -48,48 +30,14 @@ class HeaderHandler(BaseHandler):
     def get(self,*args,**kwargs):
         pass
 
-class URLPathHandler(BaseHandler):
-    def get(self,h1,h2,*args,**kwargs):
-        self.write(h1+"--"+h2+" --")
-        
-class GetReqHandler(BaseHandler):
-    def get(self,*args,**kwargs):
-        flag = self.get_query_argument("Flag",default="None", strip=True)   
-        print ("Home request coming",time.time(),"   ",flag)
-        self.write("Query string: "+flag)
-
+# An example code to show http get/post in the same URL
 class PostReqHandler(BaseHandler):
     def get(self,*args,**kwargs):
         self.render('postDemo.html')
     def post(self,*args,**kwargs):        
         name = self.get_body_argument("name")
         self.write("Post name"+ name)        
-        self.finish()
-        
-class ReqHandler(BaseHandler):
-    def get(self,*args,**kwargs):
-        self.render('postDemo.html')
-    def post(self,*args,**kwargs):        
-        name = self.get_argument("name")   # retrieve param from both Get & Post request
-        self.write("Post name"+ name)                
-    
-class setCookieHandler(BaseHandler):
-    def get(self,*args,**kwargs):
-        self.set_cookie("Elle","beta")
-        #self.set_secure_cookie("SecureElle","sCookie")
-        self.write("ok")
-        
-class getCookieHandler(BaseHandler):
-    def get(self,*args,**kwargs):
-        cookie = self.get_cookie("Elle",default=None)            
-        #cookie = self.secure_get_cookie("SecureElle")        
-        print ("cookie: ",cookie)
-        self.write("ok")
-
-class ClearCookieHandler(BaseHandler):
-    def get(self,*args,**kwargs):
-        self.clear_cookie()
-        self.write("ok")        
+        self.finish()             
         
 class LoginHandler(BaseHandler):
     def get(self,*args,**kwargs):
