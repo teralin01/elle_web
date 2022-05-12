@@ -105,7 +105,7 @@ class LoginHandler(BaseHandler):
         if ret == 2:
             self.redirect("/login?status=2") 
             
-        self.set_secure_cookie("user", account)    
+        self.set_secure_cookie("admin", account)    
         self.redirect("/main")
             
         # default account  "admin" / "axadmin"

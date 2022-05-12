@@ -631,6 +631,7 @@ ROS2D.PathShape = function(options) {
 		this.graphics.beginStroke(this.strokeColor);
 		this.graphics.moveTo(path.poses[0].pose.position.x / this.scaleX, path.poses[0].pose.position.y / -this.scaleY);
 		for (var i=1; i<path.poses.length; ++i) {
+      console.log("Pose:"+path.poses[i].pose.position.x+", "+path.poses[i].pose.position.y)
 			this.graphics.lineTo(path.poses[i].pose.position.x / this.scaleX, path.poses[i].pose.position.y / -this.scaleY);
 		}
 		this.graphics.endStroke();
@@ -650,10 +651,22 @@ ROS2D.PathShape.prototype.setPath = function(path) {
 	if (path !== null && typeof path !== 'undefined') {
 		this.graphics.setStrokeStyle(this.strokeSize);
 		this.graphics.beginStroke(this.strokeColor);
-		this.graphics.moveTo(path.poses[0].pose.position.x / this.scaleX, path.poses[0].pose.position.y / -this.scaleY);
-		for (var i=1; i<path.poses.length; ++i) {
-			this.graphics.lineTo(path.poses[i].pose.position.x / this.scaleX, path.poses[i].pose.position.y / -this.scaleY);
-		}
+		//this.graphics.moveTo(path.poses[0].pose.position.x / this.scaleX, path.poses[0].pose.position.y / -this.scaleY);
+
+    if ( path.poses.length = 3)
+      this.graphics.moveTo(path.poses[0].pose.position.x / path.poses[0].pose.position.y / -this.scaleY).lt(path.poses[1].pose.position.x / this.scaleX, path.poses[1].pose.position.y / -this.scaleY).lt(path.poses[2].pose.position.x / this.scaleX, path.poses[2].pose.position.y / -this.scaleY);
+    if ( path.poses.length >= 4  && path.poses.length < 6)
+      this.graphics.moveTo(path.poses[0].pose.position.x / path.poses[0].pose.position.y / -this.scaleY).lt(path.poses[1].pose.position.x / this.scaleX, path.poses[1].pose.position.y / -this.scaleY).lt(path.poses[3].pose.position.x / this.scaleX, path.poses[3].pose.position.y / -this.scaleY);
+    if ( path.poses.length >= 6  && path.poses.length < 9)  
+      this.graphics.moveTo(path.poses[0].pose.position.x / path.poses[0].pose.position.y / -this.scaleY).lt(path.poses[2].pose.position.x / this.scaleX, path.poses[2].pose.position.y / -this.scaleY).lt(path.poses[5].pose.position.x / this.scaleX, path.poses[5].pose.position.y / -this.scaleY);
+    if ( path.poses.length >= 9  && path.poses.length < 12)  
+      this.graphics.moveTo(path.poses[0].pose.position.x / path.poses[0].pose.position.y / -this.scaleY).lt(path.poses[3].pose.position.x / this.scaleX, path.poses[3].pose.position.y / -this.scaleY).lt(path.poses[6].pose.position.x / this.scaleX, path.poses[6].pose.position.y / -this.scaleY).lt(path.poses[8].pose.position.x / this.scaleX, path.poses[8].pose.position.y / -this.scaleY);
+    if ( path.poses.length >= 12  )  
+      this.graphics.moveTo(path.poses[0].pose.position.x / path.poses[0].pose.position.y / -this.scaleY).lt(path.poses[3].pose.position.x / this.scaleX, path.poses[3].pose.position.y / -this.scaleY).lt(path.poses[8].pose.position.x / this.scaleX, path.poses[8].pose.position.y / -this.scaleY).lt(path.poses[11].pose.position.x / this.scaleX, path.poses[11].pose.position.y / -this.scaleY);
+    
+    //for (var i=1; i<path.poses.length; ++i) {
+    //   this.graphics.lineTo(path.poses[i].pose.position.x / this.scaleX, path.poses[i].pose.position.y / -this.scaleY);
+		// }
 		this.graphics.endStroke();
 	}
 };
