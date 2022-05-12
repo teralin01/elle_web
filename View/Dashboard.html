@@ -30,7 +30,8 @@
     ros.connect('ws://10.1.30.172:9090');
     var windowWidth = window.innerWidth;
     var windowHeight = window.innerHeight;
-
+    var panOn = false; 
+    var zoomStatus = false;
     $(window).resize(function() {
         clearTimeout(window.resizedFinished);
         window.resizedFinished = setTimeout(function(){
@@ -44,9 +45,9 @@
 
 
 function init(){
-    var width = windowWidth *0.7;
-    var height = windowHeight * 0.7;
-    var panOn = false; 
+    var width = windowWidth *0.8;
+    var height = windowWidth * 0.5;
+    
     window.viewer = new window.ROS2D.Viewer({
         divID : 'mapdisplay',
         width : width,
@@ -63,8 +64,10 @@ function init(){
     });
 
     gridClient.on('change', function(){
+      if (! zoomStatus){
         viewer.scaleToDimensions(gridClient.currentGrid.width, gridClient.currentGrid.height);
         viewer.shift(gridClient.currentGrid.pose.position.x, gridClient.currentGrid.pose.position.y);
+      }
     });
 
     // append grid
@@ -156,17 +159,17 @@ function init(){
       });
     
     viewer.scene.addChild(pathShapeGlobal);
+   
     var pathUpdateTime = Date.now();
     listenerforPathGlobal.subscribe((message)=> {
       
       currentTime = Date.now();
       if ( currentTime > pathUpdateTime + 2000 )
       {
-        console.log(message);
+        //console.log(message);
         pathShapeGlobal.setPath(message);
         pathUpdateTime = currentTime;
       }
-      
     });
     
     // update local path
@@ -184,7 +187,7 @@ function init(){
     viewer.scene.addChild(pathShapeLocal);
     
     listenerforPathLocal.subscribe((message)=> {
-      console.log(message)
+      //console.log(message)
       pathShapeLocal.setPath(message);
     });
     
@@ -269,24 +272,48 @@ function init(){
         }
     };
 }
-    
+   
+  function mapAdjust(){
+    console.log("Mouse enter div");
+    zoomStatus = true;
+    var viewer = window.viewer;
+
+    viewer.scene.addEventListener('wheel', 
+    this.zoomInEventHandle = function(event) {
+      
+      if (event.deltaY < 0){
+        console.log("zoomin");
+          zoomin();
+      }
+      else if (event.deltaY > 0)
+      {
+        console.log("zoomout");
+          zoomout();
+      }
+    });
+  }
+
     function zoomin()
     {
-      zoomView.startZoom(width/2, height/2);
+      zoomStatus = true;
+      zoomView.startZoom(windowWidth/2, windowHeight/2);
       zoomView.zoom(1.5);
+      
     }
     
     function zoomout()
     {
-      zoomView.startZoom(width/2, height/2);
+      zoomStatus = true;
+      zoomView.startZoom(windowWidth/2, windowHeight/2);
       zoomView.zoom(1/1.5);
+      
     }
     
     function pan(btn)
     {
       panOn = !panOn;
       if(panOn) {
-        btn.style.backgroundColor = '#FF0000';
+        btn.style.backgroundColor = '#CCCC00';
         window.triggerPan({ enable: true });
       } else {
         btn.style.backgroundColor = '#DDDDDD';
@@ -334,25 +361,11 @@ function init(){
 
 </script>
 
-        <!-- 
-        Task:
-        <ul>
-            <li>Show Map block, Status block, Mission block</li>
-            <li>Use dynaic loading to show/hide block by user privilege</li>
-            <li>Control the content inside blocks </li>
-
-        </ul> -->
-        
-
-        <p id="statusBlock">status block</p>
-        <p id="missionBlock">mission block</p>
-
-        
-        <!-- <div style="background-color:#97e484;padding:10px;margin-bottom:5px;width:1024px;">
-            <h3>Canvas control</h3>
-            <button onclick = "zoomin()">In</button>
-            <button onclick = "zoomout()">Out</button>
-            <button onclick = "pan(this)">Pan</button>
-        </div> -->
-        
-        <div id="mapdisplay" style="color:#ced6ce"></div>
+      <p id="statusBlock">status block</p>
+      <p id="missionBlock">mission block</p>
+      <div id="mapdisplay" style="color:#ced6ce" ></div>
+      <div > 
+          <button onclick = "zoomin()"><img src="/static/image/zoomIn.png" height ="25" width="25"></button>
+          <button onclick = "zoomout()"><img src="/static/image/zoomOut.png" height ="25" width="25"></button>
+          <button onclick = "pan(this)"><img src="/static/image/move.png" height ="25" width="25"></button>
+      </div>
