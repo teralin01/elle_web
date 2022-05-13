@@ -7,6 +7,7 @@
 - apt-get install Nginx 
 - pip install supervisor
 - pip install tornado
+- pip install psutil
 
 # How to run Elle web
 ## Config file path:

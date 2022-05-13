@@ -52,7 +52,15 @@ function init(){
       width = windowWidth *0.75;
       height = windowWidth * 0.32;
     }
-    
+    else if ( windowWidth >= 800){
+      width = windowWidth * 0.9;
+      height = windowWidth * 0.4;
+    }
+    else if ( windowWidth < 800){
+      width = windowWidth *0.9;
+      height = windowWidth * 0.4;
+    }
+
     window.viewer = new window.ROS2D.Viewer({
         divID : 'mapdisplay',
         width : width,

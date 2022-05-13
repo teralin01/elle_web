@@ -16,6 +16,7 @@ class Application(tornado.web.Application):
             (r'/login',mainController.LoginHandler),
             (r'/logout',mainController.LogoutHandler),
             (r"/control/statusController", statusController.InitHandler),
+            (r"/control/HardwareStatus", statusController.HWInfoHandler),
             (r"/control/missionController", missionController.InitHandler),
             (r"/control/mapController", mapController.InitHandler),
             (r'/view/dashboard/(.*)$',tornado.web.StaticFileHandler,{"path":"view/dashboard/"}),
