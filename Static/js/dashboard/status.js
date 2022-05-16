@@ -108,7 +108,7 @@ function updateUsage(){
         success: function (result){
             var memUsage = parseInt(( result.memUsed / result.memTotal)*100 );
             UsagePie(Width, Height, initStyle,result.CPU_Persent, canvas_cpu,"CPU usage");
-            UsagePie(Width, Height, initStyle,(result.memUsed/1024 / 1024 / 1024).toFixed(2),canvas_mem,"Mem usage");
+            UsagePie(Width, Height, initStyle,(100* result.memUsed/result.memTotal).toFixed(2),canvas_mem,"Mem usage");
         }
       });
 
