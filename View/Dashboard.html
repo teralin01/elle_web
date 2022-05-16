@@ -93,7 +93,7 @@ function init(){
 
     //  put car icon
     var navigationImage = new window.ROS2D.NavigationImage({ 
-        image : '/static/image/arrow_yellow.png',
+        image : '/static/image/ELLE.png',
         stage: viewer.scene,
         size: 1,
         //pulse: true
@@ -160,7 +160,7 @@ function init(){
     */
 
     // update global path
-    var pathShapeGlobal = new window.ROS2D.PathShape({
+/*    var pathShapeGlobal = new window.ROS2D.PathShape({
       strokeSize : 5,
       strokeColor:'#0085FC'
       });
@@ -184,9 +184,9 @@ function init(){
         pathUpdateTime = currentTime;
       }
     });
-    
+  */  
     // update local path
-    var pathShapeLocal = new window.ROS2D.PathShape({
+/*    var pathShapeLocal = new window.ROS2D.PathShape({
       strokeSize : 5,
       strokeColor: '#4CAF50'
       });
@@ -203,7 +203,7 @@ function init(){
       //console.log(message)
       pathShapeLocal.setPath(message);
     });
-    
+  */  
 
    // update lidar info
     
