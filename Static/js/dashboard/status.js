@@ -1,5 +1,4 @@
-var canvas_cpu = document.getElementById("CPUusageChart");
-var context = canvas_cpu.getContext("2d");
+
 
 // 创建文字：canvas 2D对象，内容文字，画布X轴，Y轴，样式
 function DrawCPUText(ctx, title, x, y, style) {
@@ -14,12 +13,12 @@ function DrawCPUText(ctx, title, x, y, style) {
     ctx.restore();
 }
 
-function UsagePie(width, height, setValueObj,usage){
+function UsagePie(width, height, setValueObj,usage, canvas_cpu,title){
     var total = 100; // Togal usage
     var startAngle = (Math.PI*-1/2); // 圆开始角度
     var endAngle = usage; // 圆结束角度（已用容量）
     var currValue = usage; // 已用容量
-    
+    var context = canvas_cpu.getContext("2d");
     // 设置画布宽高
     canvas_cpu.setAttribute('width', width);
     canvas_cpu.setAttribute('height', height);
@@ -51,7 +50,7 @@ function UsagePie(width, height, setValueObj,usage){
     );
 
     // Text in the bottom of chart 
-    var title_text = "CPU usage"
+    var title_text = title;
     DrawCPUText(
         context, 
         title_text,
@@ -108,12 +107,16 @@ function updateUsage(){
         url: "/control/HardwareStatus",
         success: function (result){
             var memUsage = parseInt(( result.memUsed / result.memTotal)*100 );
-            UsagePie(Width, Height, initStyle,result.CPU_Persent);
-            //UsagePie(Width, Height, initStyle,result.memUsage,Width+100);
+            UsagePie(Width, Height, initStyle,result.CPU_Persent, canvas_cpu,"CPU usage");
+            UsagePie(Width, Height, initStyle,(result.memUsed/1024 / 1024 / 1024).toFixed(2),canvas_mem,"Mem_usage");
         }
       });
 
 }
+
+var canvas_cpu = document.getElementById("CPUusageChart");
+var canvas_mem = document.getElementById("MemUsageChart");
+
 updateUsage();
 var timeoutID = window.setInterval((
      () => updateUsage()
