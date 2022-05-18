@@ -9,13 +9,12 @@ import GPUtil
 class HWInfoHandler (RequestHandler):
     def get(self,*args,**kwargs):
         memStatus =  psutil.virtual_memory() 
-        cpuStatus = psutil.cpu_times()
         cpuPersent = psutil.cpu_percent()
-        cpuTemperature = psutil.sensors_temperatures()
+        cpuTemperature = psutil.sensors_temperatures()['coretemp'][0][1]
         #Gpus = GPUtil.getGPUs()
         # [scputimes(user=11684.17, nice=57.93, system=148683.01, idle=2168982.08, iowait=260833.18, irq=7882.35, softirq=0.0, steal=3697.3, guest=0.0, guest_nice=0.0)]
         #print(AmrInfo.GetGpuInfo())
-        Info = { "memTotal":memStatus.total,"memUsed":memStatus.used,"CPU":cpuStatus,"CPU_Persent":cpuPersent,"cpuTemp":cpuTemperature }
+        Info = { "memTotal":memStatus.total,"memUsed":memStatus.used,"CPU_Persent":cpuPersent,"CPU_Temp":cpuTemperature }
         self.set_header('Content-Type', 'application/json; charset=UTF-8')
         self.write( json.dumps(Info))
 

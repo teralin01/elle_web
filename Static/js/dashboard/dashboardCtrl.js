@@ -289,9 +289,21 @@ function pan(btn)
     triggerPan({ enable: false });
     }
 }
+
+function touch(btn){
+
+  viewer.scene.on("stagemousedown", function(evt) {
+    //console.log("the canvas was clicked at "+evt.stageX+","+evt.stageY);
+    //console.log("Scale X, Scale Y "+viewer.scene.scaleX+" "+viewer.scene.scaleY);
+    //console.log("ROS zero X,Y "+viewer.scene.x+" "+viewer.scene.y); 
+     
+    var rosX = (evt.stageX - viewer.scene.x) / viewer.scene.scaleX;
+    var rosY = (viewer.scene.y - evt.stageY) / viewer.scene.scaleY;
+    console.log("ROS location (X,Y): ",rosX,rosY);
+})
+
+}
     
-
-
 window.onload = function() {
     $.ajax({
         type: "get",
@@ -310,17 +322,6 @@ window.onload = function() {
           $("#missionBlock").html(result);
         }
       });
-      /*
-      $.ajax({
-        type: "get",
-        //data: {start},
-        url: "/control/mapController",
-        success: function (result){
-          $("#mapBlock").html(result);
-          
-        }
-      });          */
-      
   };
 
   document.addEventListener('DOMContentLoaded', function() {
