@@ -1,0 +1,80 @@
+.container-all{
+    display:flex;
+    align-items: stretch;
+}
+
+#sidebar{
+    width: 200px;
+    height:100vh;
+    background-color: rgb(62, 19, 35);
+    color:beige;
+    transition: 1s;
+}
+
+.container-right{
+    background-color: beige;
+    width: 100%;
+    height: 100vh;
+}
+.collapse-btn{
+    position: relative;
+    left: 1px;
+    color:white
+
+}
+.collapse-btn:hover{
+    background-color: rgb(225, 202, 202);
+    transition: 0.4;
+}
+
+#sidebar p{
+    text-align: center;
+    font-size: 25px;
+    font-style: italic;
+    padding:  10px;
+}
+#sidebar ul li a{
+    padding: 10px;
+    font-size: 20px;
+    display: block;
+    text-decoration: none;
+    color:#fff;
+}
+
+#sidebar ul li a:hover{
+    color: rgb(155, 99, 210);
+    background: #fff;
+}
+
+#sidebar.active{
+    margin-left: -160px;
+}
+
+
+.fa{
+    float:right;
+}
+
+ul ul li a{
+    background-color: rgb(112, 72, 150);
+    font-size: 20px;
+    font-style: italic;
+}
+@media (max-width:768px){
+    #sidebar{
+        margin-left: -112px;
+        width:150px;
+        font-size: 20px;
+    }
+    #logo{
+        display: none;
+    }
+    .collapse-btn{
+        position: relative;
+        
+        left:110px;
+    }
+    #sidebar.active{
+        margin-left: 0px;
+    }
+}

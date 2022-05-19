@@ -1,0 +1,32 @@
+.navbar{
+    background-color: rgb(54, 96, 82);
+}
+
+.nav{
+    height: 70px;
+}
+li a {
+    color:brown !important;
+    font-size: 20px;
+}
+
+li a:hover{
+    color:rgb(66, 6, 22) !important;
+    background-color: rgb(120, 116, 110);
+}
+
+.navbar-toggler{
+    background-color: aqua;
+}
+
+.nav-link{
+    padding: 10px;
+}
+@media (max-width:768px){
+    nav{
+        height: auto;
+    }
+    .nav-link{
+        padding:5px;
+    }
+}
