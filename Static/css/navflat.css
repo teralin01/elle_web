@@ -27,13 +27,8 @@
     transition: 0.4;
 }
 
-#sidebar p{
-    text-align: center;
-    font-size: 25px;
-    font-style: italic;
-    padding:  10px;
-}
-#sidebar ul li a{
+
+.sidebar {
     padding: 10px;
     font-size: 20px;
     display: block;
@@ -41,9 +36,10 @@
     color:#fff;
 }
 
-#sidebar ul li a:hover{
+.sidebar :hover{
     color: rgb(155, 99, 210);
     background: #fff;
+    background-color: #fff;
 }
 
 #sidebar.active{
@@ -56,10 +52,27 @@
 }
 
 ul ul li a{
-    background-color: rgb(112, 72, 150);
-    font-size: 20px;
+
+    font-size: 15px;
     font-style: italic;
+    padding: 16px ;
+
 }
+
+ul ul li a :hover{
+    background-color:rgb(8, 1, 14);
+
+}
+ul ul li a i{
+    margin-right: 12px;
+}
+
+.HwUsageChart{
+    width:8;
+    color:"#3390d7";
+    font-size: 20px;
+}
+
 @media (max-width:768px){
     #sidebar{
         margin-left: -112px;

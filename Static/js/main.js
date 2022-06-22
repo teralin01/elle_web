@@ -1,30 +1,14 @@
-function openPage(pageName, elmnt, color) {
-    // Hide all elements with class="tabcontent" by default */
-    var i, tabcontent, tablinks;
-    tabcontent = document.getElementsByClassName("tabcontent");
-    for (i = 0; i < tabcontent.length; i++) {
-      tabcontent[i].style.display = "none";
-    }
-  
-    // Remove the background color of all tablinks/buttons
-    tablinks = document.getElementsByClassName("tablink");
-    for (i = 0; i < tablinks.length; i++) {
-      tablinks[i].style.backgroundColor = "";
-    }
-  
-    // Show the specific tab content
-    document.getElementById(pageName).style.display = "block";
-  
-    // Add the specific color to the button used to open the tab content
-    elmnt.style.backgroundColor = color;
+function openPage(pageName) {
     if (pageName == "Dashboard")
-      document.getElementById(pageName).innerHTML = '<object type="text/html" data="../view/Dashboard.html" width="100%" height="800px"></object>';
+      document.getElementById("pageContent").innerHTML = '<object type="text/html" data="/view/Dashboard.html" width="100%" height="1024px"></object>';
     else  if (pageName == "Setup")
-      document.getElementById(pageName).innerHTML = '<object type="text/html" data="../view/Setup.html" width="100%" height="800px"></object>';
+      document.getElementById("pageContent").innerHTML = '<object type="text/html" data="/view/Setup.html" width="100%" height="1024px"></object>';
     else  if (pageName == "System")
-      document.getElementById(pageName).innerHTML = '<object type="text/html" data="../view/System.html" width="100%" height="800px"></object>';
+      document.getElementById("pageContent").innerHTML = '<object type="text/html" data="/view/System.html" width="100%" height="1024px"></object>';
     else  if (pageName == "Log")
-      document.getElementById(pageName).innerHTML = '<object type="text/html" data="../view/Log.html" width="100%" height="800px"></object>';
+      document.getElementById("pageContent").innerHTML = '<object type="text/html" data="/view/Log.html" width="100%" height="1024px"></object>';
+    else if (pageName == "Logout")
+      Logout();
   }
   
   function deleteAllCookies() {
@@ -43,7 +27,6 @@ function openPage(pageName, elmnt, color) {
     // TODO: call backend to clear cookie
     $.ajax({
       type: "get",
-      //data: {start},
       url: "/logout",
       success: function (result){
         location.href = '/login';
@@ -51,8 +34,17 @@ function openPage(pageName, elmnt, color) {
     });
   }
   
-    
-  function init(){
-      // Get the element with id="defaultOpen" and click on it
-      document.getElementById("defaultOpen").click();
-  };    
+  // Never used now. Plan to use it in the future. 
+  function isMobileDevice() {
+    const mobileDevice = ['Android', 'webOS', 'iPhone', 'iPad', 'iPod', 'BlackBerry', 'Windows Phone']
+    let isMobileDevice = mobileDevice.some(e => navigator.userAgent.match(e))
+    return isMobileDevice
+ }
+
+  $(document).ready(function(){
+    document.getElementById("Dashboard").click();
+    $("#collapse").click(function(){
+        $("#sidebar").toggleClass("active");
+        $(".fa-align-left").toggleClass("fa-chevron-circle-right");
+    })
+})

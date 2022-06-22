@@ -8,11 +8,21 @@
 <script src="/static/js/dashboard/initROS.js"></script>
 <script src="/static/js/dashboard/dashboardCtrl.js"></script>
 
-<p id="statusBlock">status block</p>
-<p id="missionBlock">mission block</p>
-<div id="mapdisplay" style="color:#ced6ce" ></div>
-<div > 
-    <button onclick = "zoomin()"><img src="/static/image/zoomIn.png"  class=".img-fluid" height ="25" width="25"></button>
-    <button onclick = "zoomout()"><img src="/static/image/zoomOut.png" class=".img-fluid" height ="25" width="25"></button>
-    <button onclick = "pan(this)"><img src="/static/image/move.png" class=".img-fluid" height ="25" width="25"></button>
-</div>
+<div class="row">
+    <div class="col">
+        <p id="statusBlock">status block</p>
+    </div>
+    <div class="col">
+        <p id="missionBlock">mission block</p>
+    </div>
+    <div class="col">
+        <div id="mapdisplay" style="color:#ced6ce" ></div>
+        <div > 
+            <button onclick = "zoomin()"><img src="/static/image/zoomIn.png"  class=".img-fluid" height ="25" width="25"></button>
+            <button onclick = "zoomout()"><img src="/static/image/zoomOut.png" class=".img-fluid" height ="25" width="25"></button>
+            <button onclick = "pan(this)"><img src="/static/image/move.png" class=".img-fluid" height ="25" width="25"></button>
+        </div>
+    </div>
+  </div>
+
+

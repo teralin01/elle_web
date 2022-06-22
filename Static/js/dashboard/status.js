@@ -90,6 +90,8 @@ $(function(){
     };
 });
 
+var Width = $(window).width()/5;
+var Height = $(window).height()/5;
 
 var initStyle = {
     labelWidth: 8,
@@ -98,15 +100,19 @@ var initStyle = {
     color: "#3390d7"
 };
 
-var Width = $(window).width()/5;
-var Height = $(window).height()/5;
+// TODO: Get width value to update initStyle.fontSize more dynamically. 
+// Issue: something wrong in following code. 
+// function getCSS(){
+//     console.log($('.HwUsageChart').css( "fontSize" ));
+// }
 
 function updateUsage(){
     $.ajax({
         type: "get",
         url: "/control/HardwareStatus",
         success: function (result){
-            var memUsage = parseInt(( result.memUsed / result.memTotal)*100 );
+            if(windowWidth <= 768)
+                initStyle.fontSize = "15px";
             UsagePie(Width, Height, initStyle,result.CPU_Persent, canvas_cpu,"CPU usage"," %");
             UsagePie(Width, Height, initStyle,(100* result.memUsed/result.memTotal).toFixed(2),canvas_mem,"Mem usage"," %");
             UsagePie(Width, Height, initStyle,result.CPU_Temp, canvas_tmp,"CPU temperature"," °C");
@@ -118,7 +124,7 @@ function updateUsage(){
 var canvas_cpu = document.getElementById("CPUusageChart");
 var canvas_mem = document.getElementById("MemUsageChart");
 var canvas_tmp = document.getElementById("TempUsageChart");
-
+// getCSS();
 updateUsage();
 var timeoutID = window.setInterval((
      () => updateUsage()

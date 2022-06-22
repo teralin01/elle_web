@@ -1,20 +1,20 @@
 
 
 function init(){
-
+    // RWD setting for map. the scale parameters need to adjust in the future. 
     var width = 1024;
     var height = 768;
-    if ( windowWidth >= 1024){
-      width = windowWidth *0.75;
-      height = windowWidth * 0.32;
+    if ( windowWidth >= 1024){ // normal PC
+      width = windowWidth *0.85;
+      height = windowWidth * 0.33;
     }
-    else if ( windowWidth >= 800){
-      width = windowWidth * 0.9;
-      height = windowWidth * 0.4;
+    else if ( windowWidth > 768){
+      width = windowWidth * 0.85;
+      height = windowWidth * 0.33;
     }
-    else if ( windowWidth < 800){
-      width = windowWidth *0.9;
-      height = windowWidth * 0.4;
+    else if ( windowWidth <= 768){  // Mobile device 
+      width = windowWidth *0.85;
+      height = windowWidth * 0.33;
     }
 
     window.viewer = new window.ROS2D.Viewer({
@@ -27,7 +27,7 @@ function init(){
     var gridClient = new window.ROS2D.OccupancyGridClient({
         ros : ros,
         rootObject : viewer.scene,
-        //topic: '/map',
+        topic: '/map',
         topic: '/global_costmap/costmap',
         continuous : true,
     });

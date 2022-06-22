@@ -1,85 +1,50 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Elle web viewer</title>
-<meta charset="utf-8" />
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-<meta http-equiv="Pragma" content="no-cache" />
-<meta http-equiv="Expires" content="0"/>
-<link href="/static/css/bootstrap.min.css">
-<script src="/static/js/openSource/bootstrap.bundle.min.js" ></script>
-<script src="/static/js/openSource/jquery-3.6.0.min.js"></script>
-<script src="/static/js/main.js"></script>
-
-<style>
-    * {box-sizing: border-box}
-    
-    /* Set height of body and the document to 100% */
-    body, html {
-      height: 100%;
-      margin: 0;
-      font-family: Arial;
-    }
-    
-    /* Style tab links */
-    .tablink {
-      background-color: #555;
-      color: white;
-      float: left;
-      border: none;
-      outline: none;
-      cursor: pointer;
-      padding: 14px;
-      font-size: 17px;
-      width: 20%;
-      border-radius: 15px;
-      margin: 1%;
-    }
-    
-    .tablink:hover {
-      background-color: #777;
-    }
-    
-    /* Style the tab content (and add height:100% for full page content) */
-    .tabcontent {
-      color: rgb(34, 32, 32);
-      display: none;
-      padding: 100px 20px;
-    }
-    
-
-    /* Style tab links */
-    .tablogout {
-        background-color: rgb(86, 97, 69);
-        color: white;
-        float: left;
-        border: none;
-        outline: none;
-        cursor: pointer;
-        padding: 14px;
-        font-size: 17px;
-        width: 8%;
-        border-radius: 15px;
-        margin: 1%;
-        }
-
-    #Dashboard {background-color: rgb(235, 210, 210);}
-    #Setup {background-color: rgb(221, 235, 221);}
-    #System {background-color: rgb(200, 200, 237);}
-    #Log {background-color: rgb(231, 219, 198);}
-    </style>
-</head>
-<body  onload="init()">
-    <button class="tablink" onclick="openPage('Dashboard', this, '#0085FC')" id="defaultOpen">Dashboard</button>
-    <button class="tablink" onclick="openPage('Setup', this, '#0085FC')" >Setup</button>
-    <button class="tablink" onclick="openPage('System', this, '#0085FC')">System</button>
-    <button class="tablink" onclick="openPage('Log', this, '#0085FC')">Log</button>
-    <button class="tablogout" onclick="Logout()">Logout</button>
-
-    <div id="Dashboard" class="tabcontent"></div>
-    <div id="Setup" class="tabcontent"></div>    
-    <div id="System" class="tabcontent"></div>
-    <div id="Log" class="tabcontent"></div>
-    <div id="Logout" class="tabcontent"></div>
-</body>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/font-awesome/all.css" rel="stylesheet">
+    <link href="/static/css/navflat.css" rel="stylesheet">
+    <script src="/static/js/openSource/jquery-3.6.0.min.js"></script>
+    <script src="/static/js/openSource/bootstrap.bundle.min.js" ></script>
+    <!-- <script src="/static/js/openSource/vue.global.js" -->
+    <script src="/static/js/main.js"></script>
+    <title>Elle web viewer</title>
+  </head>
+  <body>
+      <div class="container-all">
+        <div class="container-left">
+            <nav id="sidebar">
+                <img id= "logo" src="/static/image/logo.jpg"></a>
+                <button type="button" id="collapse" class="btn collapse-btn">
+                    <i class="fas fa-align-left"></i>
+                </button>
+                <ul class="list-unstyled" >
+                    <li class= "sidebar" id="Dashboard" onclick="openPage('Dashboard')">Dashboard <i class="fa fa-solid fa-tv"></i></a></li> 
+                    <li ><a class= "sidebar" href="#sublist" data-bs-toggle="collapse" id="dropdown">Setup<i class="fa fa-solid fa-wrench"></i></a>
+                        <ul id="sublist" class="list-unstyled collapse">
+                            <li><a href="#">Map <i class="fa fa-solid fa-map-location-dot"></i></i></a></li> 
+                            <li><a href="#">Mission <i class="fa fa-duotone fa-list-check"></i></a></li>
+                        </ul>
+                    </li>
+                    <li class= "sidebar" onclick="openPage('System')">System <i class="fa fa-solid fa-gear"></i></a></li>
+                    <li class= "sidebar" onclick="openPage('Log')">Log <i class="fa fa-solid fa-database"></i></a></li>
+                    <li class= "sidebar" onclick="openPage('Logout')">Logout <i class="fa fa-solid fa-arrow-right-from-bracket"></i></a></li>
+                    
+                </ul>
+            </nav>
+        </div>
+        <div class="container-right">
+            <div class="container-fluid">
+                <div id="pageContent"></div>
+            </div>
+        </div>
+    </div>
+    <footer>
+    </footer>
+  </body>
 </html>

@@ -16,6 +16,9 @@ class HWInfoHandler (RequestHandler):
         #print(AmrInfo.GetGpuInfo())
         Info = { "memTotal":memStatus.total,"memUsed":memStatus.used,"CPU_Persent":cpuPersent,"CPU_Temp":cpuTemperature }
         self.set_header('Content-Type', 'application/json; charset=UTF-8')
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header('Access-Control-Allow-Methods', 'GET')
+        self.set_header('Access-Control-Allow-Headers','*')
         self.write( json.dumps(Info))
 
 class InitHandler (RequestHandler):
