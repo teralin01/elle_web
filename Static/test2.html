@@ -1,34 +1,128 @@
-<!doctype html>
-<html >
-    <head>
-        <meta charset="utf-8">
-        <title>網頁標題/出現於瀏覽器頁籤</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta name="description" content="提供搜尋引擎關於網頁頁面內的重要資訊">
-        <link rel="stylesheet" href="style.css">
-    </head>
-<body>
- <header>
-    <nav>
-      <ul>
-        <li><a class="nav-link" href="#">Dashboard</a></li>
-        <li><a class="nav-link" href="#">Setup</a></li>
-        <li><a class="nav-link" href="#">System</a></li>
-        <li><a class="nav-link" href="#">Log</a></li>
-      </ul>
-    </nav>
-  </header>
-  <main>
-    <article>獨立的文章1
-      <section>自訂的主題區塊1</section>
-      <section>自訂的主題區塊2</section>
-    <article>
-    <article>獨立的文章2
-      <section>自訂的主題區塊3</section>
-      <section>自訂的主題區塊4</section>
-    <article>
-  </main>
-  <footer>
-  </footer>
+<!DOCTYPE html>
+<html>
+<head>
+<title>Elle web viewer</title>
+<meta charset="utf-8" />
+
+<script src="https://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+<script src="http://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+<script src="https://code.createjs.com/1.0.0/easeljs.min.js"></script>
+<script src="https://code.createjs.com/1.0.0/createjs.min.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r71/three.min.js"></script>
+<script src="/static/js/ros2d.js"></script>
+<script>
+  // Connecting to ROS
+  // -----------------
+  var ros = new ROSLIB.Ros();
+
+  // If there is an error on the backend, an 'error' emit will be emitted.
+  ros.on('error', function(error) {
+    console.log(error);
+    document.getElementById('connecting').style.display = 'none';
+    document.getElementById('connected').style.display = 'none';
+    document.getElementById('closed').style.display = 'none';
+    document.getElementById('error').style.display = 'inline';
+  });
+
+  // Find out exactly when we made a connection.
+  ros.on('connection', function() {
+    console.log('Connection made!');
+    document.getElementById('connecting').style.display = 'none';
+    document.getElementById('error').style.display = 'none';
+    document.getElementById('closed').style.display = 'none';
+    document.getElementById('connected').style.display = 'inline';
+  });
+
+  ros.on('close', function() {
+    console.log('Connection closed.');
+    document.getElementById('connecting').style.display = 'none';
+    document.getElementById('connected').style.display = 'none';
+    document.getElementById('closed').style.display = 'inline';
+  });
+
+  // Create a connection to the rosbridge WebSocket server.
+  //ros.connect('ws://10.1.30.172:9090');
+  ros.connect('ws://10.1.30.172:9000/ws');
+  var width = 1024;
+  var height = 700;
+  var panOn = false;
+  function init(){
+    window.viewer = new window.ROS2D.Viewer({
+        divID : 'nav',
+        width : width,
+        height : height,
+        background: '#c2dfc2'
+      });      
+
+      var gridClient = new window.ROS2D.OccupancyGridClient({
+        ros : ros,
+        rootObject : viewer.scene,
+        //topic: '/map',
+        topic: '/global_costmap/costmap',
+        continuous : true,
+      });
+
+      gridClient.on('change', function(){
+        viewer.scaleToDimensions(gridClient.currentGrid.width, gridClient.currentGrid.height);
+        viewer.shift(gridClient.currentGrid.pose.position.x, gridClient.currentGrid.pose.position.y);
+      });
+
+      // pub grid
+      var grid3 = new window.ROS2D.Grid({
+        size : 50,
+        cellSize :1,
+        lineWidth : 0.01
+      });
+      viewer.scene.addChild(grid3);
+
+      //  put car icon
+      var navigationImage = new window.ROS2D.NavigationImage({ 
+        image : '/static/image/AxiomTek.jpg',
+        stage: viewer.scene,
+        size: 1,
+        //pulse: true
+      });
+      viewer.scene.addChild(navigationImage);
+
+      // update car location
+      var poseSubscriber = new window.ROSLIB.Topic({
+        ros:ros,
+        name: "amcl_pose",
+        messageType: "geometry_msgs/msg/PoseWithCovarianceStamped"
+      });
+      poseSubscriber.subscribe((message) => {  
+        // update icon location
+        navigationImage.x = message.pose.pose.position.x;
+        navigationImage.y = - message.pose.pose.position.y;
+        
+        // rotation icon
+        navigationImage.rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion(
+              message.pose.pose.orientation.x,
+              message.pose.pose.orientation.y,
+              message.pose.pose.orientation.z,
+              message.pose.pose.orientation.w
+            )).z * -180 / 3.14159 ;
+      });
+  }
+
+</script>
+</head>
+
+<body onload="init()">
+  <div id="nav" style="color:#ced6ce"></div>
+  <div id="statusIndicator">
+    <p id="connecting">
+      Connecting to rosbridge...
+    </p>
+    <p id="connected" style="color:#00D600; display:none">
+      Web socket Connected
+    </p>
+    <p id="error" style="color:#FF0000; display:none">
+      Web socket Error in the backend!
+    </p>
+    <p id="closed" style="display:none">
+      Web socket Connection closed.
+    </p>
+  </div>
 </body>
 </html>

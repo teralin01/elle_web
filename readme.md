@@ -9,6 +9,7 @@
 - pip install tornado
 - pip install psutil
 - pip install gputil
+- pip install websockets
 
 # How to run Elle web
 ## Config file path:

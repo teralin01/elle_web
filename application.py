@@ -3,7 +3,7 @@ import tornado.web
 import os
 import config
 
-from control import mainController
+from control import mainController, wsController
 from control import statusController
 from control import mapController
 from control import missionController
@@ -15,6 +15,7 @@ class Application(tornado.web.Application):
             (r"/main", mainController.MainHandler),
             (r'/login',mainController.LoginHandler),
             (r'/logout',mainController.LogoutHandler),
+            (r"/ws", wsController.WebSocketHandler),
             (r"/control/statusController", statusController.InitHandler),
             (r"/control/HardwareStatus", statusController.HWInfoHandler),
             (r"/control/missionController", missionController.InitHandler),
