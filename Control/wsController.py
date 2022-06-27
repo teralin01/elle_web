@@ -16,7 +16,7 @@ class RosSocketServiceCall:
     @tornado.gen.coroutine
     def ServiceCaller(self):     
         yield self.connect()
-        yield self.ws.write_message(self.callMsg)        
+        self.ws.write_message(self.callMsg)        
 
     @tornado.gen.coroutine        
     def connect(self):
@@ -54,8 +54,8 @@ class RosSocketPublisher:
         try:
             yield self.connect()
             yield self.ws.write_message(self.topicMsg)  
-            yield self.bws.close(999)
-            yield self.ws.close(999)
+            self.bws.close(999)
+            self.ws.close(999)
         except Exception:
             print("ROS Connection Error")        
             self.bws.close(990)
@@ -82,7 +82,8 @@ class RosSocketSubscriber:
     @tornado.gen.coroutine
     def write_ros_message(self,data):
         if (self.bws.close_code == None): 
-            yield self.bws.write_message(data)     
+            if (data != None):
+                yield self.bws.write_message(data)     
         else:
             print(self.bws.close_code,self.bws.close_reason )
             self.ws.close(1001)
@@ -90,7 +91,7 @@ class RosSocketSubscriber:
     @tornado.gen.coroutine
     def SocketSubscriber(self):     
         yield self.connect()
-        yield self.ws.write_message(self.topicMsg)  
+        self.ws.write_message(self.topicMsg)  
     
     @tornado.gen.coroutine        
     def connect(self):
