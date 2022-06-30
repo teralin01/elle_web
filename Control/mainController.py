@@ -7,38 +7,7 @@ import json
 class BaseHandler(tornado.web.RequestHandler):
     def get_current_user(self):
         return self.get_secure_cookie("user")     
-        
-# An example code to show the life time of http request in Tornado
-class HeaderHandler(BaseHandler): 
-    def set_default_header(self):  # Step 1 function call
-        self.set_header("Content-Type","text/html;charset=UTF-8")
-        self.set_status(200,"OK")
-        
-    def initialize(self): # Step 2 function call
-        pass
-    def prepare(self): # Step 3 function call
-        pass
-    
-    def write_error(self,status_code, **kwargs): ## error function call after send_error()
-        self.write("Internal error")
-    
-    def on_finish(self): # last function call, no matter success or fail
-        #write internal log
-        #release resource
-        pass
-    
-    def get(self,*args,**kwargs):
-        pass
-
-# An example code to show http get/post in the same URL
-class PostReqHandler(BaseHandler):
-    def get(self,*args,**kwargs):
-        self.render('postDemo.html')
-    def post(self,*args,**kwargs):        
-        name = self.get_body_argument("name")
-        self.write("Post name"+ name)        
-        self.finish()             
-        
+          
 class LoginHandler(BaseHandler):
     def get(self,*args,**kwargs):
         status = self.get_argument("status","0")
@@ -54,7 +23,7 @@ class LoginHandler(BaseHandler):
             self.redirect("/login?status=2") 
             
         self.set_secure_cookie("user", account, expires=time.time()+86400) #cookie timeout after 1 day
-        self.redirect("/main")
+        self.redirect("/index.html")
             
         # default account  "admin" / "axadmin"
         #                  "user"  / "axuser"
@@ -66,8 +35,4 @@ class LogoutHandler(BaseHandler):
         #TODO: clear server side resource
         self.clear_cookie("user")
         self.write("Logout success")
-            
-class MainHandler(BaseHandler):
-    @tornado.web.authenticated
-    def get(self,*args,**kwargs):
-        self.render('main.html')        
+      

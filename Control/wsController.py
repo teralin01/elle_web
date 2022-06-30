@@ -3,7 +3,6 @@ import tornado.web
 import tornado.websocket
 import tornado.ioloop
 import datetime;
-from threading import Timer
 
 rosbridgeURI = "ws://localhost:9090"
 
@@ -40,27 +39,27 @@ class ROSWebSocketConn:
                 yield self.bws.write_message(msg)     
         else:
             # If browser close websocket, then close the rosbirdge socket 
-            #print(self.bws.close_code,self.bws.close_reason )
+            # print(self.bws.close_code,self.bws.close_reason )
             self.rws.close(1001)
+            #TODO only keep one web socket connection between tornado and rosbridge 
         
     @tornado.gen.coroutine
     def close(self):
         if self.bws.close_code != None:
             yield self.reconnect()
 
-
 # Websocket status code is defined in RFC6455 https://datatracker.ietf.org/doc/html/rfc6455#section-7.4.1  
 # 1001 means browser terminate page
-class WebSocketHandler(tornado.websocket.WebSocketHandler):
+class RosWebSocketHandler(tornado.websocket.WebSocketHandler):
     browser_clients = set()
     rosConn = None
-
+        
     def check_origin(self, origin):
         return True
     
     @tornado.gen.coroutine
     def open(self):
-        WebSocketHandler.browser_clients.add(self)
+        RosWebSocketHandler.browser_clients.add(self)
         print("WebSocket opened at: " + str(datetime.datetime.now()))
         if self.rosConn == None:
             self.rosConn = yield ROSWebSocketConn(self).get_rosConn()
@@ -78,18 +77,19 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         elif data["op"] == "call_service":
             print("Call service " + data["service"]+ " ID: "+ data["id"])
 
-        if (self.rosConn.close_code == None):
-            yield self.rosConn.write_message(message)
-        else:
-            t = Timer(3,self.write_to_ros(message))
-            t.start()
+        self.write_to_ros(message)
 
     @tornado.gen.coroutine
     def write_to_ros(self,msg):
         if (self.rosConn.close_code == None):
             yield self.rosConn.write_message(msg)
         else:
-            print("Error, can't send to rosbridge, maybe rosbridge is crash")
+            yield tornado.gen.sleep(3)
+            if (self.rosConn.close_code == None):
+                yield self.rosConn.write_message(msg)
+            else:
+                print("Error, can't send to rosbridge, maybe rosbridge is crash") 
+                # TODO: restart rosbridge
 
     def on_close(self):
-        WebSocketHandler.browser_clients.remove(self)
+        RosWebSocketHandler.browser_clients.remove(self)

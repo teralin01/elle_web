@@ -7,13 +7,9 @@ from application import Application
 
 
 if __name__ == "__main__":
-     #debugpy.listen(5678)
      #debugpy.listen(("0.0.0.0", 5678))
-     
      #debugpy.breakpoint()
      app = Application()
-     httpServer = tornado.httpserver.HTTPServer(app)
-     httpServer.bind(config.options['port'])
-     httpServer.start()
-
+     app.listen(config.options['port'])
+     
      tornado.ioloop.IOLoop.instance().start()

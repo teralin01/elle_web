@@ -8,21 +8,30 @@ from control import statusController
 from control import mapController
 from control import missionController
 
+
+class DefaultFileFallbackHandler(tornado.web.StaticFileHandler):
+
+    def validate_absolute_path(self, root, absolute_path):
+        try:
+            absolute_path = super().validate_absolute_path(root, absolute_path)
+        except tornado.web.HTTPError:
+            root = os.path.abspath(root)
+            absolute_path = os.path.join(root, self.default_filename)
+        return absolute_path   
 class Application(tornado.web.Application):
     def __init__(self):
         handlers = [
-            (r"/", mainController.MainHandler),
-            (r"/main", mainController.MainHandler),
+            (r"/ws", wsController.RosWebSocketHandler), 
             (r'/login',mainController.LoginHandler),
             (r'/logout',mainController.LogoutHandler),
-            (r"/ws", wsController.WebSocketHandler),
-            (r"/control/statusController", statusController.InitHandler),
             (r"/control/HardwareStatus", statusController.HWInfoHandler),
             (r"/control/missionController", missionController.InitHandler),
             (r"/control/mapController", mapController.InitHandler),
-            (r'/view/dashboard/(.*)$',tornado.web.StaticFileHandler,{"path":"view/dashboard/"}),
-            (r'/view/(.*)$',tornado.web.StaticFileHandler,{"path":"view"}),
-            (r'/static/(.*)$',tornado.web.StaticFileHandler,{"path":os.path.join(config.BASE_DIRS,"static_path")}),
-            (r'/(.*)$',tornado.web.StaticFileHandler,{"path":os.path.join(config.BASE_DIRS,"static_path"),"default_filename":"default.html"})
+            (r'/view/dashboard/(.*)',tornado.web.StaticFileHandler,{"path":"view/dashboard/"}),
+            (r'/view/(.*)',tornado.web.StaticFileHandler,{"path":"view"}),
+            (r'/static/(.*)',tornado.web.StaticFileHandler,{"path":os.path.join(config.BASE_DIRS,"static_path")}), 
+            (r'/(.*)', DefaultFileFallbackHandler, {'path': 'vue','default_filename': 'index.html'}),
         ]
         super(Application,self).__init__(handlers,**config.settings )
+
+     
