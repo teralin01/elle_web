@@ -2,7 +2,7 @@ import imp
 import tornado.web
 import os
 import config
-
+import datetime
 from control import mainController, wsController
 from control import statusController
 from control import mapController
@@ -33,5 +33,7 @@ class Application(tornado.web.Application):
             (r'/(.*)', DefaultFileFallbackHandler, {'path': 'vue','default_filename': 'index.html'}),
         ]
         super(Application,self).__init__(handlers,**config.settings )
+        
+        print("Tornado Server start at " + str(datetime.datetime.now()))
 
      

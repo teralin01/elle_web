@@ -3,19 +3,19 @@ import tornado.web
 import tornado.websocket
 import tornado.ioloop
 import datetime;
-
-rosbridgeURI = "ws://localhost:9090"
+import config
 
 class ROSWebSocketConn:
-    def __init__(self,bws):
+    def __init__(self,bws,hostIP):
         self.bws = bws
         self.rws = None 
+        self.rosbridgeURI = "ws://"+hostIP+":"+config.settings['rosbridgePort']
 
     @tornado.gen.coroutine
     def connect(self):
         try:
             self.rws = yield tornado.websocket.websocket_connect(
-            url=rosbridgeURI,
+            url=self.rosbridgeURI,
             on_message_callback=self.recv_ros_message,
             ping_interval=10,
             ping_timeout=30,
@@ -53,7 +53,7 @@ class ROSWebSocketConn:
 class RosWebSocketHandler(tornado.websocket.WebSocketHandler):
     browser_clients = set()
     rosConn = None
-        
+            
     def check_origin(self, origin):
         return True
     
@@ -62,7 +62,7 @@ class RosWebSocketHandler(tornado.websocket.WebSocketHandler):
         RosWebSocketHandler.browser_clients.add(self)
         print("WebSocket opened at: " + str(datetime.datetime.now()))
         if self.rosConn == None:
-            self.rosConn = yield ROSWebSocketConn(self).get_rosConn()
+            self.rosConn = yield ROSWebSocketConn(self,self.request.host).get_rosConn()
             if (self.rosConn == None):
                 print("Fail to connect to rosbridge")
 
