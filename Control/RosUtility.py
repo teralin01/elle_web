@@ -1,10 +1,11 @@
+
 class ROSCommands():
     # add new item when new op come from browser
     @classmethod
     def __init__(self) -> None:
         self.ros_Commands = {}    
 
-    def add(self,opID,browserClient):
+    def set(self,opID,browserClient):
         browserList = self.ros_Commands.get(opID)
         if browserList == None:
             self.ros_Commands.update({opID:{browserClient}})
@@ -41,13 +42,13 @@ class SubscribeCommands():
     @classmethod
     def __init__(self) -> None:
         self.ros_Sub_Commands = {}    
-
-    def add(self,opID,browserClient):
+        # ros_Sub_command structure:  OP1:{ [browser A,id], [browser B,id]}
+    def set(self,opID,browserClient,id):
         browserList = self.ros_Sub_Commands.get(opID)
         if browserList == None:
-            self.ros_Sub_Commands.update({opID:{browserClient}})
+            self.ros_Sub_Commands.update({opID:[ {browserClient:id} ] })
         else: 
-            browserList.add(browserClient)
+            browserList.append( {browserClient:id})
             self.ros_Sub_Commands.update({opID:browserList})
 
     # get items when receive rosbridge response 
@@ -57,7 +58,7 @@ class SubscribeCommands():
             return None
         browsers = []
         for browser in browserList:
-            browsers.append( str( browser))    
+            browsers.append(browser)    
         return browsers
 
     def removeBrowser(self,target):
@@ -67,6 +68,9 @@ class SubscribeCommands():
                 blist.remove(target)            
         return True
                 
+    def deleteOP(self,target):
+        del self.ros_Sub_Commands[target]
+                    
     def print(self):
         for key in self.ros_Sub_Commands:
             print(self.ros_Sub_Commands[key])    

@@ -5,6 +5,7 @@ import tornado.ioloop
 import datetime
 import config
 import json
+from tornado.escape import json_encode
 from control.RosUtility import ROSCommands
 from control.RosUtility import SubscribeCommands 
 
@@ -58,14 +59,15 @@ class ROSWebSocketConn:
         
     @tornado.gen.coroutine
     def recv_ros_message(self,msg):
+        global rws
         if msg == None:
             print("Disconnected, reconnecting...")
-            global rws
+            
             rws = None
             yield tornado.gen.sleep(5)
             self.reconnect()
             
-        if msg != None:
+        else:
             global browser_clients
             data = json.loads(msg)
             
@@ -73,20 +75,31 @@ class ROSWebSocketConn:
                 print("topic: "+ data['topic'])
                 global subCmds
                 browsers = subCmds.get(data['topic'])
+                topic_alive = None
+                if browsers != None:               # Browser client exist
+                    for cbws in browser_clients:   # Iterate all browser clients
+                        for bws in browsers:
+                            if str(cbws) == list(bws.keys())[0]:   # Find corresponding browser client
+                                cbws.write_message(msg) 
+                                topic_alive = True
                 
-                for cbws in browser_clients:
-                    for bws in browsers:
-                        if str(cbws) == bws:
-                            cbws.write_message(msg) 
-                
-                #TODO unsubscribe this topic if no browser client found
+                #unsubscribe this topic if no browser client found
+                if topic_alive == None: # No way to publish
+                    print("Unsubscribe topic: " + data['topic'])
+                    #Example to unsubscribe {"op":"unsubscribe","id":"subscribe:amcl_pose:4","topic":"amcl_pose"}
+                    topicidstr = browsers[0]
+                    topicid = topicidstr[list(topicidstr.keys())[0]]
+                    message = {"op":"unsubscribe","id":topicid,"topic": data['topic'] }
+                    print (message)
+                    rws._result.write_message(json_encode(message))
+                    subCmds.deleteOP(data['topic'])
                 
             if data['op'] == 'service_response':
                 print(data['service'] + " " + "id" + data['id'] + " result" + str(data['result']))   
                 global rosCmds
                 browser = rosCmds.get(data['id'])
                 for cbws in browser_clients:
-                    if str(cbws) == browser :
+                    if str(cbws) == browser[0] : #return to first matching browser
                         cbws.write_message(msg)
                         rosCmds.remove(data['id'])
                 
@@ -118,7 +131,8 @@ class RosWebSocketHandler(tornado.websocket.WebSocketHandler):
             global subCmds
             print("subscribe topic:" + data["topic"]+ " ID:  "+ data["id"])
             already_subscribe = subCmds.get(data["topic"])
-            subCmds.add(data["topic"],str(self))
+            # subCmds.add(data["topic"],str(self))
+            subCmds.set(data["topic"],str(self),data["id"])
             if not already_subscribe:
                 self.write_to_ros(message)
         elif data["op"] == "publish" or data["op"] == "advertise"  :
@@ -127,7 +141,7 @@ class RosWebSocketHandler(tornado.websocket.WebSocketHandler):
         elif data["op"] == "call_service":
             global rosCmds
             print("Call service " + data["service"]+ " ID: "+ data["id"])
-            rosCmds.add( data["id"],str(self))
+            rosCmds.set( data["id"],str(self))
             self.write_to_ros(message)
 
     @tornado.gen.coroutine
