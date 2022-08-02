@@ -43,9 +43,10 @@ class rMissionHandler(tornado.web.RequestHandler):
         
     def rosCallback(self,data):
         if not self._finished :
-            print(data['service'] + " " + "id" + data['id'] + " result" + str(data['result']))
+            print("service: " + data['service'] + " " + "id: " + data['id'] + " result: " + str(data['result']))
             self._status_code = 200
             self.write(data)
+            self.finish()
             #TODO Save data to cache table self.UniqueCommand
 
     #/1.0/missions
@@ -56,9 +57,7 @@ class rMissionHandler(tornado.web.RequestHandler):
             print("return cache data")
             self.write(cacheRESTData.get(self.URI))    
         
-        #/1.0/missions
         if self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
-            print("get missions")
             #TODO load mission data from mission table  
             
             # write request to ros
@@ -70,13 +69,12 @@ class rMissionHandler(tornado.web.RequestHandler):
                 print("ROS conn error")
                 #TODO trigger rosbrodge process
 
-            waitPeriod = 5
+            waitPeriod = 10
             yield tornado.gen.sleep(waitPeriod)
-            
-            print("Sleep " + str(waitPeriod))
-            self._status_code = 500
-            self.write(RestTimeOutStr)
-
+            if not self._finished :
+                self._status_code = 500
+                self.write(RestTimeOutStr)
+                self.finish()
         
     def post(self):
         pass
@@ -86,16 +84,12 @@ class rMissionHandler(tornado.web.RequestHandler):
     def put(self):
         pass
     def on_finish(self):
-        print ("REST sock finish hit")
         #TODO if cacheData exist, then update it
-        #self.UniqueCommand.update('requestURI',self.URI,'cacheData',"")
+        print("Finish RST API " + self.URI + " at " + str(datetime.now()))
         self.UniqueCommand.update('requestURI',self.URI,'lastRequestTime',datetime.now())
 
-        ##TODO write result or error code
-
     def write_error(self, status_code: int, **kwargs) -> None:
-        print(super().write_error(status_code, **kwargs)        )
-        #return 
+        print(super().write_error(status_code, **kwargs))
         
 class RESTMapController(tornado.web.RequestHandler): 
     def initialize(self,UniqueCommand):

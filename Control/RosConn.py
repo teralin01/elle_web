@@ -129,15 +129,16 @@ class ROSWebSocketConn:
                 
                 
             if data['op'] == 'service_response':
-                print(data['service'] + " " + "id" + data['id'] + " result" + str(data['result']))   
+                # print(data['service'] + " " + "id" + data['id'] + " result" + str(data['result']))   
                 global rosCmds
                 browser = rosCmds.get(data['id'])
-                for cbws in ws_browser_clients:
-                    if str(cbws) == browser[0] : #return to first matching browser
-                        cbws.write_message(msg)
-                        rosCmds.remove(data['id'])
+                if browser != None:  # id match in rosCmds
+                    for cbws in ws_browser_clients:
+                        if str(cbws) == browser[0] : #return to first matching browser client
+                            cbws.write_message(msg)
+                            rosCmds.remove(data['id'])
                 
-                #TODO send data back to REST client
-                
+                #send data back to REST client
                 self.RServiceCallPool.callback(data)
+                self.RServiceCallPool.removeKey(data['id'])
                 # rosCmds.remove(data['id'])

@@ -64,9 +64,7 @@ class RESTServiceCall():
         return serviceCall
     
     #query callback deference by id
-    def callback(self,data):
-        print(data['service'] + " " + "id" + data['id'] + " result" + str(data['result']))
-        
+    def callback(self,data):      
         cbList = self.getList(data['id'])
         for cb in cbList:
             cb.rosCallback(data) #REST write back
