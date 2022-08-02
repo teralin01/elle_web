@@ -13,5 +13,6 @@ settings = {
     "debug":True,
     "cookie_secret": "__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",
     "login_url":"/login",
-    "rosbridgePort":"9090"
+    "rosbridgePort":"9090",
+    "hostIP":"10.1.30.172"
 }
