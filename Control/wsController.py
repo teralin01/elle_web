@@ -13,6 +13,7 @@ from control.RosConn import ws_browser_clients
                 
 class RosWebSocketHandler(tornado.websocket.WebSocketHandler):
     rosConn = None
+    
     def check_origin(self, origin):
         return True
     

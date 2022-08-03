@@ -16,6 +16,9 @@ class ROSWebSocketConn:
     def __init__(self):
         self.rws = None
         self.futureCB = {}
+        global rosCmds
+        global ws_browser_clients
+        global subCmds
 
     async def connect(self):
         try:
@@ -55,16 +58,16 @@ class ROSWebSocketConn:
     
     async def prepare_write_to_ROS(self,RESTCB,URL,msg):
         loop = asyncio.get_running_loop()
-        fut = loop.create_future()
-        self.futureCB.update({URL:fut})
-        loop.create_task(self.write(msg,fut))
+        futureObj = loop.create_future()
+        self.futureCB.update({URL:futureObj}) #append ros callback to dict
+        loop.create_task(self.write(msg,futureObj))
         
-        await fut
-        data = fut.result()
-        RESTCB.set_result(data)
+        await futureObj
+        data = futureObj.result() # Get result from ROS callback
+        RESTCB.set_result(data)  # Save result to Rest callback
+        del self.futureCB[URL] # remove ros callback from dict
 
-    async def write(self,msg,fut):
-        print(msg)
+    async def write(self,msg,futureObj):        
         if self.rws != None:
             await self.rws.write_message(json_encode(msg))
         else:    
@@ -76,18 +79,14 @@ class ROSWebSocketConn:
     def recv_ros_message(self,msg):
         if msg == None:
             print("Disconnected, reconnecting...")
-            
             self.rws = None
             yield tornado.gen.sleep(3)
             self.reconnect()
             
         else:
-            global ws_browser_clients
             data = json.loads(msg)
-            
             if data['op'] == 'publish':
                 print("topic: "+ data['topic'])
-                global subCmds
                 browsers = subCmds.get(data['topic'])
                 topic_alive = None
                 if browsers != None:               # Browser client exist
@@ -111,9 +110,7 @@ class ROSWebSocketConn:
                 
             if data['op'] == 'service_response':
                 # print(data['service'] + " " + "id" + data['id'] + " result" + str(data['result']))   
-                
                 #send data back to web socket browser client
-                global rosCmds
                 browser = rosCmds.get(data['id'])
                 if browser != None:  # id match in rosCmds
                     for cbws in ws_browser_clients:

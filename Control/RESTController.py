@@ -7,7 +7,7 @@ from control.RosConn import ROSWebSocketConn
 import asyncio
 
 cacheRESTData = dict()
-RestTimeOutStr = {"result":False}
+TimeoutStr = {"result":False}
 waitPeriod = 10
 
 ROSConn = ROSWebSocketConn()
@@ -23,6 +23,7 @@ class rMissionHandler(tornado.web.RequestHandler):
         self.cacheHit = False
         self._status_code = 200
         self.future = asyncio.get_running_loop().create_future()
+        global ROSConn
         
     def prepare(self):
         global cacheRESTData
@@ -44,8 +45,6 @@ class rMissionHandler(tornado.web.RequestHandler):
     #/1.0/missions
     #/1.0/mission/missionId
     async def get(self,*args):
-        global ROSConn
-        
         if self.cacheHit:
             print("return cache data")
             self.write(cacheRESTData.get(self.URI))     
@@ -62,7 +61,7 @@ class rMissionHandler(tornado.web.RequestHandler):
                 
         except asyncio.TimeoutError:
             self._status_code = 500
-            self.REST_response(RestTimeOutStr)
+            self.REST_response(TimeoutStr)
             #TODO trigger rosbrodge process         
             
             
