@@ -49,8 +49,7 @@ class RESTServiceCall():
     def __init__(self) -> None:
         self.dicts = {}    
 
-    @coroutine
-    def addRosCmd(self,URI,restCB,type,service):
+    async def addRosCmd(self,URI,restCB,type,service):
         print("RESTService call addRosCmd")
         #Generate unique ROS ID
         id = URI
@@ -60,14 +59,15 @@ class RESTServiceCall():
         
         # self.addOne(id,restCB)
         global ROSWebSocketConn
-        yield ROSWebSocketConn.write(serviceCall)
+        await ROSWebSocketConn.write(serviceCall)
         return serviceCall
     
     #query callback deference by id
     def callback(self,data):      
         cbList = self.getList(data['id'])
         for cb in cbList:
-            cb.rosCallback(data) #REST write back
+            # cb.rosCallback(data) #REST write back
+            cb.set_result(data)
         
         # self.remove( data['id'] )
 
@@ -103,6 +103,12 @@ class RESTServiceCall():
             print(self.dicts[key])
 
 
+class RESTPublishCall(): 
+    @classmethod
+    def __init__(self) -> None:
+        self.dicts = {}    
+        
+        
 class Store():
     def __init__(self, columndata) -> None:
         self.store = pd.DataFrame(columns = columndata)

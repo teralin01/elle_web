@@ -1,16 +1,16 @@
-from types import coroutine
 from numpy import NaN
 import tornado.web
 import tornado.ioloop
-from tornado.escape import json_encode
 from dataModel.AuthModel import AuthDB
 from datetime import datetime
 from control.RosConn import ROSWebSocketConn
-
+import asyncio
 
 cacheRESTData = dict()
 RestTimeOutStr = {"result":False}
+waitPeriod = 10
 
+ROSConn = ROSWebSocketConn()
 #TODO user authenication
 # class BaseHandler(tornado.web.RequestHandler):
 #     def get_current_user(self):
@@ -21,6 +21,8 @@ class rMissionHandler(tornado.web.RequestHandler):
     def initialize(self,UniqueCommand):
         self.UniqueCommand = UniqueCommand
         self.cacheHit = False
+        self._status_code = 200
+        self.future = asyncio.get_running_loop().create_future()
         
     def prepare(self):
         global cacheRESTData
@@ -37,44 +39,38 @@ class rMissionHandler(tornado.web.RequestHandler):
         #         print("Cache data hit, return without insert to client request")
         #         self.cachHit = true
         # 
-        #   TODO if cache hit, no need to create reqeust. set a flag to return data instantly
-                
-        #self.ClientRequests.insert({'requestURI':self.URI,'callback':self, 'issueTime':datetime.now()})
         
-    def rosCallback(self,data):
-        if not self._finished :
-            print("service: " + data['service'] + " " + "id: " + data['id'] + " result: " + str(data['result']))
-            self._status_code = 200
-            self.write(data)
-            self.finish()
-            #TODO Save data to cache table self.UniqueCommand
 
     #/1.0/missions
     #/1.0/mission/missionId
-    @tornado.gen.coroutine
-    def get(self,*args):
+    async def get(self,*args):
+        global ROSConn
+        
         if self.cacheHit:
             print("return cache data")
-            self.write(cacheRESTData.get(self.URI))    
+            self.write(cacheRESTData.get(self.URI))     
         
-        if self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
-            #TODO load mission data from mission table  
-            
-            # write request to ros
+        elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
             callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command"}
-            try:
-                rosConn =  yield ROSWebSocketConn().get_rosConn(self)
-                rosConn.write_message(json_encode(callData))
-            except Exception:
-                print("ROS conn error")
-                #TODO trigger rosbrodge process
+            await self.ROS_request_handler(callData)
 
-            waitPeriod = 10
-            yield tornado.gen.sleep(waitPeriod)
-            if not self._finished :
-                self._status_code = 500
-                self.write(RestTimeOutStr)
-                self.finish()
+    async def ROS_request_handler(self,calldata):
+        try:                    
+            await asyncio.wait_for( ROSConn.prepare_write_to_ROS(self.future,self.URI,calldata) , timeout=10)
+            self.REST_response(self.future.result())
+            #TODO if status_code = 200,  Save data to cache table self.UniqueCommand
+                
+        except asyncio.TimeoutError:
+            self._status_code = 500
+            self.REST_response(RestTimeOutStr)
+            #TODO trigger rosbrodge process         
+            
+            
+    def REST_response(self,data):
+        # Todo add log if necessary
+
+        self.write(data)
+        self.finish()        
         
     def post(self):
         pass
