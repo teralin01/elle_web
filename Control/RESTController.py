@@ -3,14 +3,15 @@ import tornado.web
 import tornado.ioloop
 from dataModel.AuthModel import AuthDB
 from datetime import datetime
-from control.RosConn import ROSWebSocketConn
+from control.RosConn import ROSWebSocketConn as ROSConn
+from tornado.escape import json_decode, json_encode
 import asyncio
 
 cacheRESTData = dict()
 TimeoutStr = {"result":False}
-waitPeriod = 10
+restTimeoutPeriod = 10
+restCachePeriod = 2
 
-ROSConn = ROSWebSocketConn()
 #TODO user authenication
 # class BaseHandler(tornado.web.RequestHandler):
 #     def get_current_user(self):
@@ -18,61 +19,67 @@ ROSConn = ROSWebSocketConn()
           
 # class RESTHandler(BaseHandler):
 class rMissionHandler(tornado.web.RequestHandler):
-    def initialize(self,UniqueCommand):
-        self.UniqueCommand = UniqueCommand
+    def initialize(self):
         self.cacheHit = False
         self._status_code = 200
         self.future = asyncio.get_running_loop().create_future()
         global ROSConn
+        global cacheRESTData
         
     def prepare(self):
-        global cacheRESTData
         self.URI = self.request.path
-        targetRaw = self.UniqueCommand.getRow('requestURI',[self.URI])
-        
-        if  len(targetRaw) == 0:
-            self.UniqueCommand.insert({'requestURI':self.URI,'requestProtocol':"http",'lastRequestTime':datetime.now()})
-        # elif targetRaw['cacheData'] != NaN:
-        #     #TODO the following code have not yet verified. the datatype of time1 may not a string type
-        #     time1 = datetime.strptime(targetRaw['lastRequestTime'].apply(str), '%d/%m/%y %H:%M:%S')
-        #     time2 = datetime.now()
-        #     if (time1 - time2).seconds > 120: 
-        #         print("Cache data hit, return without insert to client request")
-        #         self.cachHit = true
-        # 
-        
+        cache = cacheRESTData.get(self.URI)
+        if cache == None:
+            cacheRESTData.update({self.URI:{'cacheData':None,'lastUpdateTime':datetime.now()}})
+        elif (datetime.now() - cache['lastUpdateTime']).seconds > restCachePeriod and cache['cacheData'] != None:
+            self.cacheHit = True
 
+    async def ROS_service_call_handler(self,calldata):
+        try:                    
+            await asyncio.wait_for( ROSConn.prepare_write_to_ROS(ROSConn,self.future,self.URI,calldata) , timeout = restTimeoutPeriod)
+            self.REST_response(self.future.result())
+
+        except asyncio.TimeoutError:
+            self._status_code = 500
+            self.REST_response(TimeoutStr)
+            #TODO trigger rosbrodge process         
+
+    async def ROS_publish_handler(self,calldata):
+        try:                    
+            await asyncio.wait_for( ROSConn.prepare_publish_to_ROS(ROSConn,self.future,self.URI,calldata) , timeout = restTimeoutPeriod)
+            self.REST_response(self.future.result())
+
+        except asyncio.TimeoutError:
+            self._status_code = 500
+            self.REST_response(TimeoutStr)
+        
+                
+    def REST_response(self,data):
+        # Todo add log if necessary
+        if self._status_code == 200:
+            cacheRESTData.update({self.URI:{'cacheData':data,'lastUpdateTime':datetime.now()}})
+        self.write(data)
+        self.finish()       
+        
     #/1.0/missions
     #/1.0/mission/missionId
     async def get(self,*args):
         if self.cacheHit:
             print("return cache data")
-            self.write(cacheRESTData.get(self.URI))     
+            self.REST_response(cacheRESTData.get(self.URI)['cacheData'])     
         
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
             callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command"}
-            await self.ROS_request_handler(callData)
+            await self.ROS_service_call_handler(callData)
 
-    async def ROS_request_handler(self,calldata):
-        try:                    
-            await asyncio.wait_for( ROSConn.prepare_write_to_ROS(self.future,self.URI,calldata) , timeout=10)
-            self.REST_response(self.future.result())
-            #TODO if status_code = 200,  Save data to cache table self.UniqueCommand
-                
-        except asyncio.TimeoutError:
-            self._status_code = 500
-            self.REST_response(TimeoutStr)
-            #TODO trigger rosbrodge process         
-            
-            
-    def REST_response(self,data):
-        # Todo add log if necessary
 
-        self.write(data)
-        self.finish()        
+    async def post(self,*args):
+        self._status_code == 201 # 201 means REST resource Created
+        data = json_decode(self.request.body)
+        if self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
+            callData = {'type': "elle_interfaces/msg/MissionControlMission",'topic': "/mission_control/mission",'msg':data['actions']}
+            await self.ROS_publish_handler(callData)
         
-    def post(self):
-        pass
         #/1.0/mission/Id
     def delete(self):
         pass
@@ -81,37 +88,16 @@ class rMissionHandler(tornado.web.RequestHandler):
     def on_finish(self):
         #TODO if cacheData exist, then update it
         print("Finish RST API " + self.URI + " at " + str(datetime.now()))
-        self.UniqueCommand.update('requestURI',self.URI,'lastRequestTime',datetime.now())
 
     def write_error(self, status_code: int, **kwargs) -> None:
         print(super().write_error(status_code, **kwargs))
         
 class RESTMapController(tornado.web.RequestHandler): 
-    def initialize(self,UniqueCommand):
-        self.UniqueCommand = UniqueCommand
+    def initialize(self):
         self.status = 200
         
     def prepare(self):
         self.URI = self.request.path
-        #TODO cache REST: get Raw, if cachedata exist and lastRequestTime < 2 second, then return directlly. 
-        targetRaw = self.UniqueCommand.getRow('requestURI',[self.URI])
-        
-        time1 = targetRaw['lastRequestTime']
-        time2 = datetime.now()
-        if (time1 - time2).seconds > 120: 
-            print("Cache data hit, return without insert to client request")
-        
-        if  len(targetRaw) == 0:
-            self.UniqueCommand.insert({'requestURI':self.URI,'requestProtocol':"http",'lastRequestTime':datetime.now()})
-        elif targetRaw['cacheData'] != NaN:
-            time1 = targetRaw['lastRequestTime']
-            time2 = datetime.now()
-            if (time1 - time2).seconds > 120: 
-                print("Cache data hit, return without insert to client request")
-        
-        
-        # self.ClientRequests.insert({'requestURI':self.URI,'callback':self, 'issueTime':datetime.now()})
-
 
 class RESTStatusController(tornado.web.RequestHandler): 
     pass

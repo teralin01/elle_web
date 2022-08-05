@@ -7,12 +7,6 @@ from control import RESTController, mainController, wsController
 from control import statusController
 from control import mapController
 from control import missionController
-from control.RosUtility import Store
-
-
-RESTUniqueCommands = Store(['requestURI','requestProtocol', 'executor','lastRequestTime'])
-#RESTClientRequests = Store(['requestURI','id' ,'callback','parameter', 'issueTime'])
-
 
 class DefaultFileFallbackHandler(tornado.web.StaticFileHandler):
 
@@ -27,8 +21,8 @@ class Application(tornado.web.Application):
     def __init__(self):
         handlers = [
             (r"/ws", wsController.RosWebSocketHandler), 
-            (r"/1.0/missions",RESTController.rMissionHandler,dict(UniqueCommand=RESTUniqueCommands)),
-            (r"/1.0/missions/(.*)",RESTController.rMissionHandler,dict(UniqueCommand=RESTUniqueCommands)),
+            (r"/1.0/missions",RESTController.rMissionHandler),
+            (r"/1.0/missions/(.*)",RESTController.rMissionHandler),
             (r'/login',mainController.LoginHandler),
             (r'/logout',mainController.LogoutHandler),
             (r"/control/HardwareStatus", statusController.HWInfoHandler),

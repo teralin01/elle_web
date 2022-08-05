@@ -4,30 +4,20 @@ import tornado.websocket
 import tornado.ioloop
 import datetime
 import json
-
-
-from control.RosConn import ROSWebSocketConn
+from control.RosConn import ROSWebSocketConn as ROSConn
 from control.RosConn import subCmds 
 from control.RosConn import rosCmds
 from control.RosConn import ws_browser_clients
-                
-class RosWebSocketHandler(tornado.websocket.WebSocketHandler):
-    rosConn = None
-    
+
+class RosWebSocketHandler(tornado.websocket.WebSocketHandler):       
     def check_origin(self, origin):
         return True
     
     async def open(self):
         global ws_browser_clients
         ws_browser_clients.add(self)
-        print(self)
-
         # config.settings['hostIP'] = self.request.host 
         print("WebSocket opened at: " + str(datetime.datetime.now()))
-        if self.rosConn == None:
-            self.rosConn = await ROSWebSocketConn().get_rosConn()
-            if (self.rosConn == None):
-                print("Fail to connect to rosbridge")
 
     async def on_message(self, message):
         self.browserMsg = message
@@ -39,23 +29,15 @@ class RosWebSocketHandler(tornado.websocket.WebSocketHandler):
             # subCmds.add(data["topic"],str(self))
             subCmds.set(data["topic"],str(self),data["id"])
             if not already_subscribe:
-                await self.write_to_ros(message)
+                await ROSConn.write(ROSConn,message)
         elif data["op"] == "publish" or data["op"] == "advertise"  :
             print("publish topic " + data["topic"]+ " ID: "+ data["id"])
-            self.write_to_ros(message)
+            await ROSConn.write(ROSConn,message)
         elif data["op"] == "call_service":
             global rosCmds
             print("Call service " + data["service"]+ " ID: "+ data["id"])
             rosCmds.set( data["id"],str(self))
-            await self.write_to_ros(message)
-
-    async def write_to_ros(self,msg):   
-        if (self.rosConn.close_code == None):
-            await self.rosConn.write_message(msg)
-        else:
-            await tornado.gen.sleep(6)
-            if (self.rosConn.close_code == None):
-                await self.rosConn.write_message(msg)
+            await ROSConn.write(ROSConn,message)    
 
     def on_close(self):
         print("Get Browser close event ")
