@@ -102,13 +102,14 @@ class rMissionHandler(tornado.web.RequestHandler):
             
         if self._status_code != 201:
             self.REST_response({'result':False})
-        elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
+        elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':  
             #TODO validate with missionSchema 
             callData = {'type': "elle_interfaces/msg/MissionControlMission",'topic': "/mission_control/mission",'msg':data['actions']}
             await self.ROS_publish_handler(callData)
         
         #/1.0/mission/Id
-    def delete(self,*args):
+    async def delete(self,*args):
+        await self.post(self,*args)
         pass
     async def put(self,*args):
         self._status_code = 201 # 201 means REST resource Created
@@ -119,7 +120,7 @@ class rMissionHandler(tornado.web.RequestHandler):
             
         if self._status_code != 201:
             self.REST_response({'result':False})
-        elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
+        elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':  #start/stop mission
             callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':data['command']} }
             await self.ROS_service_call_handler(callData)        
         
