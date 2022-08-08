@@ -21,8 +21,12 @@ class Application(tornado.web.Application):
     def __init__(self):
         handlers = [
             (r"/ws", wsController.RosWebSocketHandler), 
-            (r"/1.0/missions",RESTController.rMissionHandler),
-            (r"/1.0/missions/(.*)",RESTController.rMissionHandler),
+            (r"/1.0/missions",RESTController.RESTHandler),
+            (r"/1.0/missions/(.*)",RESTController.RESTHandler),
+            (r"/1.0/maps",RESTController.RESTHandler),
+            (r"/1.0/maps/(.*)",RESTController.RESTHandler),            
+            (r"/1.0/status",RESTController.RESTHandler),
+            (r"/1.0/status/(.*)",RESTController.RESTHandler),                     
             (r'/login',mainController.LoginHandler),
             (r'/logout',mainController.LogoutHandler),
             (r"/control/HardwareStatus", statusController.HWInfoHandler),

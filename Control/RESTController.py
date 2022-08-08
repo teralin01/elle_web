@@ -19,7 +19,7 @@ restCachePeriod = 2
 #         return self.get_secure_cookie("user")     
           
 # class RESTHandler(BaseHandler):
-class rMissionHandler(tornado.web.RequestHandler):
+class RESTHandler(tornado.web.RequestHandler):
     def initialize(self):
         self.cacheHit = False
         self.future = asyncio.get_running_loop().create_future()
@@ -91,8 +91,23 @@ class rMissionHandler(tornado.web.RequestHandler):
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
             subscribeMsg = {"op":"subscribe","id":"RestTopics","topic": "/mission_control/state","type":"elle_interfaces/msg/MissionControlMission"}
             await self.ROS_subscribe_call_handler(subscribeMsg)
-
-
+            
+        elif self.URI == '/1.0/maps' or self.URI == '/1.0/maps/GetMap':
+            callData = {'id':self.URI, 'op':"call_service",'type': "nav_msgs/srv/GetMap",'service': "/map_server/map",'args': {} }
+            await self.ROS_service_call_handler(callData)  
+                        
+        elif self.URI == '/1.0/maps/map_meta' :  #TODO add map ID if support multiple maps
+            subscribeMsg = {"op":"subscribe","id":"RestTopics","topic": "/amcl_pose","type":"geometry_msgs/msg/PoseWithCovarianceStamped"}
+            await self.ROS_subscribe_call_handler(subscribeMsg)
+            
+        elif self.URI == '/1.0/maps/path':       #TODO add robotID to the URL in fleet version
+            subscribeMsg = {"op":"subscribe","id":"RestTopics","topic": "/plan","type":"nav_msgs/Path"}
+            await self.ROS_subscribe_call_handler(subscribeMsg)
+            
+        elif self.URI == '/1.0/maps/costmap':    #TODO add robotID to the URL in fleet version
+            callData = {'id':self.URI, 'op':"call_service",'type': "nav2_msgs/srv/GetCostmap",'service': "/global_costmap/get_costmap",'args': {} }
+            await self.ROS_service_call_handler(callData)  
+            
     async def post(self,*args):
         self._status_code = 201 # 201 means REST resource Created
         try:
@@ -125,7 +140,6 @@ class rMissionHandler(tornado.web.RequestHandler):
             await self.ROS_service_call_handler(callData)        
         
     def on_finish(self):
-        #TODO if cacheData exist, then update it
         print("Finish RST API " + self.URI + " at " + str(datetime.now()))
 
     def write_error(self, status_code: int, **kwargs) -> None:
