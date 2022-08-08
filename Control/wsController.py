@@ -4,10 +4,10 @@ import tornado.websocket
 import tornado.ioloop
 import datetime
 import json
-from control.RosConn import ROSWebSocketConn as ROSConn
-from control.RosConn import subCmds 
-from control.RosConn import rosCmds
-from control.RosConn import ws_browser_clients
+from control.system.RosConn import ROSWebSocketConn as ROSConn
+from control.system.RosConn import subCmds 
+from control.system.RosConn import rosCmds
+from control.system.RosConn import ws_browser_clients
 
 class RosWebSocketHandler(tornado.websocket.WebSocketHandler):       
     def check_origin(self, origin):
