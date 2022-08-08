@@ -4,6 +4,7 @@ import tornado.ioloop
 from dataModel.AuthModel import AuthDB
 from datetime import datetime
 from control.RosConn import ROSWebSocketConn as ROSConn
+from control.RosConn import cacheSubscribeData as cacheSub
 from tornado.escape import json_decode, json_encode
 import asyncio
 
@@ -21,10 +22,10 @@ restCachePeriod = 2
 class rMissionHandler(tornado.web.RequestHandler):
     def initialize(self):
         self.cacheHit = False
-        self._status_code = 200
         self.future = asyncio.get_running_loop().create_future()
         global ROSConn
         global cacheRESTData
+        global cacheSub
         
     def prepare(self):
         self.URI = self.request.path
@@ -36,13 +37,31 @@ class rMissionHandler(tornado.web.RequestHandler):
 
     async def ROS_service_call_handler(self,calldata):
         try:                    
-            await asyncio.wait_for( ROSConn.prepare_write_to_ROS(ROSConn,self.future,self.URI,calldata) , timeout = restTimeoutPeriod)
+            await asyncio.wait_for( ROSConn.prepare_serviceCall_to_ROS(ROSConn,self.future,self.URI,calldata) , timeout = restTimeoutPeriod)
             self.REST_response(self.future.result())
 
         except asyncio.TimeoutError:
             self._status_code = 500
             self.REST_response(TimeoutStr)
             #TODO trigger rosbrodge process         
+
+    async def ROS_subscribe_call_handler(self,calldata):
+        subdata = cacheSub.get(calldata['topic'])
+        if  subdata != None:
+            self.REST_response(subdata['data'])
+        else:
+            try:                    
+                await asyncio.wait_for( ROSConn.prepare_subscribe_from_ROS(ROSConn,self.future,calldata) , timeout = restTimeoutPeriod)
+                data = self.future.result()
+                if data != None:
+                    self.REST_response(data)
+                else:
+                    self._status_code = 204 # No content 
+                    self.REST_response("result:False")
+
+            except asyncio.TimeoutError:
+                self._status_code = 500
+                self.REST_response(TimeoutStr)
 
     async def ROS_publish_handler(self,calldata):
         try:                    
@@ -64,27 +83,46 @@ class rMissionHandler(tornado.web.RequestHandler):
     #/1.0/missions
     #/1.0/mission/missionId
     async def get(self,*args):
+        self._status_code = 200
         if self.cacheHit:
             print("return cache data")
             self.REST_response(cacheRESTData.get(self.URI)['cacheData'])     
         
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
-            callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command"}
-            await self.ROS_service_call_handler(callData)
+            subscribeMsg = {"op":"subscribe","id":"RestTopics","topic": "/mission_control/state","type":"elle_interfaces/msg/MissionControlMission"}
+            await self.ROS_subscribe_call_handler(subscribeMsg)
 
 
     async def post(self,*args):
-        self._status_code == 201 # 201 means REST resource Created
-        data = json_decode(self.request.body)
-        if self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
+        self._status_code = 201 # 201 means REST resource Created
+        try:
+            data = json_decode(self.request.body)
+        except:            
+            self._status_code = 400 #Bad Request
+            
+        if self._status_code != 201:
+            self.REST_response({'result':False})
+        elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
+            #TODO validate with missionSchema 
             callData = {'type': "elle_interfaces/msg/MissionControlMission",'topic': "/mission_control/mission",'msg':data['actions']}
             await self.ROS_publish_handler(callData)
         
         #/1.0/mission/Id
-    def delete(self):
+    def delete(self,*args):
         pass
-    def put(self):
-        pass
+    async def put(self,*args):
+        self._status_code = 201 # 201 means REST resource Created
+        try:
+            data = json_decode(self.request.body)
+        except:            
+            self._status_code = 400 #Bad Request
+            
+        if self._status_code != 201:
+            self.REST_response({'result':False})
+        elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
+            callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':data['command']} }
+            await self.ROS_service_call_handler(callData)        
+        
     def on_finish(self):
         #TODO if cacheData exist, then update it
         print("Finish RST API " + self.URI + " at " + str(datetime.now()))

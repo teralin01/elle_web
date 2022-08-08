@@ -1,10 +1,10 @@
-from types import coroutine
 import tornado.web
 import tornado.websocket
 import config
 import json
 import asyncio
 from tornado.escape import json_encode
+from datetime import datetime
 from control.RosUtility import ROSCommands
 from control.RosUtility import SubscribeCommands 
 
@@ -13,15 +13,17 @@ rosCmds = ROSCommands()
 ws_browser_clients = set()
 rws = None
 futureCB = {}
+cacheSubscribeData = dict()
 
 class ROSWebSocketConn:
     def __init__(self):
-        global rws
         global futureCB
         global rosCmds
         global ws_browser_clients
         global subCmds
+        global cacheSubscribeData
         self.connect(self)
+        # self.subscribe_default_topics(self)
         
     async def connect(self):
         global rws
@@ -46,20 +48,12 @@ class ROSWebSocketConn:
             self.rws = future.result()
         except:
             print("Could not reconnect, retrying in 3 seconds...")
-            self.io_loop.call_later(3, self.connect)
+            self.io_loop.call_later(3, self.reconnect)
             
     def reconnect(self):
         print("reconnect to rosbridge")
         self.connect()
         # TODO Notify browser to reconnect, in order to avoid request mission
-
-    # def get_rosConn(self):
-    #     global rws
-    #     if rws != None:
-    #         print("RWS exist. return previous one")
-    #         return rws
-    #     else:
-    #         return self.connect()
     
     async def prepare_publish_to_ROS(self,RESTCB,URL,data):
         advertiseMsg = {'op':'advertise','id':URL,'latch':False,'topic':data['topic'],'type':data['type']}
@@ -68,20 +62,41 @@ class ROSWebSocketConn:
         publishMsg = {'op':'publish','id':URL,'latch':False,'topic':data['topic'],'type':data['type'],'msg':data['msg']}
         await self.write(self,json_encode(publishMsg))
         
-        # Issue: unadvertise topic might cause rosbridge crash, so skip this step.
+        # Issue: Rosbridge Bug - unadvertise topic here might cause rosbridge crash, so skip this step.
         # unadvertiseMsg = {'op':'unadvertise','id':URL,'topic':data['topic']}
-        # await self.write(self,json_encode(unadvertiseMsg),None)
+        # await self.write(self,json_encode(unadvertiseMsg))
         
         result = {'result':True}
         RESTCB.set_result(result)  # Save result to Rest callback
 
+    async def subscribe_default_topics(self):
+        #subscribe mission 
+        subscribeMissionStr = {"op":"subscribe","id":"RestTopics","topic": "/mission_control/state","type":"elle_interfaces/msg/MissionControlMission"}
+        cacheSubscribeData.update({"/mission_control/states":{'data':None,'lastUpdateTime':datetime.now()}})
+        await self.write(self,json_encode(subscribeMissionStr))
+
+    async def prepare_subscribe_from_ROS(self,RESTCB,subscribeMsg):
+        result = {'result':True}
+        prev = cacheSubscribeData.get(subscribeMsg['topic'])
+        if prev != None and prev['data'] != None : # Cache hit, just return without new subscription
+            RESTCB.set_result(result)
+        else:                                      # Subscribe topic and wait for callback
+            cacheSubscribeData.update({subscribeMsg['topic']:{'data':None,'lastUpdateTime':datetime.now()}})
+            loop = asyncio.get_running_loop()
+            futureObj = loop.create_future()
+            futureCB.update({subscribeMsg['topic']:futureObj}) #append ros callback to dict
+            loop.create_task(self.write(self,json_encode(subscribeMsg)))
+            
+            await futureObj
+            data = futureObj.result() # Get result from ROS callback
+            RESTCB.set_result(data)  # Save result to Rest callback
+            del futureCB[subscribeMsg['topic']] # remove ros callback from dict
     
-    async def prepare_write_to_ROS(self,RESTCB,URL,msg):
+    async def prepare_serviceCall_to_ROS(self,RESTCB,URL,msg):
         loop = asyncio.get_running_loop()
         futureObj = loop.create_future()
         futureCB.update({URL:futureObj}) #append ros callback to dict
-        data = json_encode(msg)
-        loop.create_task(self.write(self,data))
+        loop.create_task(self.write(self,json_encode(msg)))
         
         await futureObj
         data = futureObj.result() # Get result from ROS callback
@@ -114,9 +129,11 @@ class ROSWebSocketConn:
                             if str(cbws) == list(bws.keys())[0]:   # Find corresponding browser client
                                 cbws.write_message(msg) 
                                 topic_alive = True
-                
+
                 #unsubscribe this topic if no browser client found
-                if topic_alive == None: # No way to publish
+                if cacheSubscribeData.get(data['topic'])!= None:
+                    cacheSubscribeData.update({data['topic']:{'data':msg,'lastUpdateTime':datetime.now()}})
+                elif topic_alive == None : # No way to publish
                     print("Unsubscribe topic: " + data['topic'])
                     topicidstr = browsers[0]
                     topicid = topicidstr[list(topicidstr.keys())[0]]
@@ -125,8 +142,11 @@ class ROSWebSocketConn:
                     rws.write_message(json_encode(message))
                     subCmds.deleteOP(data['topic'])
                 # Issue: not able to unsubscribe topic if more then two browser open the same topic. 
-                
-                
+                                    
+                cb = futureCB.get(data['topic'])
+                if cb != None:
+                    cb.set_result(data)
+
             if data['op'] == 'service_response':
                 # print(data['service'] + " " + "id" + data['id'] + " result" + str(data['result']))   
                 #send data back to web socket browser client
@@ -136,7 +156,7 @@ class ROSWebSocketConn:
                         if str(cbws) == browser[0] : #return to first matching browser client
                             cbws.write_message(msg)
                             rosCmds.remove(data['id'])
-                
+
                 #send data back to REST client
                 cb = futureCB.get(data['id'])
                 if cb != None:

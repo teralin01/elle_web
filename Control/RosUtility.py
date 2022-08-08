@@ -1,64 +1,35 @@
-from types import coroutine
-import pandas as pd
-# from control.RosConn import ROSWebSocketConn
+# import pandas as pd
 
-"""
-Advertise example: 
-    id: "advertise:/mission_control/mission:2"
-    latch: false
-    op: "advertise"
-    queue_size: 100
-    topic: "/mission_control/mission"
-    type: "elle_interfaces/msg/MissionControlMission"
+# class Store():
+#     def __init__(self, columndata) -> None:
+#         self.store = pd.DataFrame(columns = columndata)
+        
+#     def insert(self,data):
+#         self.store = self.store.append(data,ignore_index=True)
+        
+#     def update(self,title,titleValue,col,value):
+#         self.store.loc[self.store[title] == titleValue, col] = value
+        
+#     def getRow(self,title,key):
+#         return self.store.loc[self.store[title].isin(key)]
+    
+#     def getField(self,title,key,col):
+#         row = self.store.loc[self.store[title].isin(key)] 
+#         return row[col].tolist()
+    
+#     def find(self,title,key):
+#         return self.store[title].isin(key)
+    
+#     def deleteByIndex(self,indexArray):
+#             self.store = self.store.drop(indexArray, axis=0)             
 
-Publish example:
-    id: "publish:/mission_control/mission:3"
-    latch: false
-    msg: {execution_mode: 1, start_from: 0,…}
-    execution_mode: 1
-    mission: [{type: 0, action_state: 1, coordinate: {x: 0.2, y: 2, z: 0.2}},…]
-    0: {type: 0, action_state: 1, coordinate: {x: 0.2, y: 2, z: 0.2}}
-    1: {type: 0, action_state: 1, coordinate: {x: 0.6, y: 4, z: 0.1}}
-    start_from: 0
-    op: "publish"
-    topic: "/mission_control/mission"
-"""
-class RESTPublishCall(): 
-    @classmethod
-    def __init__(self) -> None:
-        self.dicts = {}    
+#     def delete(self,title,key):
+#         condition = self.store[(self.store[title] == key)].index
+#         #self.store = self.store.drop(condition,inplace = True)
+#         self.store = self.store.drop(condition)
         
-        
-class Store():
-    def __init__(self, columndata) -> None:
-        self.store = pd.DataFrame(columns = columndata)
-        
-    def insert(self,data):
-        self.store = self.store.append(data,ignore_index=True)
-        
-    def update(self,title,titleValue,col,value):
-        self.store.loc[self.store[title] == titleValue, col] = value
-        
-    def getRow(self,title,key):
-        return self.store.loc[self.store[title].isin(key)]
-    
-    def getField(self,title,key,col):
-        row = self.store.loc[self.store[title].isin(key)] 
-        return row[col].tolist()
-    
-    def find(self,title,key):
-        return self.store[title].isin(key)
-    
-    def deleteByIndex(self,indexArray):
-            self.store = self.store.drop(indexArray, axis=0)             
-
-    def delete(self,title,key):
-        condition = self.store[(self.store[title] == key)].index
-        #self.store = self.store.drop(condition,inplace = True)
-        self.store = self.store.drop(condition)
-        
-    def print(self):
-        print(self.store)
+#     def print(self):
+#         print(self.store)
 
 # Example data
 #  OP1:{browser A, browser B}

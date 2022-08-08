@@ -16,7 +16,6 @@ class RosWebSocketHandler(tornado.websocket.WebSocketHandler):
     async def open(self):
         global ws_browser_clients
         ws_browser_clients.add(self)
-        # config.settings['hostIP'] = self.request.host 
         print("WebSocket opened at: " + str(datetime.datetime.now()))
 
     async def on_message(self, message):
@@ -26,7 +25,6 @@ class RosWebSocketHandler(tornado.websocket.WebSocketHandler):
             global subCmds
             print("subscribe topic:" + data["topic"]+ " ID:  "+ data["id"])
             already_subscribe = subCmds.get(data["topic"])
-            # subCmds.add(data["topic"],str(self))
             subCmds.set(data["topic"],str(self),data["id"])
             if not already_subscribe:
                 await ROSConn.write(ROSConn,message)
