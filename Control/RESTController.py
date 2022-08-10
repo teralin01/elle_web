@@ -49,7 +49,7 @@ class RESTHandler(tornado.web.RequestHandler):
 
     async def ROS_subscribe_call_handler(self,calldata):
         subdata = cacheSub.get(calldata['topic'])
-        if  subdata != None:
+        if  subdata != None and subdata['data'] != None:
             self.REST_response(subdata['data'])
         else:
             try:                    
@@ -73,17 +73,15 @@ class RESTHandler(tornado.web.RequestHandler):
         except asyncio.TimeoutError:
             self._status_code = 500
             self.REST_response(TimeoutStr)
-        
-                
+
     def REST_response(self,data):
         # Todo add log if necessary
         if self._status_code == 200:
-            cacheRESTData.update({self.URI:{'cacheData':data,'lastUpdateTime':datetime.now()}})
+            if data != None:
+                cacheRESTData.update({self.URI:{'cacheData':data,'lastUpdateTime':datetime.now()}})
         self.write(data)
         self.finish()       
-        
-    #/1.0/missions
-    #/1.0/mission/missionId
+
     async def get(self,*args):
         self._status_code = 200
         if self.cacheHit:
@@ -91,7 +89,7 @@ class RESTHandler(tornado.web.RequestHandler):
             self.REST_response(cacheRESTData.get(self.URI)['cacheData'])     
         
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
-            subscribeMsg = {"op":"subscribe","id":"RestTopics","topic": "/mission_control/state","type":"elle_interfaces/msg/MissionControlMission"}
+            subscribeMsg = {"op":"subscribe","id":"RestTopics","topic": "/mission_control/states","type":"elle_interfaces/msg/MissionControlMissionArray"}
             await self.ROS_subscribe_call_handler(subscribeMsg)
             
         elif self.URI == '/1.0/maps' or self.URI == '/1.0/maps/GetMap':
