@@ -3,9 +3,11 @@ import tornado.web
 import tornado.ioloop
 from dataModel.AuthModel import AuthDB
 from datetime import datetime
+from jsonschema import validate
 from control.system.RosConn import ROSWebSocketConn as ROSConn
 from control.system.RosConn import cacheSubscribeData as cacheSub
 from control.system.HWStatus import HWInfoHandler as HWInfo
+from control.system.jsonValidatorSchema import missionSchema
 from tornado.escape import json_decode, json_encode
 import asyncio
 
@@ -116,14 +118,16 @@ class RESTHandler(tornado.web.RequestHandler):
         self._status_code = 201 # 201 means REST resource Created
         try:
             data = json_decode(self.request.body)
+            ret = validate(instance=data, schema=missionSchema)
         except:            
+            print(ret)
             self._status_code = 400 #Bad Request
-            
+                                                
         if self._status_code != 201:
             self.REST_response({'result':False})
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':  
             #TODO validate with missionSchema 
-            callData = {'type': "elle_interfaces/msg/MissionControlMission",'topic': "/mission_control/mission",'msg':data['actions']}
+            callData = {'type': "elle_interfaces/msg/MissionControlMission",'topic': "/mission_control/mission",'msg':data['mission']}
             await self.ROS_publish_handler(callData)
         
         #/1.0/mission/Id
