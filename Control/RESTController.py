@@ -15,7 +15,7 @@ import asyncio
 cacheRESTData = dict()
 TimeoutStr = {"result":False}
 restTimeoutPeriod = 10
-restCachePeriod = 2
+restCachePeriod = 5
 
 #TODO user authenication
 # class BaseHandler(tornado.web.RequestHandler):
@@ -36,7 +36,7 @@ class RESTHandler(tornado.web.RequestHandler):
         cache = cacheRESTData.get(self.URI)
         if cache == None:
             cacheRESTData.update({self.URI:{'cacheData':None,'lastUpdateTime':datetime.now()}})
-        elif (datetime.now() - cache['lastUpdateTime']).seconds > restCachePeriod and cache['cacheData'] != None:
+        elif (datetime.now() - cache['lastUpdateTime']).seconds < restCachePeriod and cache['cacheData'] != None:
             self.cacheHit = True
 
     async def ROS_service_handler(self,calldata):
@@ -79,7 +79,7 @@ class RESTHandler(tornado.web.RequestHandler):
     def REST_response(self,data):
         # Todo add log if necessary
         if self._status_code == 200:
-            if data != None:
+            if data != None and not self.cacheHit:
                 cacheRESTData.update({self.URI:{'cacheData':data,'lastUpdateTime':datetime.now()}})
         self.write(data)
         self.finish()       

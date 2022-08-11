@@ -57,7 +57,7 @@ missionSchema = {
                      "minimum": 0,
                  },
                 "repeats":{
-                    "type":"integer"
+                    "type":"integer", "not":{"enum":[0]}
                  },
                 "name":{
                     "type":"string",
@@ -66,6 +66,7 @@ missionSchema = {
                  },
                 "actions":{
                     "type":"array",
+                    "minItems": 1,
                     "items": { "$ref": "#/definitions/missionEntry" }      
                  },                                                                
              },
