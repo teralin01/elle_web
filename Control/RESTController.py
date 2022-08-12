@@ -1,6 +1,7 @@
-from numpy import NaN
 import tornado.web
 import tornado.ioloop
+import logging
+import config
 from dataModel.AuthModel import AuthDB
 from datetime import datetime
 from jsonschema import validate
@@ -16,6 +17,9 @@ cacheRESTData = dict()
 TimeoutStr = {"result":False}
 restTimeoutPeriod = 10
 restCachePeriod = 5
+
+logging.basicConfig(filename='/var/log/tornado.log', level=logging.DEBUG)
+logging.basicConfig(format='%(asctime)s %(message)s')
 
 #TODO user authenication
 # class BaseHandler(tornado.web.RequestHandler):
@@ -38,6 +42,9 @@ class RESTHandler(tornado.web.RequestHandler):
             cacheRESTData.update({self.URI:{'cacheData':None,'lastUpdateTime':datetime.now()}})
         elif (datetime.now() - cache['lastUpdateTime']).seconds < restCachePeriod and cache['cacheData'] != None:
             self.cacheHit = True
+
+        if config.settings['hostIP'] == "":
+            config.settings['hostIP'] = self.request.host
 
     async def ROS_service_handler(self,calldata):
         try:                    
@@ -91,6 +98,7 @@ class RESTHandler(tornado.web.RequestHandler):
             self.REST_response(cacheRESTData.get(self.URI)['cacheData'])     
         
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
+            logging.warning("Server IP " +  self.request.host)
             subscribeMsg = {"op":"subscribe","id":"RestTopics","topic": "/mission_control/states","type":"elle_interfaces/msg/MissionControlMissionArray"}
             await self.ROS_subscribe_call_handler(subscribeMsg)
             

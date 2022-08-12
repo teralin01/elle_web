@@ -4,6 +4,7 @@ import tornado.websocket
 import tornado.ioloop
 import datetime
 import json
+import config
 from control.system.RosConn import ROSWebSocketConn as ROSConn
 from control.system.RosConn import subCmds 
 from control.system.RosConn import rosCmds
@@ -17,6 +18,8 @@ class RosWebSocketHandler(tornado.websocket.WebSocketHandler):
         global ws_browser_clients
         ws_browser_clients.add(self)
         print("WebSocket opened at: " + str(datetime.datetime.now()))
+        if config.settings['hostIP'] == "":
+            config.settings['hostIP'] = self.request.host
 
     async def on_message(self, message):
         self.browserMsg = message
