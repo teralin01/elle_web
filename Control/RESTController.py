@@ -98,7 +98,6 @@ class RESTHandler(tornado.web.RequestHandler):
             self.REST_response(cacheRESTData.get(self.URI)['cacheData'])     
         
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
-            logging.warning("Server IP " +  self.request.host)
             subscribeMsg = {"op":"subscribe","id":"RestTopics","topic": "/mission_control/states","type":"elle_interfaces/msg/MissionControlMissionArray"}
             await self.ROS_subscribe_call_handler(subscribeMsg)
             
