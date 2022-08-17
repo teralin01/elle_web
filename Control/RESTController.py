@@ -94,7 +94,7 @@ class RESTHandler(tornado.web.RequestHandler):
     async def get(self,*args):
         self._status_code = 200
         if self.cacheHit:
-            print("return cache data")
+            logging.debug("Return cache data")
             self.REST_response(cacheRESTData.get(self.URI)['cacheData'])     
         
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
@@ -123,11 +123,13 @@ class RESTHandler(tornado.web.RequestHandler):
             
     async def post(self,*args):
         self._status_code = 201 # 201 means REST resource Created
+        errRet = None
         try:
             data = json_decode(self.request.body)
-            ret = validate(instance=data, schema=missionSchema)
+            errRet = validate(instance=data, schema=missionSchema)
         except:            
-            print(ret)
+            print(errRet)
+            logging.warn(errRet)
             self._status_code = 400 #Bad Request
                                                 
         if self._status_code != 201:
@@ -155,7 +157,8 @@ class RESTHandler(tornado.web.RequestHandler):
             await self.ROS_service_handler(callData)        
         
     def on_finish(self):
-        print("Finish RST API " + self.URI + " at " + str(datetime.now()))
+        print("Finish REST API " + self.URI + " at " + str(datetime.now()))
+        logging.debug("Finish REST API " + self.URI + " at " + str(datetime.now()))
 
     def write_error(self, status_code: int, **kwargs) -> None:
         print(super().write_error(status_code, **kwargs))

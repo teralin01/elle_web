@@ -1,18 +1,16 @@
 from tornado.web import RequestHandler
 import json
 import psutil
-
+import os
 
 class HWInfoHandler (RequestHandler):
     def get(self,*args,**kwargs):
         memStatus =  psutil.virtual_memory() 
-        cpuPersent = psutil.cpu_percent()
+        # cpuPersent = psutil.cpu_percent()
+        cpuPersent,Load5, Load15  = os.getloadavg()
         cpuTemperature = psutil.sensors_temperatures()['coretemp'][0][1]
         Info = { "memTotal":memStatus.total,"memUsed":memStatus.used,"CPU_Persent":cpuPersent,"CPU_Temp":cpuTemperature }
         self.set_header('Content-Type', 'application/json; charset=UTF-8')
-        self.set_header("Access-Control-Allow-Origin", "*")
-        self.set_header('Access-Control-Allow-Methods', 'GET')
-        self.set_header('Access-Control-Allow-Headers','*')
         self.write( json.dumps(Info))
 
 
