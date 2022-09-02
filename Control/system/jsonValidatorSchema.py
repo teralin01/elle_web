@@ -31,8 +31,7 @@ missionSchema = {
                 "pose_cmd":{
                     "type":"object"
                 }
-            },
-            "required": [ "action_state"]
+            }
         }
     },
     "$schema": "http://json-schema.org/draft-04/schema#",

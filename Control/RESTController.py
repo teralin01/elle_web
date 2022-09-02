@@ -117,6 +117,18 @@ class RESTHandler(tornado.web.RequestHandler):
             callData = {'id':self.URI, 'op':"call_service",'type': "nav2_msgs/srv/GetCostmap",'service': "/global_costmap/get_costmap",'args': {} }
             await self.ROS_service_handler(callData)  
             
+        elif self.URI == '/1.0/ros/service':    
+            callData = {'id':self.URI, 'op':"call_service",'type': self.get_argument("ros_type"),'service': self.get_argument("ros_service") }
+            await self.ROS_service_handler(callData)              
+            
+        elif self.URI == '/1.0/ros/service/withArgs':    
+            callData = {'id':self.URI, 'op':"call_service",'type': self.get_argument("ros_type"),'service': self.get_argument("ros_service"),'args': {self.get_argument("ros_args")} }
+            await self.ROS_service_handler(callData)              
+                        
+        elif self.URI == '/1.0/ros/subscribe':       
+            subscribeMsg = {"op":"subscribe","id":"RestTopics","topic":self.get_argument("ros_topic"),"type":self.get_argument("ros_type")}
+            await self.ROS_subscribe_call_handler(subscribeMsg)            
+            
         elif self.URI == '/1.0/status/hardware':    #TODO add robotID to the URL in fleet version
             self.REST_response(HWInfo.get())
             
@@ -126,6 +138,8 @@ class RESTHandler(tornado.web.RequestHandler):
         errRet = None
         try:
             data = json_decode(self.request.body)
+            print(data)
+            logging.debug(data)
             errRet = validate(instance=data, schema=missionSchema)
         except:            
             print(errRet)

@@ -14,5 +14,7 @@ settings = {
     "cookie_secret": "__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",
     "login_url":"/login",
     "rosbridgePort":"9090",
-    "hostIP":""
+    "hostIP":"",
+    "web_version":"0.1.3",
+    "amr_version":"1.0"
 }

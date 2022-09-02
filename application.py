@@ -27,6 +27,7 @@ class Application(tornado.web.Application):
             (r"/1.0/maps/(.*)",RESTController.RESTHandler),            
             (r"/1.0/status",RESTController.RESTHandler),
             (r"/1.0/status/(.*)",RESTController.RESTHandler),                     
+            (r"/1.0/ros/(.*)",RESTController.RESTHandler),   
             (r'/login',mainController.LoginHandler),
             (r'/logout',mainController.LogoutHandler),
             (r"/control/HardwareStatus", statusController.HWInfoHandler),
@@ -34,6 +35,7 @@ class Application(tornado.web.Application):
             (r"/control/mapController", mapController.InitHandler),
             (r'/view/dashboard/(.*)',tornado.web.StaticFileHandler,{"path":"view/dashboard/"}),
             (r'/view/(.*)',tornado.web.StaticFileHandler,{"path":"view"}),
+            (r'/FlexDash/(.*)',tornado.web.StaticFileHandler,{"path":"flexdash"}),
             (r'/static/(.*)',tornado.web.StaticFileHandler,{"path":os.path.join(config.BASE_DIRS,"static_path")}), 
             (r'/(.*)', DefaultFileFallbackHandler, {'path': 'vue','default_filename': 'index.html'}),
         ]
