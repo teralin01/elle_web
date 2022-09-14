@@ -3,7 +3,7 @@ BASE_DIRS = os.path.dirname(__file__)
 
 # http port
 options = {
-    "port":80
+    "port":8080
 }
 
 settings = {

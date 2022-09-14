@@ -10,8 +10,9 @@ from control.system.RosConn import cacheSubscribeData as cacheSub
 from control.system.HWStatus import HWInfoHandler as HWInfo
 from control.system.jsonValidatorSchema import missionSchema
 from tornado.escape import json_decode, json_encode
+from dataModel import waypointsModel as WP
 import asyncio
-
+import json
 
 cacheRESTData = dict()
 TimeoutStr = {"result":False}
@@ -131,7 +132,10 @@ class RESTHandler(tornado.web.RequestHandler):
             
         elif self.URI == '/1.0/status/hardware':    #TODO add robotID to the URL in fleet version
             self.REST_response(HWInfo.get())
-            
+        
+        elif self.URI == '/1.0/maps/waypoints':
+            self.REST_response(json.dumps(WP.GetWaypoints()))
+            pass
             
     async def post(self,*args):
         self._status_code = 201 # 201 means REST resource Created
@@ -140,21 +144,54 @@ class RESTHandler(tornado.web.RequestHandler):
             data = json_decode(self.request.body)
             print(data)
             logging.debug(data)
-            errRet = validate(instance=data, schema=missionSchema)
+            
         except:            
             print(errRet)
             logging.warn(errRet)
             self._status_code = 400 #Bad Request
-                                                
-        if self._status_code != 201:
             self.REST_response({'result':False})
-        elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':  
-            #TODO validate with missionSchema 
+            return
+            
+        if self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':  
+            try:
+                errRet = validate(instance=data, schema=missionSchema)
+            except:
+                print(errRet)
+                logging.warn(errRet)
+                self._status_code = 400 #Bad Request
+                self.REST_response({'result':False})
+                return
+            
             callData = {'type': "elle_interfaces/msg/MissionControlMission",'topic': "/mission_control/mission",'msg':data['mission']}
             await self.ROS_publish_handler(callData)
         
+        # Example input { "Name":"Station A","Coordinate":{"X":0 ,"Y":0}}
+        elif self.URI == '/1.0/maps/waypoints':
+            #TODO validate with waypointsSchema 
+            ret = WP.SetWaypoints(data)
+            self.REST_response(ret)
+        
         #/1.0/mission/Id
     async def delete(self,*args):
+        self._status_code = 201 # 201 means REST resource Created
+        errRet = None
+        try:
+            data = json_decode(self.request.body)
+            print(data)
+            logging.debug(data)
+            
+        except:            
+            print(errRet)
+            logging.warn(errRet)
+            self._status_code = 400 #Bad Request
+            self.REST_response({'result':False})
+            return        
+        
+        if self.URI == '/1.0/maps/waypoints':
+            #TODO validate with waypointsSchema 
+            ret = WP.DelWaypoints(data)
+            self.REST_response({'result':True})
+        
         await self.post(self,*args)
         pass
     async def put(self,*args):
