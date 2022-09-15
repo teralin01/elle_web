@@ -42,7 +42,7 @@
 
   // Create a connection to the rosbridge WebSocket server.
   //ros.connect('ws://10.1.30.172:9090');
-  ros.connect('ws://10.1.30.172:9000/ws');
+  ros.connect('ws://10.1.30.172:9090');
   var width = 1024;
   var height = 700;
   var panOn = false;
@@ -57,9 +57,9 @@
       var gridClient = new window.ROS2D.OccupancyGridClient({
         ros : ros,
         rootObject : viewer.scene,
-        //topic: '/map',
-        topic: '/global_costmap/costmap',
-        continuous : true,
+        topic: '/map',
+        //topic: '/global_costmap/costmap',
+        //continuous : true,
       });
 
       gridClient.on('change', function(){

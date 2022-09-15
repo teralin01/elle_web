@@ -1,4 +1,3 @@
-
 class MongoDB():
     """docstring for myclass."""
     def __init__(self,mydb_Name):
@@ -50,4 +49,5 @@ class MongoDB():
         self.mycol = self.mydb[collection]
         self.myquery = myquery
         self.new_values = new_values
-        self.mycol.find_one_and_update(self.myquery, self.new_values, upsert=True)        
+        self.mycol.find_one_and_update(self.myquery, self.new_values, upsert=True)       
+ 

@@ -11,6 +11,7 @@ from control.system.HWStatus import HWInfoHandler as HWInfo
 from control.system.jsonValidatorSchema import missionSchema
 from tornado.escape import json_decode, json_encode
 from dataModel import waypointsModel as WP
+from dataModel import configModel as Config
 import asyncio
 import json
 
@@ -135,7 +136,9 @@ class RESTHandler(tornado.web.RequestHandler):
         
         elif self.URI == '/1.0/maps/waypoints':
             self.REST_response(json.dumps(WP.GetWaypoints()))
-            pass
+        
+        elif self.URI == '/1.0/config/viewer':
+            self.REST_response(json.dumps(Config.GetViewerConfig()))
             
     async def post(self,*args):
         self._status_code = 201 # 201 means REST resource Created
@@ -170,8 +173,11 @@ class RESTHandler(tornado.web.RequestHandler):
             #TODO validate with waypointsSchema 
             ret = WP.SetWaypoints(data)
             self.REST_response(ret)
-        
-        #/1.0/mission/Id
+
+        elif self.URI == '/1.0/config/viewer':
+            ret = Config.SetViewerConfig(data)
+            self.REST_response(ret)
+
     async def delete(self,*args):
         self._status_code = 201 # 201 means REST resource Created
         errRet = None

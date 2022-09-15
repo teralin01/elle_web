@@ -2,19 +2,19 @@ import json
 from bson import json_util
 from dataModel.mongoDBQuery import MongoDB
 
-def SetWaypoints(data):
+def SetViewerConfig(data):
     print(data)
     dbinstance = MongoDB("elle")
-    dbinstance.upsert("waypoints",{"Name":data["Name"]},{'$set':data["Coordinate"]})
+    dbinstance.upsert("config",{"Name":data["Name"]},{'$set':{"ROS2D":data["ROS2D"]}})
     return {"result":True}
 
-def GetWaypoints():
+def GetViewerConfig():
     dbinstance = MongoDB("elle")
-    ret = dbinstance.get_data("waypoints")
+    ret = dbinstance.get_data("config")
     
     print(ret)
     return json.loads(json_util.dumps(ret))
 
-def DelWaypoints(data):
+def DelViewerConfig(data):
     dbinstance = MongoDB("elle")
-    ret = dbinstance.delete_data("waypoints",data)    
+    ret = dbinstance.delete_data("config",data)    
