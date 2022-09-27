@@ -43,8 +43,8 @@
   // Create a connection to the rosbridge WebSocket server.
   //ros.connect('ws://10.1.30.172:9090');
   ros.connect('ws://10.1.30.172:9090');
-  var width = 1024;
-  var height = 700;
+  var width = 1178;
+  var height = 606;
   var panOn = false;
   function init(){
     window.viewer = new window.ROS2D.Viewer({
@@ -94,7 +94,7 @@
         // update icon location
         navigationImage.x = message.pose.pose.position.x;
         navigationImage.y = - message.pose.pose.position.y;
-        
+        console.log("navigationImage.x"+ navigationImage.x + " y: "+navigationImage.y)
         // rotation icon
         navigationImage.rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion(
               message.pose.pose.orientation.x,

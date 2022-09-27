@@ -13,9 +13,9 @@ missionSchema = {
                 "coordinate":{
                     "type":"object",
                     "properties": {
-                            "x":{"type":"number", "multipleOf": 0.001},
-                            "y":{"type":"number", "multipleOf": 0.001},
-                            "z":{"type":"number", "multipleOf": 0.00001}
+                            "x":{"type":"number", "multipleOfPrecision": 0.001},
+                            "y":{"type":"number", "multipleOfPrecision": 0.001},
+                            "z":{"type":"number", "multipleOfPrecision": 0.00001}
                     },
                     "required":["x","y","z"]
                 },
