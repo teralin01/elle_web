@@ -193,9 +193,9 @@ class RESTHandler(tornado.web.RequestHandler):
             self.REST_response({'result':False})
             return        
         
-        if self.URI == '/1.0/maps/waypoints':
-            #TODO validate with waypointsSchema 
-            ret = WP.DelWaypoints(data)
+        if self.URI == '/1.0/maps/landmarks':
+            #TODO validate with landmark Schema 
+            ret = LM.DelWaypoints(data)
             self.REST_response({'result':True})
         
         await self.post(self,*args)
@@ -212,6 +212,10 @@ class RESTHandler(tornado.web.RequestHandler):
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':  #start/stop mission
             callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':data['command']} }
             await self.ROS_service_handler(callData)        
+        elif self.URI == '/1.0/maps/landmarks':
+            #TODO validate with landmark Schema 
+            ret = LM.SetPoints(data)
+            self.REST_response(ret)            
         
     def on_finish(self):
         print("Finish REST API " + self.URI + " at " + str(datetime.now()))

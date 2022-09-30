@@ -15,7 +15,7 @@ function init(options){
   this.divwidth = options.windowWidth || undefined ; 
 
   const config = fetch("/1.0/config/viewer");
-  const waypoint = fetch("/1.0/maps/waypoints");
+  const waypoint = fetch("/1.0/maps/landmarks");
   Promise.all([config, waypoint])
     .then(async([viewerConfig, waypointList]) => {
         const resolution = await viewerConfig.json();

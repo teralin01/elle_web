@@ -17,4 +17,4 @@ def GetPoints():
 
 def DelWaypoints(data):
     dbinstance = MongoDB("elle")
-    ret = dbinstance.delete_data("waypoints",data)    
+    ret = dbinstance.delete_data("waypoints",{"Name":data["Name"]})    
