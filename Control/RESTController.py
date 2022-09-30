@@ -10,7 +10,7 @@ from control.system.RosConn import cacheSubscribeData as cacheSub
 from control.system.HWStatus import HWInfoHandler as HWInfo
 from control.system.jsonValidatorSchema import missionSchema
 from tornado.escape import json_decode, json_encode
-from dataModel import waypointsModel as WP
+from dataModel import landmarkModel as LM
 from dataModel import configModel as Config
 import asyncio
 import json
@@ -134,8 +134,8 @@ class RESTHandler(tornado.web.RequestHandler):
         elif self.URI == '/1.0/status/hardware':    #TODO add robotID to the URL in fleet version
             self.REST_response(HWInfo.get())
         
-        elif self.URI == '/1.0/maps/waypoints':
-            self.REST_response(json.dumps(WP.GetWaypoints()))
+        elif self.URI == '/1.0/maps/landmarks':
+            self.REST_response(json.dumps(LM.GetPoints()))
         
         elif self.URI == '/1.0/config/viewer':
             self.REST_response(json.dumps(Config.GetViewerConfig()))
@@ -169,9 +169,9 @@ class RESTHandler(tornado.web.RequestHandler):
             await self.ROS_publish_handler(callData)
         
         # Example input { "Name":"Station A","Coordinate":{"X":0 ,"Y":0}}
-        elif self.URI == '/1.0/maps/waypoints':
-            #TODO validate with waypointsSchema 
-            ret = WP.SetWaypoints(data)
+        elif self.URI == '/1.0/maps/landmarks':
+            #TODO validate with landmark Schema 
+            ret = LM.SetPoints(data)
             self.REST_response(ret)
 
         elif self.URI == '/1.0/config/viewer':

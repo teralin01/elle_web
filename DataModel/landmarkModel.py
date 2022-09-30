@@ -2,13 +2,13 @@ import json
 from bson import json_util
 from dataModel.mongoDBQuery import MongoDB
 
-def SetWaypoints(data):
+def SetPoints(data):
     print(data)
     dbinstance = MongoDB("elle")
     dbinstance.upsert("waypoints",{"Name":data["Name"]},{'$set':data["Coordinate"]})
     return {"result":True}
 
-def GetWaypoints():
+def GetPoints():
     dbinstance = MongoDB("elle")
     ret = dbinstance.get_data("waypoints")
     
