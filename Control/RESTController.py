@@ -168,10 +168,10 @@ class RESTHandler(tornado.web.RequestHandler):
             callData = {'type': "elle_interfaces/msg/MissionControlMission",'topic': "/mission_control/mission",'msg':data['mission']}
             await self.ROS_publish_handler(callData)
         
-        # Example input { "Name":"Station A","Coordinate":{"X":0 ,"Y":0}}
         elif self.URI == '/1.0/maps/landmarks':
             #TODO validate with landmark Schema 
             ret = LM.SetPoints(data)
+            #ret = LM.UpsertPoints(data)
             self.REST_response(ret)
 
         elif self.URI == '/1.0/config/viewer':
@@ -196,7 +196,7 @@ class RESTHandler(tornado.web.RequestHandler):
         if self.URI == '/1.0/maps/landmarks':
             #TODO validate with landmark Schema 
             ret = LM.DelWaypoints(data)
-            self.REST_response({'result':True})
+            self.REST_response(ret)
         
         await self.post(self,*args)
         pass
@@ -214,7 +214,8 @@ class RESTHandler(tornado.web.RequestHandler):
             await self.ROS_service_handler(callData)        
         elif self.URI == '/1.0/maps/landmarks':
             #TODO validate with landmark Schema 
-            ret = LM.SetPoints(data)
+            ret = LM.InsertPoint(data)
+            print(ret)
             self.REST_response(ret)            
         
     def on_finish(self):
