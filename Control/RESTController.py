@@ -167,7 +167,19 @@ class RESTHandler(tornado.web.RequestHandler):
             
             callData = {'type': "elle_interfaces/msg/MissionControlMission",'topic': "/mission_control/mission",'msg':data['mission']}
             await self.ROS_publish_handler(callData)
-        
+
+        elif self.URI == '/1.0/nav/initialpose': 
+            publishMsg = {"op":"publish","id":"RestTopics","topic":"/initialpose","type":"geometry_msgs/msg/PoseWithCovarianceStamped",'msg':data['msg']}
+            await self.ROS_publish_handler(publishMsg)  
+
+        elif self.URI == '/1.0/nav/goalpose': 
+            callData = {'type': "elle_interfaces/msg/MissionControlMission",'topic': "/mission_control/mission",'msg':data['mission']}
+            await self.ROS_publish_handler(callData)           
+            
+        elif self.URI == '/1.0/ros/publish': 
+            publishMsg = {"op":"publish","id":"RestTopics","topic":data['ros_topic'],"type":data['ros_type'],'msg':data['msg']}
+            await self.ROS_publish_handler(publishMsg)  
+
         elif self.URI == '/1.0/maps/landmarks':
             #TODO validate with landmark Schema 
             ret = LM.SetPoints(data)
@@ -177,6 +189,12 @@ class RESTHandler(tornado.web.RequestHandler):
         elif self.URI == '/1.0/config/viewer':
             ret = Config.SetViewerConfig(data)
             self.REST_response(ret)
+            
+        elif self.URI == '/1.0/maps/SetMap':
+            
+            #if success setmap via ROS service, then update map width/height to database 
+            
+            pass
 
     async def delete(self,*args):
         self._status_code = 201 # 201 means REST resource Created
