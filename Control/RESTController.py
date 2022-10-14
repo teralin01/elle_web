@@ -48,6 +48,11 @@ class RESTHandler(tornado.web.RequestHandler):
         if config.settings['hostIP'] == "":
             config.settings['hostIP'] = self.request.host
 
+
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+
+
     async def ROS_service_handler(self,calldata):
         try:                    
             await asyncio.wait_for( ROSConn.prepare_serviceCall_to_ROS(ROSConn,self.future,self.URI,calldata) , timeout = restTimeoutPeriod)
@@ -175,6 +180,12 @@ class RESTHandler(tornado.web.RequestHandler):
         elif self.URI == '/1.0/nav/goalpose': 
             callData = {'type': "elle_interfaces/msg/MissionControlMission",'topic': "/mission_control/mission",'msg':data['mission']}
             await self.ROS_publish_handler(callData)           
+            
+        elif self.URI == '/1.0/nav/move': 
+            #{linear: {x: 2.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z:0}}"
+            callData = {'type': "geometry_msgs/msg/Twist",'topic': "/cmd_vel",'msg':{
+                'linear':{ 'x':data['forwardspeed'],'y':0,'z':0 },'angular':{'x':0,'y':0,'z':data['turn']}  }}
+            await self.ROS_publish_handler(callData)                       
             
         elif self.URI == '/1.0/ros/publish': 
             publishMsg = {"op":"publish","id":"RestTopics","topic":data['ros_topic'],"type":data['ros_type'],'msg':data['msg']}
