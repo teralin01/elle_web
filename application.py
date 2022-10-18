@@ -27,6 +27,8 @@ class Application(tornado.web.Application):
             (r"/1.0/maps/(.*)",RESTController.RESTHandler),   
             (r"/1.0/nav",RESTController.RESTHandler),
             (r"/1.0/nav/(.*)",RESTController.RESTHandler),            
+            (r"/1.0/network",RESTController.RESTHandler),
+            (r"/1.0/network/(.*)",RESTController.RESTHandler),                   
             (r"/1.0/status/(.*)",RESTController.RESTHandler),                     
             (r"/1.0/config/(.*)",RESTController.RESTHandler),     
             (r"/1.0/ros/(.*)",RESTController.RESTHandler),   

@@ -14,6 +14,7 @@ from dataModel import landmarkModel as LM
 from dataModel import configModel as Config
 import asyncio
 import json
+import pynmcli
 
 cacheRESTData = dict()
 TimeoutStr = {"result":False}
@@ -145,6 +146,13 @@ class RESTHandler(tornado.web.RequestHandler):
         elif self.URI == '/1.0/config/viewer':
             self.REST_response(json.dumps(Config.GetViewerConfig()))
             
+
+        elif self.URI == '/1.0/network/wifilist':
+            self.REST_response(pynmcli.NetworkManager.Device().wifi('list').execute())                        
+            
+        elif self.URI == '/1.0/network/connected':
+            self.REST_response(pynmcli.NetworkManager.Connection().show().execute())            
+            
     async def post(self,*args):
         self._status_code = 201 # 201 means REST resource Created
         errRet = None
@@ -200,6 +208,25 @@ class RESTHandler(tornado.web.RequestHandler):
         elif self.URI == '/1.0/config/viewer':
             ret = Config.SetViewerConfig(data)
             self.REST_response(ret)
+        
+        elif self.URI == '/1.0/network/WiFiconnectionUP':
+            # the SSID shoud be replace to device name. such as wlx08beac0e2a82
+            result = pynmcli.NetworkManager.Connection().up(data['SSID']).execute()
+            self.REST_response({"result": True, 'info':result})            
+                        
+        elif self.URI == '/1.0/network/WiFiconnectionDown':
+            # the SSID shoud be replace to device name. such as wlx08beac0e2a82
+            result = pynmcli.NetworkManager.Connection().down(data['SSID']).execute()
+            self.REST_response({"result": True, 'info':result})            
+                                    
+        elif self.URI == '/1.0/network/connectWiFi':
+            pynmcli.NetworkManager.Device().wifi("connect ",data['SSID']," password ",data['PASSWORD']).execute()
+            self.REST_response({"result": True})            
+        #nmcli d wifi connect my_wifi password <password>    
+        
+        elif self.URI == '/1.0/network/disconnectWiFi':
+            result = pynmcli.NetworkManager.Device().disconnect(data['SSID']).execute()
+            self.REST_response({"result": True, 'info':result})                        
             
         elif self.URI == '/1.0/maps/SetMap':
             
