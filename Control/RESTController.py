@@ -52,6 +52,7 @@ class RESTHandler(tornado.web.RequestHandler):
 
         self.set_header("Access-Control-Allow-Origin", "*")
         self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+        self.set_header('Access-Control-Allow-Methods', 'POST, GET,PUT,DELETE, OPTIONS')
 
 
     async def ROS_service_handler(self,calldata):
@@ -152,6 +153,10 @@ class RESTHandler(tornado.web.RequestHandler):
             
         elif self.URI == '/1.0/network/connected':
             self.REST_response(pynmcli.NetworkManager.Connection().show().execute())            
+            
+        elif self.URI == '/1.0/event/sse':
+            self.REST_response(pynmcli.NetworkManager.Connection().show().execute())                        
+            
             
     async def post(self,*args):
         self._status_code = 201 # 201 means REST resource Created
@@ -299,3 +304,21 @@ class RESTHandler(tornado.web.RequestHandler):
 
 # class RESTVDA5050Controller(tornado.web.RequestHandler): 
 #     pass
+
+class SSEHandler(tornado.web.RequestHandler):
+    def __init__(self, *args, **kwargs):
+        super(SSEHandler, self).__init__(*args, **kwargs)
+        self.set_header('Content-Type', 'text/event-stream')
+        self.set_header('cache-control', 'no-cache')
+        
+    async def get(self,*args):
+        i = 0 
+        while True:
+            if True:
+                await asyncio.sleep(5)
+                i = i + 1
+                await self.out_put("Event sequence "+ str(i) )
+            
+    async def out_put(self,data):
+        self.write('data:{'+data+'}\n\n')
+        await self.flush()

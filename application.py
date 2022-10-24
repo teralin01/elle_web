@@ -32,6 +32,7 @@ class Application(tornado.web.Application):
             (r"/1.0/status/(.*)",RESTController.RESTHandler),                     
             (r"/1.0/config/(.*)",RESTController.RESTHandler),     
             (r"/1.0/ros/(.*)",RESTController.RESTHandler),   
+            (r"/1.0/event/(.*)",RESTController.SSEHandler),   
             (r'/login',mainController.LoginHandler),
             (r'/logout',mainController.LogoutHandler),
             (r"/control/HardwareStatus", statusController.HWInfoHandler),
