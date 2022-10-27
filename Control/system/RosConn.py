@@ -67,6 +67,8 @@ class ROSWebSocketConn:
         # await self.write(self,json_encode(unadvertiseMsg))
         
         result = {'result':True}
+        #success publish topic doesn't means the subscriber have already handler topic. 
+        await asyncio.sleep(1)
         RESTCB.set_result(result)  # Save result to Rest callback
 
     async def subscribe_default_topics(self):

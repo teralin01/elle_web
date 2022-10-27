@@ -228,7 +228,7 @@ class RESTHandler(tornado.web.RequestHandler):
                         
             publishMsg = {'type': "elle_interfaces/msg/MissionControlMission",'topic': "/mission_control/mission",'msg':data['mission']}
             callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':0} }
-            ret = await self.ROS_service_handler_with_return(callData)
+            ret = await self.ROS_publish_handler_with_return(publishMsg)
             if ret == True:    
                 await self.ROS_service_handler(callData)
             else:
