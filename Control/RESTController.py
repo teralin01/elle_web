@@ -13,6 +13,7 @@ from tornado.escape import json_decode, json_encode
 from dataModel import landmarkModel as LM
 from dataModel import configModel as Config
 import asyncio
+from asyncio import Future
 import json
 import pynmcli
 
@@ -49,11 +50,9 @@ class RESTHandler(tornado.web.RequestHandler):
         if config.settings['hostIP'] == "":
             config.settings['hostIP'] = self.request.host
 
-
         self.set_header("Access-Control-Allow-Origin", "*")
         self.set_header("Access-Control-Allow-Headers", "x-requested-with")
         self.set_header('Access-Control-Allow-Methods', 'POST, GET,PUT,DELETE, OPTIONS')
-
 
     async def ROS_service_handler(self,calldata):
         try:                    
@@ -64,6 +63,19 @@ class RESTHandler(tornado.web.RequestHandler):
             self._status_code = 500
             self.REST_response(TimeoutStr)
             #TODO trigger rosbrodge process         
+    async def ROS_service_handler_with_return(self,calldata):
+        serviceFuture = Future() 
+        try:                    
+            await asyncio.wait_for( ROSConn.prepare_serviceCall_to_ROS(ROSConn,serviceFuture,self.URI,calldata) , timeout = restTimeoutPeriod)
+            data = serviceFuture.result()
+            if data['result'] == True:
+                return True
+            else:
+                return False
+
+        except asyncio.TimeoutError:
+            self._status_code = 500
+            return False
 
     async def ROS_subscribe_call_handler(self,calldata):
         subdata = cacheSub.get(calldata['topic'])
@@ -91,6 +103,20 @@ class RESTHandler(tornado.web.RequestHandler):
         except asyncio.TimeoutError:
             self._status_code = 500
             self.REST_response(TimeoutStr)
+
+    async def ROS_publish_handler_with_return(self,calldata):
+        pubFuture = Future() 
+        try:                    
+            await asyncio.wait_for( ROSConn.prepare_publish_to_ROS(ROSConn,pubFuture,self.URI,calldata) , timeout = restTimeoutPeriod)
+            data = pubFuture.result()
+            if data['result'] == True:
+                return True
+            else:
+                return False
+
+        except asyncio.TimeoutError:
+            self._status_code = 500
+            return False
 
     def REST_response(self,data):
         # Todo add log if necessary
@@ -191,11 +217,25 @@ class RESTHandler(tornado.web.RequestHandler):
             await self.ROS_publish_handler(publishMsg)  
 
         elif self.URI == '/1.0/nav/goalpose': 
-            callData = {'type': "elle_interfaces/msg/MissionControlMission",'topic': "/mission_control/mission",'msg':data['mission']}
-            await self.ROS_publish_handler(callData)           
+            try:
+                errRet = validate(instance=data, schema=missionSchema)
+            except:
+                print(errRet)
+                logging.warn(errRet)
+                self._status_code = 400 #Bad Request
+                self.REST_response({'result':False})
+                return
+                        
+            publishMsg = {'type': "elle_interfaces/msg/MissionControlMission",'topic': "/mission_control/mission",'msg':data['mission']}
+            callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':0} }
+            ret = await self.ROS_service_handler_with_return(callData)
+            if ret == True:    
+                await self.ROS_service_handler(callData)
+            else:
+                self.REST_response({'result':False})
             
         elif self.URI == '/1.0/nav/move': 
-            #{linear: {x: 2.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z:0}}"
+            #example: {linear: {x: 2.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z:0}}"
             callData = {'type': "geometry_msgs/msg/Twist",'topic': "/cmd_vel",'msg':{
                 'linear':{ 'x':data['forwardspeed'],'y':0,'z':0 },'angular':{'x':0,'y':0,'z':data['turn']}  }}
             await self.ROS_publish_handler(callData)                       
