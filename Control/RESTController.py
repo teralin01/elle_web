@@ -137,12 +137,20 @@ class RESTHandler(tornado.web.RequestHandler):
             await self.ROS_subscribe_call_handler(subscribeMsg)
             
         elif self.URI == '/1.0/maps' or self.URI == '/1.0/maps/GetMap':
-            callData = {'id':self.URI, 'op':"call_service",'type': "nav_msgs/srv/GetMap",'service': "/map_server/map",'args': {} }
+            callData = {'id':self.URI, 'op':"call_service",'type': "nav_msgs/GetMap",'service': "/map_server/map",'args': {} }
             await self.ROS_service_handler(callData)  
                         
         elif self.URI == '/1.0/maps/map_meta' :  #TODO add map ID if support multiple maps
             subscribeMsg = {"op":"subscribe","id":"RestTopics","topic": "/amcl_pose","type":"geometry_msgs/msg/PoseWithCovarianceStamped"}
             await self.ROS_subscribe_call_handler(subscribeMsg)
+            
+        elif self.URI == '/1.0/maps/speed_maps' :
+            callData = {'id':self.URI, 'op':"call_service",'type': "nav_msgs/GetMap",'service': "/speed_filter_mask_server/map",'args': {} }
+            await self.ROS_service_handler(callData)      
+            
+        elif self.URI == '/1.0/maps/keepout_maps' :
+            callData = {'id':self.URI, 'op':"call_service",'type': "nav_msgs/GetMap",'service': "/keepout_filter_mask_server/map",'args': {} }
+            await self.ROS_service_handler(callData)                         
             
         elif self.URI == '/1.0/maps/path':       #TODO add robotID to the URL in fleet version
             subscribeMsg = {"op":"subscribe","id":"RestTopics","topic": "/plan","type":"nav_msgs/Path"}
@@ -173,7 +181,6 @@ class RESTHandler(tornado.web.RequestHandler):
         elif self.URI == '/1.0/config/viewer':
             self.REST_response(json.dumps(Config.GetViewerConfig()))
             
-
         elif self.URI == '/1.0/network/wifilist':
             self.REST_response(pynmcli.NetworkManager.Device().wifi('list').execute())                        
             

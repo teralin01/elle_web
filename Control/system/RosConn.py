@@ -35,6 +35,7 @@ class ROSWebSocketConn:
                     on_message_callback=self.recv_ros_message,
                     ping_interval=3,
                     ping_timeout=10,
+                    max_message_size=20000000
                     )
             
             return rws
@@ -116,7 +117,7 @@ class ROSWebSocketConn:
     def recv_ros_message(msg):
         global rws
         if msg == None:
-            print("Disconnected, reconnecting...")
+            print("Recv nothing from rosbridge, clear rosbridge connection...")
             rws = None
 
         else:
