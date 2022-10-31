@@ -74,7 +74,7 @@ class RESTHandler(tornado.web.RequestHandler):
             else:
                 return False
 
-    async def ROS_subscribe_call_handler(self,calldata,needReturn):
+    async def ROS_subscribe_handler(self,calldata,needReturn):
         subFuture = Future()
         subdata = cacheSub.get(calldata['topic'])
         if  subdata != None and subdata['data'] != None:
@@ -138,7 +138,7 @@ class RESTHandler(tornado.web.RequestHandler):
         
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
             subscribeMsg = {"op":"subscribe","id":"RestTopics","topic": "/mission_control/states","type":"elle_interfaces/msg/MissionControlMissionArray"}
-            await self.ROS_subscribe_call_handler(subscribeMsg,False)
+            await self.ROS_subscribe_handler(subscribeMsg,False)
             
         elif self.URI == '/1.0/maps' or self.URI == '/1.0/maps/GetMap':
             callData = {'id':self.URI, 'op':"call_service",'type': "nav_msgs/GetMap",'service': "/map_server/map",'args': {} }
@@ -146,7 +146,7 @@ class RESTHandler(tornado.web.RequestHandler):
                         
         elif self.URI == '/1.0/maps/map_meta' :  #TODO add map ID if support multiple maps
             subscribeMsg = {"op":"subscribe","id":"RestTopics","topic": "/amcl_pose","type":"geometry_msgs/msg/PoseWithCovarianceStamped"}
-            await self.ROS_subscribe_call_handler(subscribeMsg,False)
+            await self.ROS_subscribe_handler(subscribeMsg,False)
             
         elif self.URI == '/1.0/maps/speed_maps' :
             callData = {'id':self.URI, 'op':"call_service",'type': "nav_msgs/GetMap",'service': "/speed_filter_mask_server/map",'args': {} }
@@ -158,7 +158,7 @@ class RESTHandler(tornado.web.RequestHandler):
             
         elif self.URI == '/1.0/maps/path':       #TODO add robotID to the URL in fleet version
             subscribeMsg = {"op":"subscribe","id":"RestTopics","topic": "/plan","type":"nav_msgs/Path"}
-            await self.ROS_subscribe_call_handler(subscribeMsg,False)
+            await self.ROS_subscribe_handler(subscribeMsg,False)
             
         elif self.URI == '/1.0/maps/costmap':    #TODO add robotID to the URL in fleet version
             callData = {'id':self.URI, 'op':"call_service",'type': "nav2_msgs/srv/GetCostmap",'service': "/global_costmap/get_costmap",'args': {} }
@@ -174,7 +174,7 @@ class RESTHandler(tornado.web.RequestHandler):
                         
         elif self.URI == '/1.0/ros/subscribe':       
             subscribeMsg = {"op":"subscribe","id":"RestTopics","topic":self.get_argument("ros_topic"),"type":self.get_argument("ros_type")}
-            await self.ROS_subscribe_call_handler(subscribeMsg,False)            
+            await self.ROS_subscribe_handler(subscribeMsg,False)            
             
         elif self.URI == '/1.0/status/hardware':    #TODO add robotID to the URL in fleet version
             self.REST_response(HWInfo.get())
@@ -241,6 +241,7 @@ class RESTHandler(tornado.web.RequestHandler):
             callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':0} }
             ret = await self.ROS_publish_handler(publishMsg,True)
             if ret == True:    
+                await self.ROS_subscribe_handler
                 await self.ROS_service_handler(callData,False)
             else:
                 self.REST_response({'result':False})
