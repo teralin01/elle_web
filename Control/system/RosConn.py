@@ -69,7 +69,6 @@ class ROSWebSocketConn:
         
         result = {'result':True}
         #success publish topic doesn't means the subscriber have already handler topic. 
-        await asyncio.sleep(1)
         RESTCB.set_result(result)  # Save result to Rest callback
 
     async def subscribe_default_topics(self):
@@ -78,10 +77,10 @@ class ROSWebSocketConn:
         cacheSubscribeData.update({"/mission_control/states":{'data':None,'lastUpdateTime':datetime.now()}})
         await self.write(self,json_encode(subscribeMissionStr))
 
-    async def prepare_subscribe_from_ROS(self,RESTCB,subscribeMsg):
-        result = {'result':True}
+    async def prepare_subscribe_from_ROS(self,RESTCB,subscribeMsg,needcache):
         prev = cacheSubscribeData.get(subscribeMsg['topic'])
-        if prev != None and prev['data'] != None : # Cache hit, just return without new subscription
+        if needcache and prev != None and prev['data'] != None : # Cache hit, just return without new subscription
+            result = {'result':True}
             RESTCB.set_result(result)
         else:                                      # Subscribe topic and wait for callback
             cacheSubscribeData.update({subscribeMsg['topic']:{'data':None,'lastUpdateTime':datetime.now()}})
