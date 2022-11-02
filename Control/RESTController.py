@@ -259,6 +259,7 @@ class RESTHandler(tornado.web.RequestHandler):
                             break
                         else:
                             if idx > 3:
+                                self.REST_response({'result':False,"info":"Can't subscribe mission status from ROS"})
                                 break
                             idx += 1
                             print("wait for mission time "+ str(idx))
