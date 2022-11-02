@@ -35,7 +35,7 @@ class ROSWebSocketConn:
                     on_message_callback=self.recv_ros_message,
                     ping_interval=3,
                     ping_timeout=10,
-                    max_message_size=20000000
+                    max_message_size=config.settings['rosbridgeMsgSize']
                     )
             
             return rws

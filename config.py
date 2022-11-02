@@ -15,6 +15,7 @@ settings = {
     "login_url":"/login",
     "rosbridgePort":"9090",
     "hostIP":"",
+    "rosbridgeMsgSize":"20000000",
     "web_version":"0.1.3",
     "amr_version":"1.0"
 }
