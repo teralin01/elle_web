@@ -8,6 +8,9 @@ from control import statusController
 from control import mapController
 from control import missionController
 
+class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
+    def set_extra_headers(self, path):
+        self.set_header("Cache-control", "no-cache")
 class DefaultFileFallbackHandler(tornado.web.StaticFileHandler):
 
     def validate_absolute_path(self, root, absolute_path):
@@ -40,7 +43,8 @@ class Application(tornado.web.Application):
             (r"/control/mapController", mapController.InitHandler),
             (r'/view/dashboard/(.*)',tornado.web.StaticFileHandler,{"path":"view/dashboard/"}),
             (r'/view/(.*)',tornado.web.StaticFileHandler,{"path":"view"}),
-            (r'/static/(.*)',tornado.web.StaticFileHandler,{"path":os.path.join(config.BASE_DIRS,"static_path")}), 
+            #(r'/static/(.*)',tornado.web.StaticFileHandler,{"path":os.path.join(config.BASE_DIRS,"static_path")}), 
+            (r'/static/(.*)',NoCacheStaticFileHandler,{"path":os.path.join(config.BASE_DIRS,"static_path")}), 
             (r'/(.*)', DefaultFileFallbackHandler, {'path': 'vue','default_filename': 'index.html'}),
         ]
         super(Application,self).__init__(handlers,**config.settings )

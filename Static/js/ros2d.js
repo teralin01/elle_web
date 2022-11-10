@@ -135,6 +135,45 @@ ROS2D.ImageMapClient = function(options) {
 };
 ROS2D.ImageMapClient.prototype.__proto__ = EventEmitter2.prototype;
 
+ROS2D.DirectImageMapClient = function (options){
+  var that = this;
+  options = options || {};
+  this.image = options.image;
+  this.rootObject = options.rootObject || new createjs.Container();
+  var path = options.imagePath || "/image";
+
+  const yaml = fetch(path+".yaml");
+  
+  Promise.all([yaml])
+    .then(async([mapsetting]) => {
+      const mapyaml = await mapsetting.text();
+
+      var doc = jsyaml.load(mapyaml);
+      var message = {
+          "resolution":doc.resolution,
+          "origin":{
+            "position":{"x":doc.origin[0],"y":doc.origin[1],"z":0},
+            "orientation":{"x":0,"y":0,"z":0,"w":doc.origin[2]}}
+      }
+      var imagebinary;
+      var queue = new createjs.LoadQueue();
+      queue.on("complete", function() {
+        var image = queue.getResult("image");
+        imagebinary = queue.getResult("image",true); // binary format of PNG
+        message.width = image.width;
+        message.height = image.height;
+        that.currentImage = new ROS2D.ImageMap({
+          message : message,
+          image:image
+        });
+        that.rootObject.addChild(that.currentImage);
+        that.emit('change');
+      })
+      queue.loadFile({src:path+".png", id:"image"});
+    });
+}
+ROS2D.DirectImageMapClient.prototype.__proto__ = EventEmitter2.prototype;
+
 /**
  * @author Russell Toris - rctoris@wpi.edu
  */
@@ -361,6 +400,147 @@ ROS2D.OccupancyGridSrvClient = function(options) {
   });
 };
 ROS2D.OccupancyGridSrvClient.prototype.__proto__ = EventEmitter2.prototype;
+
+function ParseBPM(mapstr,dataview,map_size){
+  var collection = {};
+  var i, curline = 0, nextlinehead = 0 ;
+  var parseWeight = true, widthbuf = "", heightbuf = "" ;
+  var pixelline = 1;
+  var endhederline = 3;
+  var mapraw = "[ ";
+  for (i=0  ; i < map_size; i++){
+      if (mapstr[i] == "#"){ // comment line exist.
+          pixelline += 1 ; // when comment line exist, pixel line becomes 2
+          endhederline += 1; // when comment line exist, end of header line becomes 4
+      }        
+      if (curline == pixelline){ // The PGM third line, stand for weight, height info
+          for (i ; mapstr[i] != "\n" ; i++ ){ // iterate the pixel info line 
+              if (parseWeight){ // collect weight char
+                  widthbuf += mapstr[i];
+                  if(mapstr[i+1] == " "){
+                      parseWeight = false;
+                      collection['width'] = parseInt(widthbuf)
+                  }                    
+              }
+              else{ // collect height char
+                  heightbuf += mapstr[i];
+                  if(mapstr[i+1] == "\n"){
+                      collection['height'] = parseInt(heightbuf)
+                  }
+              }
+          }
+      }
+
+      if (mapstr[i] == "\n"){
+          curline++;
+          nextlinehead = i+1;
+      }
+      // reference map loader in ROS2 path -> navigation2/nav2_map_server/src/map_io.cpp
+    	// case MapMode::Trinary:
+
+      // double sum = 0;
+      // for (auto c : channels) {  sum += c;  }
+      // double shade = Magick::ColorGray::scaleQuantumToDouble(sum / channels.size());
+      // double occ = (load_parameters.negate ? shade : 1.0 - shade);
+      // 	if (load_parameters.occupied_thresh < occ) {
+      //   	map_cell = nav2_util::OCC_GRID_OCCUPIED;
+      // 	} else if (occ < load_parameters.free_thresh) {
+      //   	map_cell = nav2_util::OCC_GRID_FREE;
+      // 	} else {
+      //   	map_cell = nav2_util::OCC_GRID_UNKNOWN;
+      // 	}
+    
+      if ( curline == endhederline ){
+        if (dataview.getUint8(i) == "0") // OCC_GRID_OCCUPIED
+            mapraw += "100";  
+        else if(dataview.getUint8(i) == "205")  // OCC_GRID_UNKNOWN
+            mapraw+= "1";
+        else if (dataview.getUint8(i) == "254") // OCC_GRID_FREE
+            mapraw += "-1";
+        if(i!= nextlinehead-1 && i !=  map_size-1)
+            mapraw += ",";
+      }
+  }
+  mapraw+= "]"
+  collection['data'] = JSON.parse( mapraw);
+
+  // reverse image Y axis 
+  var imageSize = map_size - nextlinehead
+  console.log("image size: " +  imageSize);
+  var w = 0 ,len = collection['height']/2, width = collection['width'], height = collection['height'] ;
+  for (i=0; i<len ; i++){
+    for(w=0 ; w< width; w++){
+      a = i* width + w;  
+      b = (height -i) * width + w;
+      [collection['data'][a],collection['data'][b]] = [collection['data'][b],collection['data'][a]]
+    }
+  }
+
+  return collection;
+}
+
+ROS2D.OccupancyGridDirectClient = function(options){
+  var that = this;
+  options = options || {};
+  var ros = options.ros;
+  var path = options.imagePath || "/image";
+  this.rootObject = options.rootObject || new createjs.Container();
+
+  // current grid that is displayed
+  this.currentGrid = null;
+
+  const yaml = fetch(path+".yaml");
+  const map = fetch(path+".pgm");
+  
+  Promise.all([yaml, map])
+    .then(async([mapsetting, mapdata]) => {
+      const mapyaml = await mapsetting.text();
+      const mapImage = await mapdata.arrayBuffer();
+
+      const dv = new DataView(mapImage)
+      let bufferToString, charbuf
+
+      bufferToString = (buffer) => {
+          const bytes = new Uint8Array(buffer)
+          return bytes.reduce((string, byte) => (string + String.fromCharCode(byte)), "")
+      }
+
+      charbuf = bufferToString(mapImage)
+
+      var doc = jsyaml.load(mapyaml);
+      console.log(mapImage);
+
+      var mapcollections = ParseBPM(charbuf,dv,mapImage.byteLength)
+      var rosmap = {
+        "info":{
+          "resolution":doc.resolution,
+          "width":mapcollections.width,
+          "height":mapcollections.height,
+          "origin":{
+            "position":{"x":doc.origin[0],"y":doc.origin[1],"z":0},
+            "orientation":{"x":0,"y":0,"z":0,"w":doc.origin[2]}}
+        },
+        "data":mapcollections.data
+      }
+
+      console.log(rosmap)
+
+      if (that.currentGrid) {
+          that.rootObject.removeChild(that.currentGrid);
+        }
+        that.currentGrid = new ROS2D.OccupancyGrid({
+          message : rosmap
+        });
+        that.rootObject.addChild(that.currentGrid);
+    
+        that.emit('change', that.currentGrid);
+    })
+    .catch((err) => {
+        console.error(err);
+    });
+
+}
+ROS2D.OccupancyGridDirectClient.prototype.__proto__ = EventEmitter2.prototype;
 
 /**
  * @author Bart van Vliet - bart@dobots.nl

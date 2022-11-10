@@ -2,7 +2,7 @@
 *.pyc
 /__pycache__/*
 .vscode
-/static/*.html
-Static/test2.html
+static/
+Static/
 /vue
-Static/test2.html
+Static/js/ros2d.js
