@@ -198,6 +198,12 @@ class RESTHandler(tornado.web.RequestHandler):
         elif self.URI == '/1.0/event/sse':
             self.REST_response(pynmcli.NetworkManager.Connection().show().execute())                        
             
+        elif self.URI == '/1.0/config/user': #Show all abailable user
+            self.REST_response(json.dumps(Config.GetUserConfig(None)))              
+            
+        elif '/1.0/config/user/' in self.URI: #Return privilige of this user
+            self.REST_response(json.dumps(Config.GetUserConfig(self.URI[len('/1.0/config/user/'):])))                          
+            
             
     async def post(self,*args):
         self._status_code = 201 # 201 means REST resource Created
@@ -284,7 +290,7 @@ class RESTHandler(tornado.web.RequestHandler):
             self.REST_response(ret)
 
         elif self.URI == '/1.0/config/viewer':
-            ret = Config.SetViewerConfig(data)
+            ret = Config.SetUserConfig(data)
             self.REST_response(ret)
         
         elif self.URI == '/1.0/network/WiFiconnectionUP':

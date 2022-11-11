@@ -2,10 +2,10 @@ import json
 from bson import json_util
 from dataModel.mongoDBQuery import MongoDB
 
-def SetViewerConfig(data):
+def SetUserConfig(data):
     print(data)
     dbinstance = MongoDB("elle")
-    dbinstance.upsert("config",{"Name":data["Name"]},{'$set':{"ROS2D":data["ROS2D"]}})
+    dbinstance.upsert("config",{"name":data["name"]},{'$set':{"data":data["data"]}})
     return {"result":True}
 
 def GetViewerConfig():
@@ -15,6 +15,38 @@ def GetViewerConfig():
     print(ret)
     return json.loads(json_util.dumps(ret))
 
-def DelViewerConfig(data):
+'''
+Config example:
+{"name":"admin","data":{
+  "setting": {
+     "initpose":{"display":true,"color":""},
+     "goalpose":{"display":true,"color":""},
+     "lidar":{"display":true,"color":""},
+     "globalpath":{"display":true,"color":""},
+     "localpath":{"display":true,"color":""},
+     "joystick":{"display":false,"color":""}
+   },
+   "map":{
+	  "mapratio":1.65,
+      "layers":["map","speedlimit","keepout"]}   
+   }
+}
+'''
+def GetUserConfig(user):
+    dbinstance = MongoDB("elle")
+    result = json.loads( json_util.dumps(dbinstance.get_data("config")) )
+    print(result)
+    
+    if user == None:
+        return result
+    else:
+        for item in result:
+            if item['name'] == user:
+                return item
+    
+    return {}        
+
+
+def DelUserConfig(data):
     dbinstance = MongoDB("elle")
     ret = dbinstance.delete_data("config",data)    
