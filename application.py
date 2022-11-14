@@ -3,7 +3,7 @@ import tornado.web
 import os
 import config
 import datetime
-from control import RESTController, mainController, wsController
+from control import RESTController, SystemController,mainController, wsController
 from control import statusController
 from control import mapController
 from control import missionController
@@ -28,6 +28,7 @@ class Application(tornado.web.Application):
             (r"/1.0/missions/(.*)",RESTController.RESTHandler),
             (r"/1.0/maps",RESTController.RESTHandler),
             (r"/1.0/maps/(.*)",RESTController.RESTHandler),   
+            (r"/1.0/map/(.*)",SystemController.RESTHandler),
             (r"/1.0/nav",RESTController.RESTHandler),
             (r"/1.0/nav/(.*)",RESTController.RESTHandler),            
             (r"/1.0/network",RESTController.RESTHandler),

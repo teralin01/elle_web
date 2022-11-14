@@ -357,6 +357,7 @@ class RESTHandler(tornado.web.RequestHandler):
             ret = LM.InsertPoint(data)
             print(ret)
             self.REST_response(ret)            
+
         
     def on_finish(self):
         print("Finish REST API " + self.URI + " at " + str(datetime.now()))
