@@ -97,11 +97,18 @@ class SubscribeCommands():
         return browsers
 
     def removeBrowser(self,target):
+        ret = False
         for key in self.ros_Sub_Commands:
             blist = self.ros_Sub_Commands[key]
-            if target in blist:
-                blist.remove(target)            
-        return True
+            #if target in blist:
+            #    blist.remove(target)            
+            for key,value in enumerate(blist):
+                item = list(value.keys())[0]
+                if target == item:
+                    blist.pop(key)
+                    ret = True
+                    break
+        return ret
                 
     def deleteOP(self,target):
         del self.ros_Sub_Commands[target]

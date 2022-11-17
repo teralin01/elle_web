@@ -131,9 +131,14 @@ class ROSWebSocketConn:
                             if str(cbws) == list(bws.keys())[0]:   # Find corresponding browser client
                                 cbws.write_message(msg) 
                                 topic_alive = True
+                #callback to REST client  
+                cb = futureCB.get(data['topic'])
+                if cb != None:
+                    cb.set_result(data)
+                    topic_alive = True
 
-                #unsubscribe this topic if no browser client found
-                if cacheSubscribeData.get(data['topic'])!= None:
+                #unsubscribe this topic if no browser client or REST client found
+                if cacheSubscribeData.get(data['topic'])!= None: # Default subscribe topic, shch as mission status
                     cacheSubscribeData.update({data['topic']:{'data':msg,'lastUpdateTime':datetime.now()}})
                 elif topic_alive == None : # No way to publish
                     print("Unsubscribe topic: " + data['topic'])
@@ -143,11 +148,6 @@ class ROSWebSocketConn:
                     print (message)
                     rws.write_message(json_encode(message))
                     subCmds.deleteOP(data['topic'])
-                # Issue: not able to unsubscribe topic if more then two browser open the same topic. 
-                                    
-                cb = futureCB.get(data['topic'])
-                if cb != None:
-                    cb.set_result(data)
 
             if data['op'] == 'service_response':
                 # print(data['service'] + " " + "id" + data['id'] + " result" + str(data['result']))   

@@ -31,6 +31,13 @@ class RosWebSocketHandler(tornado.websocket.WebSocketHandler):
             subCmds.set(data["topic"],str(self),data["id"])
             if not already_subscribe:
                 await ROSConn.write(ROSConn,message)
+        elif data["op"] == "unsubscribe":
+            print("unsubscribe topic:" + data["topic"]+ " ID:  "+ data["id"])
+            already_subscribe = subCmds.get(data["topic"])
+            if already_subscribe != None:
+                #subCmds.deleteOP(data['topic'])
+                await ROSConn.write(ROSConn,message)
+            
         elif data["op"] == "publish" or data["op"] == "advertise"  :
             print("publish topic " + data["topic"]+ " ID: "+ data["id"])
             await ROSConn.write(ROSConn,message)

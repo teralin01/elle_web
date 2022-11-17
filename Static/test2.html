@@ -5,7 +5,7 @@
 <meta charset="utf-8" />
 
 <script src="https://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
-<script src="http://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+<script src="/static/js/openSource/roslib.js"></script>
 <script src="https://code.createjs.com/1.0.0/easeljs.min.js"></script>
 <script src="https://code.createjs.com/1.0.0/createjs.min.js"></script>
 <script src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r71/three.min.js"></script>
@@ -41,8 +41,8 @@
   });
 
   // Create a connection to the rosbridge WebSocket server.
+  ros.connect('ws://10.1.30.172/ws');
   //ros.connect('ws://10.1.30.172:9090');
-  ros.connect('ws://10.1.30.172:9090');
   var width = 1178;
   var height = 606;
   var panOn = false;
@@ -54,19 +54,39 @@
         background: '#c2dfc2'
       });      
 
+      var testcase = 1;
+    
+    if( testcase == 1){
       var gridClient = new window.ROS2D.OccupancyGridClient({
         ros : ros,
         rootObject : viewer.scene,
         topic: '/map',
-        //topic: '/global_costmap/costmap',
-        //continuous : true,
+        topic: '/global_costmap/costmap',
+        continuous : false,
       });
+    }
+    else if (testcase == 2){
+
+      var gridClient = new window.ROS2D.PNGImageMapClient({
+        ros : ros,
+        rootObject : viewer.scene,
+        //topic: '/map',
+        service: '/global_costmap/get_costmap',
+      });
+    }
+    else if (testcase == 3){
+      var gridClient = new window.ROS2D.OccupancyGridSrvClient({
+        ros : ros,
+        rootObject : viewer.scene,
+        service: '/global_costmap/get_costmap',
+        //service: '/map_server/map'
+      });
+    }
 
       gridClient.on('change', function(){
         viewer.scaleToDimensions(gridClient.currentGrid.width, gridClient.currentGrid.height);
         viewer.shift(gridClient.currentGrid.pose.position.x, gridClient.currentGrid.pose.position.y);
       });
-
       // pub grid
       var grid3 = new window.ROS2D.Grid({
         size : 50,

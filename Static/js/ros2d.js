@@ -135,7 +135,59 @@ ROS2D.ImageMapClient = function(options) {
 };
 ROS2D.ImageMapClient.prototype.__proto__ = EventEmitter2.prototype;
 
-ROS2D.DirectImageMapClient = function (options){
+ROS2D.PNGImageMapClient = function(options) {
+  var that = this;
+  options = options || {};
+  var ros = options.ros;
+  var service = options.service || '/map_metadata';
+  this.image = options.image;
+  this.rootObject = options.rootObject || new createjs.Container();
+
+  // create an empty shape to start with
+  this.currentImage = new createjs.Shape();
+
+  var rosService = new ROSLIB.Service({
+    ros : ros,
+    name : service,
+    serviceType : 'nav_msgs/GetMap',
+    compression : 'png'
+    //compression : 'cbor-raw'
+  });
+
+  rosService.callService(new ROSLIB.ServiceRequest(),function(response) {
+    // check for an old map
+    if (that.currentGrid) {
+      that.rootObject.removeChild(that.currentGrid);
+    }
+
+    // that.currentGrid = new ROS2D.OccupancyGrid({
+    //   message : response.map
+    // });
+
+    if (response.map.info == undefined && response.map.metadata != undefined){
+      response.map.origin = response.map.metadata.origin
+      response.map.width = response.map.metadata.size_x;
+      response.map.height = response.map.metadata.size_y;
+      response.map.resolution = response.map.metadata.resolution;
+      response.map.scaleX = 0.019999999552965164;
+      response.map.scaleY = 0.019999999552965164;
+    }
+
+    unpackbase64 = atob(response.map.data)
+    that.currentGrid = new ROS2D.ImageMap({
+      message : response.map,
+      //image: response.map.data
+      image: unpackbase64
+    });
+
+    that.rootObject.addChild(that.currentGrid);
+    that.emit('change');
+  });
+};
+ROS2D.PNGImageMapClient.prototype.__proto__ = EventEmitter2.prototype;
+
+
+ROS2D.BPMImageMapClient = function (options){
   var that = this;
   options = options || {};
   this.image = options.image;
@@ -172,7 +224,7 @@ ROS2D.DirectImageMapClient = function (options){
       queue.loadFile({src:path+".png", id:"image"});
     });
 }
-ROS2D.DirectImageMapClient.prototype.__proto__ = EventEmitter2.prototype;
+ROS2D.BPMImageMapClient.prototype.__proto__ = EventEmitter2.prototype;
 
 /**
  * @author Russell Toris - rctoris@wpi.edu
@@ -318,7 +370,8 @@ ROS2D.OccupancyGridClient = function(options) {
     ros : ros,
     name : topic,
     messageType : 'nav_msgs/OccupancyGrid',
-    compression : 'cbor-raw'
+    compression : 'None'//'cbor-raw'
+    //compression : 'cbor-raw'
   });
 
   rosTopic.subscribe(function(message) {
@@ -381,8 +434,9 @@ ROS2D.OccupancyGridSrvClient = function(options) {
     ros : ros,
     name : service,
     serviceType : 'nav_msgs/GetMap',
-    compression : 'png'
-    //compression : 'cbor-raw'
+    //serviceType : 'nav2_msgs/srv/GetCostmap',
+    //compression : 'png'
+    compression : 'none'
   });
 
   rosService.callService(new ROSLIB.ServiceRequest(),function(response) {
@@ -391,9 +445,15 @@ ROS2D.OccupancyGridSrvClient = function(options) {
       that.rootObject.removeChild(that.currentGrid);
     }
 
+    if (response.map.info == undefined && response.map.metadata != undefined){
+      response.map.info = response.map.metadata
+      response.map.info.width = response.map.metadata.size_x;
+      response.map.info.height = response.map.metadata.size_y;
+    }
     that.currentGrid = new ROS2D.OccupancyGrid({
       message : response.map
     });
+
     that.rootObject.addChild(that.currentGrid);
 
     that.emit('change', that.currentGrid);
