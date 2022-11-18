@@ -434,7 +434,6 @@ ROS2D.OccupancyGridSrvClient = function(options) {
     ros : ros,
     name : service,
     serviceType : 'nav_msgs/GetMap',
-    //serviceType : 'nav2_msgs/srv/GetCostmap',
     //compression : 'png'
     compression : 'none'
   });
