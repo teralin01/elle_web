@@ -29,8 +29,8 @@ class RosWebSocketHandler(tornado.websocket.WebSocketHandler):
             print("subscribe topic:" + data["topic"]+ " ID:  "+ data["id"])
             already_subscribe = subCmds.get(data["topic"])
             subCmds.set(data["topic"],str(self),data["id"])
-            if not already_subscribe:
-                await ROSConn.write(ROSConn,message)
+            #if not already_subscribe:
+            await ROSConn.write(ROSConn,message)
         elif data["op"] == "unsubscribe":
             print("unsubscribe topic:" + data["topic"]+ " ID:  "+ data["id"])
             already_subscribe = subCmds.get(data["topic"])
@@ -48,7 +48,7 @@ class RosWebSocketHandler(tornado.websocket.WebSocketHandler):
             await ROSConn.write(ROSConn,message)    
 
     def on_close(self):
-        print("Get Browser close event ")
+        print("Get Browser close event "+ str(datetime.datetime.now()))
         target = str(self)
         global rosCmds
         global subCmds
