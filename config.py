@@ -7,7 +7,7 @@ options = {
 }
 
 settings = {
-    "websocket_ping_interval": 10,
+    "websocket_ping_interval": 20,
     "static_path": os.path.join(BASE_DIRS,"static"),
     "vue_path": os.path.join(BASE_DIRS,"vue"),
     "template_path":os.path.join(BASE_DIRS,"view"),

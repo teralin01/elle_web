@@ -1,5 +1,6 @@
 import tornado.web
 import tornado.websocket
+import tornado.ioloop
 import config
 import json
 import asyncio
@@ -16,14 +17,14 @@ futureCB = {}
 cacheSubscribeData = dict()
 
 class ROSWebSocketConn:
-    def __init__(self):
+    async def __init__(self):
         global futureCB
         global rosCmds
         global ws_browser_clients
         global subCmds
         global cacheSubscribeData
-        self.connect(self)
-        # self.subscribe_default_topics(self)
+        await self.connect(self)
+        await self.subscribe_default_topics(self)
         
     async def connect(self):
         global rws
@@ -31,52 +32,38 @@ class ROSWebSocketConn:
             rosbridgeURI = "ws://"+config.settings['hostIP']+":"+config.settings['rosbridgePort']  
             rws = await tornado.websocket.websocket_connect(
                     url= rosbridgeURI,
-                    # callback=self.maybe_retry_connection,
+                    callback=self.maybe_retry_connection,
                     on_message_callback=self.recv_ros_message,
-                    ping_interval=3,
-                    ping_timeout=10,
+                    ping_interval=1,
+                    ping_timeout=3,
                     max_message_size=int(config.settings['rosbridgeMsgSize'])
                     )
-            
+            print("Connecting to ROSBridge")
             return rws
         except Exception:
             print("ROS bridge Connection Error, wait 3 second to retry")
     
     #Reference code https://www.georgeho.org/tornado-websockets/
-    def maybe_retry_connection(self,future):
-        print("Disconnected ")
+    async def maybe_retry_connection(self,future):
+        print("Rosbridge Disconnected... ")
+        global rws
         try:
-            self.rws = future.result()
+            rws = future.result()
         except:
             print("Could not reconnect, retrying in 3 seconds...")
-            self.io_loop.call_later(3, self.reconnect)
-            
-    def reconnect(self):
-        print("reconnect to rosbridge")
-        self.connect()
-        # TODO Notify browser to reconnect, in order to avoid request mission
+            await self.io_loop.call_later(3, self.connect)
     
-    async def prepare_publish_to_ROS(self,RESTCB,URL,data):
-        advertiseMsg = {'op':'advertise','id':URL,'latch':False,'topic':data['topic'],'type':data['type']}
-        await self.write(self,json_encode(advertiseMsg))
-        
-        publishMsg = {'op':'publish','id':URL,'latch':False,'topic':data['topic'],'type':data['type'],'msg':data['msg']}
-        await self.write(self,json_encode(publishMsg))
-        
-        # Issue: Rosbridge Bug - unadvertise topic here might cause rosbridge crash, so skip this step.
-        # unadvertiseMsg = {'op':'unadvertise','id':URL,'topic':data['topic']}
-        # await self.write(self,json_encode(unadvertiseMsg))
-        
-        result = {'result':True}
-        #success publish topic doesn't means the subscriber have already handler topic. 
-        RESTCB.set_result(result)  # Save result to Rest callback
-
     async def subscribe_default_topics(self):
         #subscribe mission 
         subscribeMissionStr = {"op":"subscribe","id":"RestTopics","topic": "/mission_control/state","type":"elle_interfaces/msg/MissionControlMission"}
         cacheSubscribeData.update({"/mission_control/states":{'data':None,'lastUpdateTime':datetime.now()}})
         await self.write(self,json_encode(subscribeMissionStr))
 
+    async def subscribe_runtime_topics(self):
+        global subCmds
+        #TODO get subCmds and resubscribe
+        pass
+    
     async def prepare_subscribe_from_ROS(self,RESTCB,subscribeMsg,needcache):
         prev = cacheSubscribeData.get(subscribeMsg['topic'])
         if needcache and prev != None and prev['data'] != None : # Cache hit, just return without new subscription
@@ -93,6 +80,21 @@ class ROSWebSocketConn:
             data = futureObj.result() # Get result from ROS callback
             RESTCB.set_result(data)  # Save result to Rest callback
             del futureCB[subscribeMsg['topic']] # remove ros callback from dict
+
+    async def prepare_publish_to_ROS(self,RESTCB,URL,data):
+        advertiseMsg = {'op':'advertise','id':URL,'latch':False,'topic':data['topic'],'type':data['type']}
+        await self.write(self,json_encode(advertiseMsg))
+        
+        publishMsg = {'op':'publish','id':URL,'latch':False,'topic':data['topic'],'type':data['type'],'msg':data['msg']}
+        await self.write(self,json_encode(publishMsg))
+        
+        # Issue: Rosbridge Bug - unadvertise topic here might cause rosbridge crash, so skip this step.
+        # unadvertiseMsg = {'op':'unadvertise','id':URL,'topic':data['topic']}
+        # await self.write(self,json_encode(unadvertiseMsg))
+        
+        result = {'result':True}
+        #success publish topic doesn't means the subscriber have already handler topic. 
+        RESTCB.set_result(result)  # Save result to Rest callback
     
     async def prepare_serviceCall_to_ROS(self,RESTCB,URL,msg):
         loop = asyncio.get_running_loop()
@@ -105,20 +107,44 @@ class ROSWebSocketConn:
         RESTCB.set_result(data)  # Save result to Rest callback
         del futureCB[URL] # remove ros callback from dict
 
-    async def write(self,msg):       
-        global rws 
-        if rws != None:
-            await rws.write_message(msg)
-        else:    
-            await self.connect(self)
-            await rws.write_message(msg)
+    #TODO  Either disconnect browser connection or retransmit existing ros commands
+    async def rosbridge_disconn_handler(self):
+        global rws
+        await self.connect(self)
+        #TODO Log this event 
+        
+        #resubmit previous subscriptionby IO loop 
+        self.iteration = 0
+        ioloop = tornado.ioloop.IOLoop.current()
+        def cb(self):        
+            print("cb"+self.iteration)
+            if rws == None:
+                self.subscribe_default_topics(self)
+                self.subscribe_runtime_topics(self)        
+                ioloop.stop()
+            else:
+                print("Iteration plus")
+                self.iteration = self.iteration + 1
+                if self.iteration == 10:
+                    ioloop.stop()
+        
+        pc = ioloop.PeriodicCallback(cb, 500)
+        pc.start()
 
-    def recv_ros_message(msg):
+    async def write(self,msg): #write data to rosbridge      
+        global rws 
+        try:
+            await rws.write_message(msg)    
+        except Exception:
+            await self.rosbridge_disconn_handler(self)
+            await rws.write_message(msg)
+    
+    def recv_ros_message(msg): # receive data from rosbridge
         global rws
         if msg == None:
             print("Recv nothing from rosbridge, clear rosbridge connection...")
-            rws = None
-
+            #rws = None
+            #ROSWebSocketConn.rosbridge_disconn_handler(ROSWebSocketConn)
         else:
             data = json.loads(msg)
             if data['op'] == 'publish':
