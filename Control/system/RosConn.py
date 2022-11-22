@@ -7,9 +7,11 @@ from tornado.escape import json_encode
 from datetime import datetime
 from control.system.RosUtility import ROSCommands
 from control.system.RosUtility import SubscribeCommands
+from control.system.RosUtility import SubscribeTypes
 
 subCmds = SubscribeCommands()
 rosCmds = ROSCommands()
+topictable = SubscribeTypes()
 ws_browser_clients = set()
 rws = None
 futureCB = {}
@@ -17,6 +19,7 @@ cacheSubscribeData = dict()
 rosbridgeRetryPeriod = 3
 rosbridgeRetryMax = 10
 showdebug = True
+recoveryMode = False # avoid auto unsubscribe topic during recovery mode
 
 class ROSWebSocketConn:
     def __init__(self):
@@ -26,6 +29,7 @@ class ROSWebSocketConn:
         global subCmds
         global cacheSubscribeData
         self.retryCnt = 0 
+        self.queue = []
         self.connect(self)
         self.subscribe_default_topics(self)
         
@@ -44,7 +48,7 @@ class ROSWebSocketConn:
             print("ROSBridge connected at: "+str(datetime.now()))
             return rws
         except Exception:
-            print("ROS bridge connection error, wait 3 second to retry")
+            print("ROS bridge connection fail, retry later")
             self.retryCnt = self.retryCnt+1
             if (self.retryCnt > rosbridgeRetryMax):
                 print("Plan to trigger external command to restart rosbridge process")
@@ -60,19 +64,30 @@ class ROSWebSocketConn:
     #         print("Could not reconnect, retrying in 3 seconds...")
             
     async def reconnect(self):
-        print("Try to connect rosbridge: "+ str(datetime.now()))
         global rws 
-        self.retryCnt = 0 
-        await self.connect(self)
+        global recoveryMode
+        
+        if not recoveryMode:
+            print("Try to connect rosbridge: "+ str(datetime.now()))
+            recoveryMode = True
+            self.retryCnt = 0 
+            await self.connect(self)  #only connect once even call reconnect multi times
 
-        if rws != None: 
-            if showdebug:
-                print("Submit predefined ROS command")
-            await self.subscribe_default_topics(self)
-            await self.subscribe_runtime_topics(self)
-        else:
-            if showdebug:
-                print("Something wrong for connecting rosbridge " )
+        while True:
+            if rws != None: 
+                if showdebug:
+                    print("Submit predefined ROS command")
+                await self.subscribe_default_topics(self)
+                await self.subscribe_runtime_topics(self)            
+                recoveryMode = False
+                length = len(self.queue)
+                for i in range(length):
+                    await self.write(self,self.queue[i])
+                break
+            else:
+                if showdebug:
+                    print("Wait for connecting rosbridge " )
+                await asyncio.sleep(3)
   
         # TODO Notify browser to reconnect, in order to avoid request mission
     
@@ -99,9 +114,11 @@ class ROSWebSocketConn:
 
     async def subscribe_runtime_topics(self):
         global subCmds
-        print("Subscribe to run-time topics")
-        #TODO get subCmds and resubscribe
-        pass
+        for key,value in subCmds.ros_Sub_Commands.items():
+            subCmdStr = {"op":"subscribe","id":"ResubmitTopics","topic": key,"type":topictable.get(key)}
+            if showdebug:
+                print("subscribe "+str(subCmdStr))
+            await self.write(self,json_encode(subCmdStr))
 
     async def prepare_subscribe_from_ROS(self,RESTCB,subscribeMsg,needcache):
         prev = cacheSubscribeData.get(subscribeMsg['topic'])
@@ -133,16 +150,21 @@ class ROSWebSocketConn:
 
     async def write(self,msg):       
         global rws 
+        global recoveryMode
         if showdebug:
             print(" -> write Message:"+msg)
         if rws != None:
             await rws.write_message(msg)
-        else:    
+        elif not recoveryMode:
+            self.queue = []
+            self.queue.append(msg)        
             await self.reconnect(self)
-            await rws.write_message(msg)
+        else:
+            self.queue.append(msg)        
 
     def recv_ros_message(msg): # receive data from rosbridge
         global rws
+        global recoveryMode
         if msg == None:
             print("Recv nothing from rosbridge, clear rosbridge connection...")
             rws = None
@@ -170,8 +192,8 @@ class ROSWebSocketConn:
                 #unsubscribe this topic if no browser client or REST client found
                 if cacheSubscribeData.get(data['topic'])!= None: # Default subscribe topic, shch as mission status
                     cacheSubscribeData.update({data['topic']:{'data':msg,'lastUpdateTime':datetime.now()}})
-                elif topic_alive == None : # No way to publish
-                    print("Unsubscribe topic: " + data['topic'])
+                elif topic_alive == None and not recoveryMode : # No way to publish
+                    print("--Unsubscribe topic: " + data['topic'])
                     topicidstr = browsers[0]
                     topicid = topicidstr[list(topicidstr.keys())[0]]
                     message = {"op":"unsubscribe","id":topicid,"topic": data['topic'] }

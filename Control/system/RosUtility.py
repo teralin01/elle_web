@@ -116,3 +116,15 @@ class SubscribeCommands():
     def print(self):
         for key in self.ros_Sub_Commands:
             print(self.ros_Sub_Commands[key])    
+
+class SubscribeTypes():
+    @classmethod
+    def __init__(self) -> None:
+        self.ros_topic_type = {
+            "amcl_pose":"geometry_msgs/msg/PoseWithCovarianceStamped",
+            "plan":"nav_msgs/Path",
+            "local_plan":"nav_msgs/Path"
+        }
+    
+    def get(self,op):
+        return self.ros_topic_type.get(op)
