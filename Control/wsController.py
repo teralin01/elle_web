@@ -13,14 +13,14 @@ from control.system.RosConn import ws_browser_clients
 class RosWebSocketHandler(tornado.websocket.WebSocketHandler):       
     def check_origin(self, origin):
         return True
-    
+        
     async def open(self):
         global ws_browser_clients
         ws_browser_clients.add(self)
-        print("WebSocket opened at: " + str(datetime.datetime.now()))
+        print("WebSocket "+str(self)+ "opened at: " + str(datetime.datetime.now()))
         if config.settings['hostIP'] == "":
             config.settings['hostIP'] = self.request.host
-
+           
     async def on_message(self, message):
         self.browserMsg = message
         data = json.loads(message)
