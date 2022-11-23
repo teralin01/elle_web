@@ -40,10 +40,10 @@ class ROSWebSocketConn:
             rws = await tornado.websocket.websocket_connect(
                     url= rosbridgeURI,
                     on_message_callback=self.recv_ros_message,
-                    max_message_size=int(config.settings['rosbridgeMsgSize'])
+                    max_message_size=int(config.settings['rosbridgeMsgSize']),
                     #callback=self.retry_connection
-                    #ping_interval=3,
-                    #ping_timeout=10,
+                    ping_interval=2,
+                    ping_timeout=10,
                     )
             print("ROSBridge connected at: "+str(datetime.now()))
             return rws
@@ -72,21 +72,22 @@ class ROSWebSocketConn:
             recoveryMode = True
             self.retryCnt = 0 
             await self.connect(self)  #only connect once even call reconnect multi times
-
+        idx = 0
         while True:
             if rws != None: 
                 if showdebug:
                     print("Submit predefined ROS command")
+                recoveryMode = False
                 await self.subscribe_default_topics(self)
                 await self.subscribe_runtime_topics(self)            
-                recoveryMode = False
-                length = len(self.queue)
-                for i in range(length):
-                    await self.write(self,self.queue[i])
+                await self.resubmit_write_cmds(self)
                 break
             else:
+                idx = idx+1
                 if showdebug:
                     print("Wait for connecting rosbridge " )
+                if idx > 5:
+                    await self.connect(self)
                 await asyncio.sleep(3)
   
         # TODO Notify browser to reconnect, in order to avoid request mission
@@ -115,10 +116,18 @@ class ROSWebSocketConn:
     async def subscribe_runtime_topics(self):
         global subCmds
         for key,value in subCmds.ros_Sub_Commands.items():
-            subCmdStr = {"op":"subscribe","id":"ResubmitTopics","topic": key,"type":topictable.get(key)}
+            type = topictable.get(key.lstrip("/")) # only subscribe to predefined types now
+            if type != None:
+                subCmdStr = {"op":"subscribe","id":"ResubmitTopics_"+key,"topic": key,"type":type,"throttle_rate":0,"queue_length":0}
+                await self.write(self,json_encode(subCmdStr))
             if showdebug:
                 print("subscribe "+str(subCmdStr))
-            await self.write(self,json_encode(subCmdStr))
+            
+
+    async def resubmit_write_cmds(self):
+        length = len(self.queue)
+        for i in range(length):
+            await self.write(self,self.queue[i])
 
     async def prepare_subscribe_from_ROS(self,RESTCB,subscribeMsg,needcache):
         prev = cacheSubscribeData.get(subscribeMsg['topic'])
@@ -154,12 +163,19 @@ class ROSWebSocketConn:
         if showdebug:
             print(" -> write Message:"+msg)
         if rws != None:
-            await rws.write_message(msg)
-        elif not recoveryMode:
+            try:
+                await rws.write_message(msg)
+            except Exception:  # The rosbridge abnormal observe by write function
+                if not recoveryMode:
+                    self.queue = []
+                    await self.reconnect(self)    
+                self.queue.append(msg)        
+                
+        elif not recoveryMode: # The rosbridge abnormal observe by recv_ros_message function
             self.queue = []
             self.queue.append(msg)        
             await self.reconnect(self)
-        else:
+        else:  # already stay in recovery mode
             self.queue.append(msg)        
 
     def recv_ros_message(msg): # receive data from rosbridge
@@ -167,6 +183,7 @@ class ROSWebSocketConn:
         global recoveryMode
         if msg == None:
             print("Recv nothing from rosbridge, clear rosbridge connection...")
+            rws.close()
             rws = None
             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.reconnect(ROSWebSocketConn)))
 

@@ -123,7 +123,8 @@ class SubscribeTypes():
         self.ros_topic_type = {
             "amcl_pose":"geometry_msgs/msg/PoseWithCovarianceStamped",
             "plan":"nav_msgs/Path",
-            "local_plan":"nav_msgs/Path"
+            "local_plan":"nav_msgs/Path",
+            "scan":"sensor_msgs/LaserScan"
         }
     
     def get(self,op):
