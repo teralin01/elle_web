@@ -50,9 +50,20 @@ class RESTHandler(tornado.web.RequestHandler):
         if config.settings['hostIP'] == "":
             config.settings['hostIP'] = self.request.host
 
-        self.set_header("Access-Control-Allow-Origin", "*")
-        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
-        self.set_header('Access-Control-Allow-Methods', 'POST, GET,PUT,DELETE, OPTIONS')
+    def set_default_headers(self):
+        if self.application.settings.get('debug'): # debug mode is True
+            self.set_dev_cors_headers()
+
+    def set_dev_cors_headers(self):
+        # For development only
+        # Not safe for production
+        origin = self.request.headers.get('Origin', '*') # use current requesting origin
+        self.set_header("Access-Control-Allow-Origin", origin)
+        self.set_header("Access-Control-Allow-Headers", "*, content-type, authorization, x-requested-with, x-xsrftoken, x-csrftoken")
+        self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, DELETE, PUT, PATCH')
+        self.set_header('Access-Control-Expose-Headers', 'content-type, location, *, set-cookie')
+        self.set_header('Access-Control-Request-Headers', '*')
+        self.set_header('Access-Control-Allow-Credentials', 'true')
 
     async def ROS_service_handler(self,calldata,serviceResult):
         serviceFuture = Future() 
