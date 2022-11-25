@@ -15,8 +15,9 @@ def GetViewerConfig():
     try:
         dbinstance = MongoDB("elle")
         ret = dbinstance.get_data("config")
-    
         print(ret)
+        if ret == None:
+            return {"result": False, "reason": "no data found"}
         return json.loads(json_util.dumps(ret))
     except:
         return {"result": False, "reason": "query db fail"}

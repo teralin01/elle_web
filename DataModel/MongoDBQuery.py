@@ -25,8 +25,11 @@ class MongoDB():
         self.myquery = myquery  #要搜尋的資料 空白全部搜尋，填值搜尋特定值。
         self.noquery = noquery  #要排除的資料
         self.myfind = self.mycol.find(myquery)
-        self.xx = list(self.myfind)
-        return self.xx
+        if self.myfind.retrieved == 0:
+            return None
+        else:
+            self.xx = list(self.myfind)
+            return self.xx
 
     def delete_data(self, collection, mydelete):  
         self.mycol = self.mydb[collection]
