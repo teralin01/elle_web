@@ -3,18 +3,23 @@ from bson import json_util
 from dataModel.mongoDBQuery import MongoDB
 
 def SetUserConfig(data):
-    print(data)
-    dbinstance = MongoDB("elle")
-    dbinstance.upsert("config",{"name":data["name"]},{'$set':{"data":data["data"]}})
-    return {"result":True}
+    try:
+        print(data)
+        dbinstance = MongoDB("elle")
+        dbinstance.upsert("config",{"name":data["name"]},{'$set':{"data":data["data"]}})
+        return {"result":True}
+    except:
+        return {"result": False, "reason": "query db fail"}
 
 def GetViewerConfig():
-    dbinstance = MongoDB("elle")
-    ret = dbinstance.get_data("config")
+    try:
+        dbinstance = MongoDB("elle")
+        ret = dbinstance.get_data("config")
     
-    print(ret)
-    return json.loads(json_util.dumps(ret))
-
+        print(ret)
+        return json.loads(json_util.dumps(ret))
+    except:
+        return {"result": False, "reason": "query db fail"}
 '''
 Config example:
 {"name":"admin","data":{
@@ -33,20 +38,26 @@ Config example:
 }
 '''
 def GetUserConfig(user):
-    dbinstance = MongoDB("elle")
-    result = json.loads( json_util.dumps(dbinstance.get_data("config")) )
-    print(result)
-    
-    if user == None:
-        return result
-    else:
-        for item in result:
-            if item['name'] == user:
-                return item
-    
-    return {}        
-
+    try:
+        dbinstance = MongoDB("elle")
+        result = json.loads( json_util.dumps(dbinstance.get_data("config")) )
+        print(result)
+        
+        if user == None:
+            return result
+        else:
+            for item in result:
+                if item['name'] == user:
+                    return item
+        
+        return {}        
+    except:
+        return {"result": False, "reason": "query db fail"}
 
 def DelUserConfig(data):
-    dbinstance = MongoDB("elle")
-    ret = dbinstance.delete_data("config",data)    
+    try:
+        dbinstance = MongoDB("elle")
+        ret = dbinstance.delete_data("config",data)    
+        return {"result": True}
+    except:
+        return {"result": False, "reason": "query db fail"}
