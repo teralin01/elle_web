@@ -3,7 +3,7 @@ class MongoDB():
     def __init__(self,mydb_Name):
         #連接本地端mongoDB
         import pymongo
-        self.myclient = pymongo.MongoClient("mongodb://localhost:27017/")
+        self.myclient = pymongo.MongoClient("mongodb://admin:axadmin@localhost:27017/")
         #設mydb繼承myclient[mydb_Name]的屬性。
         self.mydb = self.myclient[mydb_Name]
         #你的collection名稱
@@ -13,7 +13,7 @@ class MongoDB():
         self.mydata = data
         return self.mycol.insert_one(self.mydata)   #單筆插入資料指令
 
-    def get_single_data(self, collection, myquery = {}):  #獲得資料
+    def get_single_data(self, collection, myquery):  #獲得資料
         self.mycol = self.mydb[collection]
         self.myquery = myquery  #要搜尋的資料 空白全部搜尋，填值搜尋特定值。
 
@@ -25,11 +25,11 @@ class MongoDB():
         self.myquery = myquery  #要搜尋的資料 空白全部搜尋，填值搜尋特定值。
         self.noquery = noquery  #要排除的資料
         self.myfind = self.mycol.find(myquery)
-        if self.myfind.retrieved == 0:
-            return None
-        else:
-            self.xx = list(self.myfind)
-            return self.xx
+        # if self.myfind.retrieved == 0:
+        #     return None
+        # else:
+        self.xx = list(self.myfind)
+        return self.xx
 
     def delete_data(self, collection, mydelete):  
         self.mycol = self.mydb[collection]

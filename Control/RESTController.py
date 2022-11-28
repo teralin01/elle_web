@@ -210,10 +210,10 @@ class RESTHandler(tornado.web.RequestHandler):
             self.REST_response(pynmcli.NetworkManager.Connection().show().execute())                        
             
         elif self.URI == '/1.0/config/user': #Show all abailable user
-            self.REST_response(json.dumps(Config.GetUserConfig(None)))              
+            self.REST_response(json.dumps(Config.GetViewerConfig()))              
             
         elif '/1.0/config/user/' in self.URI: #Return privilige of this user
-            self.REST_response(json.dumps(Config.GetUserConfig(self.URI[len('/1.0/config/user/'):])))                          
+            self.REST_response(json.dumps(Config.GetSingleUserConfig(self.URI[len('/1.0/config/user/'):])))                          
             
             
     async def post(self,*args):

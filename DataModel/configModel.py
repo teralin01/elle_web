@@ -38,20 +38,18 @@ Config example:
    }
 }
 '''
-def GetUserConfig(user):
+    
+    
+def GetSingleUserConfig(user):
     try:
         dbinstance = MongoDB("elle")
-        result = json.loads( json_util.dumps(dbinstance.get_data("config")) )
+        result = json.loads( json_util.dumps(dbinstance.get_single_data("config",{'name':user})) )
         print(result)
-        
-        if user == None:
+        if result == None:
+            return {"result": False, "reason": "no data found"}
+        elif user != None:
             return result
-        else:
-            for item in result:
-                if item['name'] == user:
-                    return item
-        
-        return {}        
+
     except:
         return {"result": False, "reason": "query db fail"}
 

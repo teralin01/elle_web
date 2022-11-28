@@ -135,6 +135,46 @@ ROS2D.ImageMapClient = function(options) {
 };
 ROS2D.ImageMapClient.prototype.__proto__ = EventEmitter2.prototype;
 
+ROS2D.DirectImageMapClient = function (options){
+  var that = this;
+  options = options || {};
+  this.image = options.image;
+  this.rootObject = options.rootObject || new createjs.Container();
+  var path = options.imagePath || "/image";
+
+  const yaml = fetch(path+".yaml");
+  
+  Promise.all([yaml])
+    .then(async([mapsetting]) => {
+      const mapyaml = await mapsetting.text();
+
+      var doc = jsyaml.load(mapyaml);
+      var message = {
+          "resolution":doc.resolution,
+          "origin":{
+            "position":{"x":doc.origin[0],"y":doc.origin[1],"z":0},
+            "orientation":{"x":0,"y":0,"z":0,"w":doc.origin[2]}}
+      }
+      var imagebinary;
+      var queue = new createjs.LoadQueue();
+      queue.on("complete", function() {
+        var image = queue.getResult("image");
+        imagebinary = queue.getResult("image",true); // binary format of PNG
+        message.width = image.width;
+        message.height = image.height;
+        that.currentImage = new ROS2D.ImageMap({
+          message : message,
+          image:image
+        });
+        that.rootObject.addChild(that.currentImage);
+        that.emit('change');
+      })
+      queue.loadFile({src:path+".png", id:"image"});
+    });
+}
+
+ROS2D.DirectImageMapClient.prototype.__proto__ = EventEmitter2.prototype;
+
 ROS2D.PNGImageMapClient = function(options) {
   var that = this;
   options = options || {};

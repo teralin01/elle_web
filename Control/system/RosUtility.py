@@ -124,7 +124,18 @@ class SubscribeTypes():
             "amcl_pose":"geometry_msgs/msg/PoseWithCovarianceStamped",
             "plan":"nav_msgs/Path",
             "local_plan":"nav_msgs/Path",
-            "scan":"sensor_msgs/LaserScan"
+            "scan":"sensor_msgs/LaserScan",
+            "mission_control/mission":"elle_interfaces/msg/MissionControlAction",
+            "mission_control/state":"elle_interfaces/msg/MissionControlMission",
+            "mission_control/states":"elle_interfaces/msg/MissionControlMissionArray",
+            "battery_states/states":"elle_interfaces/msg/BMSNodeStates",
+            "global_costmap/costmap":"nav_msgs/msg/OccpancyGrid",
+            "initialpose":"geometry_msgs/msg/PoseWithCovarianceStamped",
+            "goal_pose":"geometry_msgs/msg/PoseStamped",
+            "rosout":"rcl_interfaces/msg/Log",
+            "robot_description":"std_msgs/msg/String",
+            "waypoints":"visualization_msgs/msg/MarkerArray",
+            "map":"nav_msgs/msg/OccpancyGrid"
         }
     
     def get(self,op):
