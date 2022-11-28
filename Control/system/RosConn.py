@@ -125,9 +125,13 @@ class ROSWebSocketConn:
             
 
     async def resubmit_write_cmds(self):
+        if showdebug:
+            print("Resubmit queuing ROS command")
         length = len(self.queue)
         for i in range(length):
             await self.write(self,self.queue[i])
+            
+        self.queue = []
 
     async def prepare_subscribe_from_ROS(self,RESTCB,subscribeMsg,needcache):
         prev = cacheSubscribeData.get(subscribeMsg['topic'])
