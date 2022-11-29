@@ -155,9 +155,9 @@ class ROSWebSocketConn:
         if find == None : # Cache hit, just return without unsubscribe
             result = {'result':False,"info":"No subscription found"}
             RESTCB.set_result(result)
-        else:                                      # Subscribe topic and wait for callback
-            self.write(self,json_encode(unsubscribeMsg))            
-            RESTCB.set_result({'result':True})  # Save result to Rest callback
+        else:                                     
+            await self.write(self,json_encode(unsubscribeMsg))            
+            RESTCB.set_result({'result':True})
             subCmds.deleteOP(unsubscribeMsg['topic'])
             cacheSubscribeData.update({unsubscribeMsg['topic']:None})
         
