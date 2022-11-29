@@ -109,7 +109,7 @@ class ROSWebSocketConn:
 
     async def subscribe_default_topics(self):
         #subscribe mission 
-        subscribeMissionStr = {"op":"subscribe","id":"RestTopics","topic": "/mission_control/state","type":"elle_interfaces/msg/MissionControlMission"}
+        subscribeMissionStr = {"op":"subscribe","id":"RestTopics","topic": "/mission_control/states","type":"elle_interfaces/msg/MissionControlMissionArray"}
         cacheSubscribeData.update({"/mission_control/states":{'data':None,'lastUpdateTime':datetime.now()}})
         await self.write(self,json_encode(subscribeMissionStr))
 
@@ -149,7 +149,18 @@ class ROSWebSocketConn:
             data = futureObj.result() # Get result from ROS callback
             RESTCB.set_result(data)  # Save result to Rest callback
             del futureCB[subscribeMsg['topic']] # remove ros callback from dict
-    
+
+    async def prepare_unsubscribe_to_ROS(self,RESTCB,unsubscribeMsg):
+        find = subCmds.get(unsubscribeMsg['topic'])
+        if find == None : # Cache hit, just return without unsubscribe
+            result = {'result':False,"info":"No subscription found"}
+            RESTCB.set_result(result)
+        else:                                      # Subscribe topic and wait for callback
+            self.write(self,json_encode(unsubscribeMsg))            
+            RESTCB.set_result({'result':True})  # Save result to Rest callback
+            subCmds.deleteOP(unsubscribeMsg['topic'])
+            cacheSubscribeData.update({unsubscribeMsg['topic']:None})
+        
     async def prepare_serviceCall_to_ROS(self,RESTCB,URL,msg):
         loop = asyncio.get_running_loop()
         futureObj = loop.create_future()

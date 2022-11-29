@@ -107,7 +107,27 @@ class RESTHandler(tornado.web.RequestHandler):
                     self.REST_response(TimeoutStr)
                 else:
                     return False     
-
+    async def ROS_unsubscribe_handler(self,calldata,needReturn):
+        unsubFuture = Future()
+        try:
+            await asyncio.wait_for( ROSConn.prepare_unsubscribe_to_ROS(ROSConn,unsubFuture,calldata) , timeout = restTimeoutPeriod)
+            if not needReturn:
+                self.REST_response(unsubFuture.result())
+            else:
+                data = unsubFuture.result()
+                if data['result'] == True:
+                    return True
+                else:
+                    return False  
+                
+        except asyncio.TimeoutError:
+            self._status_code = 500
+            if not needReturn:
+                self.REST_response(TimeoutStr)
+            else:
+                return False           
+            
+            
     async def ROS_publish_handler(self,calldata,needReturn):
         pubFuture = Future()
         try:                    
@@ -190,7 +210,11 @@ class RESTHandler(tornado.web.RequestHandler):
         elif self.URI == '/1.0/ros/subscribe':       
             subscribeMsg = {"op":"subscribe","id":"RestTopics","topic":self.get_argument("ros_topic"),"type":self.get_argument("ros_type")}
             await self.ROS_subscribe_handler(subscribeMsg,None,False)            
-            
+
+        elif self.URI == '/1.0/ros/unsubscribe':       
+            unsubscribeMsg = {"op":"unsubscribe","id":"RestTopics","topic":self.get_argument("ros_topic"),"type":self.get_argument("ros_type")}
+            await self.ROS_unsubscribe_handler(unsubscribeMsg,False)    
+                        
         elif self.URI == '/1.0/status/hardware':    #TODO add robotID to the URL in fleet version
             self.REST_response(HWInfo.get())
         
