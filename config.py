@@ -19,5 +19,7 @@ settings = {
     "rosbridgeMsgSize":"20000000",
     "web_version":"0.1.3",
     "amr_version":"1.0",
-    "mappath":"/home/tera/www/web/static/"
+    "mappath":"/maps/",
+    "db_admin_username":"admin",
+    "db_admin_password":"axadmin"
 }
