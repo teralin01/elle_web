@@ -129,7 +129,7 @@ class SubscribeTypes():
             "mission_control/state":"elle_interfaces/msg/MissionControlMission",
             "mission_control/states":"elle_interfaces/msg/MissionControlMissionArray",
             "battery_states/states":"elle_interfaces/msg/BMSNodeStates",
-            "global_costmap/costmap":"nav_msgs/msg/OccpancyGrid",
+            "global_costmap/costmap":"nav_msgs/OccupancyGrid",
             "initialpose":"geometry_msgs/msg/PoseWithCovarianceStamped",
             "goal_pose":"geometry_msgs/msg/PoseStamped",
             "rosout":"rcl_interfaces/msg/Log",
