@@ -54,15 +54,15 @@
         background: '#c2dfc2'
       });      
 
-      var testcase = 2;
+      var testcase = 1;
     
     if( testcase == 1){
       var gridClient = new window.ROS2D.OccupancyGridClient({
         ros : ros,
         rootObject : viewer.scene,
         topic: '/map',
-        topic: '/global_costmap/costmap',
-        continuous : true,
+        //topic: '/global_costmap/costmap',
+        //continuous : true,
       });
     }
     else if (testcase == 2){
