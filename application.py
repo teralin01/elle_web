@@ -7,6 +7,7 @@ from control import RESTController, SystemController,mainController, wsControlle
 from control import statusController
 from control import mapController
 from control import missionController
+from control import EventController
 
 class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
     def set_extra_headers(self, path):
@@ -36,7 +37,7 @@ class Application(tornado.web.Application):
             (r"/1.0/status/(.*)",RESTController.RESTHandler),                     
             (r"/1.0/config/(.*)",RESTController.RESTHandler),     
             (r"/1.0/ros/(.*)",RESTController.RESTHandler),   
-            (r"/1.0/event/(.*)",RESTController.SSEHandler),   
+            (r"/1.0/event/(.*)",EventController.SSEHandler),   
             (r'/login',mainController.LoginHandler),
             (r'/logout',mainController.LogoutHandler),
             (r"/control/HardwareStatus", statusController.HWInfoHandler),

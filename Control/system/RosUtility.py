@@ -122,14 +122,14 @@ class SubscribeTypes():
     def __init__(self) -> None:
         self.ros_topic_type = {
             "amcl_pose":"geometry_msgs/msg/PoseWithCovarianceStamped",
-            "plan":"nav_msgs/Path",
-            "local_plan":"nav_msgs/Path",
-            "scan":"sensor_msgs/LaserScan",
+            "plan":"nav_msgs/msg/Path",
+            "local_plan":"nav_msgs/msg/Path",
+            "scan":"sensor_msgs/msgs/LaserScan",
             "mission_control/mission":"elle_interfaces/msg/MissionControlAction",
             "mission_control/state":"elle_interfaces/msg/MissionControlMission",
             "mission_control/states":"elle_interfaces/msg/MissionControlMissionArray",
             "battery_states/states":"elle_interfaces/msg/BMSNodeStates",
-            "global_costmap/costmap":"nav_msgs/OccupancyGrid",
+            "global_costmap/costmap":"nav_msgs/msg/OccupancyGrid",
             "initialpose":"geometry_msgs/msg/PoseWithCovarianceStamped",
             "goal_pose":"geometry_msgs/msg/PoseStamped",
             "rosout":"rcl_interfaces/msg/Log",

@@ -8,6 +8,7 @@ from datetime import datetime
 from control.system.RosUtility import ROSCommands
 from control.system.RosUtility import SubscribeCommands
 from control.system.RosUtility import SubscribeTypes
+from control.system.MissionHandler import MissionHandler
 
 subCmds = SubscribeCommands()
 rosCmds = ROSCommands()
@@ -220,6 +221,9 @@ class ROSWebSocketConn:
                 if cb != None:
                     cb.set_result(data)
                     topic_alive = True
+
+                if data['topic'] == "/mission_control/states":
+                    MissionHandler.UpdateMissionStatus(data)
 
                 #unsubscribe this topic if no browser client or REST client found
                 if cacheSubscribeData.get(data['topic'])!= None: # Default subscribe topic, shch as mission status

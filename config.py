@@ -17,7 +17,7 @@ settings = {
     "rosbridgePort":"9090",
     "hostIP":"",
     "rosbridgeMsgSize":"20000000",
-    "web_version":"0.1.3",
+    "web_version":"0.1.5",
     "amr_version":"1.0",
     "db_admin_username":"admin",
     "db_admin_password":"axadmin",

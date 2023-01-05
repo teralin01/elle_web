@@ -416,21 +416,3 @@ class RESTHandler(tornado.web.RequestHandler):
 
 # class RESTVDA5050Controller(tornado.web.RequestHandler): 
 #     pass
-
-class SSEHandler(tornado.web.RequestHandler):
-    def __init__(self, *args, **kwargs):
-        super(SSEHandler, self).__init__(*args, **kwargs)
-        self.set_header('Content-Type', 'text/event-stream')
-        self.set_header('cache-control', 'no-cache')
-        
-    async def get(self,*args):
-        i = 0 
-        while True:
-            if True:
-                await asyncio.sleep(5)
-                i = i + 1
-                await self.out_put("Event sequence "+ str(i) )
-            
-    async def out_put(self,data):
-        self.write('data:{'+data+'}\n\n')
-        await self.flush()
