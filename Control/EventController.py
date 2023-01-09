@@ -2,24 +2,21 @@ import tornado.web
 import tornado.ioloop
 import logging
 import json
+import config
 
 browser_clients = set()
 
 class SSEHandler(tornado.web.RequestHandler):
     def initialize(self):
-        # super(SSEHandler, self).__init__(*args)
         self._status_code = 200
         self._auto_finish = False
         self.set_header('Content-Type', 'text/event-stream')
         self.set_header('cache-control', 'no-cache')
         self.set_header('Connection', 'keep-alive')
-        # self.set_dev_cors_headers()
-        # self.source = source
-        self._last = None
+        if config.settings['debug'] == True:
+            self.set_dev_cors_headers()
         
     def set_dev_cors_headers(self):
-        # For development only
-        # Not safe for production
         origin = self.request.headers.get('Origin', '*') # use current requesting origin
         self.set_header("Access-Control-Allow-Origin", origin)
         self.set_header("Access-Control-Allow-Headers", "*, content-type, authorization, x-requested-with, x-xsrftoken, x-csrftoken")
@@ -29,8 +26,8 @@ class SSEHandler(tornado.web.RequestHandler):
         self.set_header('Access-Control-Allow-Credentials', 'true')
 
     # TODO clear client if disconnected    
-    # def on_finish(self):
-    #     browser_clients.remove(self)
+    def on_finish(self):
+        browser_clients.remove(self)
          
     async def get(self,*args):
         global browser_clients

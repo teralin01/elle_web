@@ -7,6 +7,7 @@ import nest_asyncio
 class MissionHandler:
     # Input: the ref of notify client
     def __init__(self):
+        self.oldmission = None
         pass
     
     def SetMission():
@@ -47,6 +48,9 @@ class MissionHandler:
     
     def UpdateMissionStatus(self, mission):
         # TODO mission status parser , to aware the status change 
+
+        # TODO Check previous and current mission is the same or not. If it is the same, the skip
+        
         # self.CallbackMissionSender(mission)
         # self.EventLogger(mission)
         

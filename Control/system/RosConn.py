@@ -3,6 +3,7 @@ import tornado.websocket
 import config
 import json
 import asyncio
+import logging
 from tornado.escape import json_encode
 from datetime import datetime
 from control.system.RosUtility import ROSCommands
@@ -22,6 +23,7 @@ rosbridgeRetryPeriod = 3
 rosbridgeRetryMax = 10
 showdebug = True
 recoveryMode = False # avoid auto unsubscribe topic during recovery mode
+checkingROSConn = False
 
 class ROSWebSocketConn:
     def __init__(self):
@@ -96,7 +98,7 @@ class ROSWebSocketConn:
                     print("Wait for connecting rosbridge " )
                 if idx > 5:
                     await self.connect(self)
-                await asyncio.sleep(3)
+            await asyncio.sleep(3)
   
         # TODO Notify browser to reconnect, in order to avoid request mission
     
@@ -117,7 +119,7 @@ class ROSWebSocketConn:
 
     async def subscribe_default_topics(self):
         #subscribe mission 
-        subscribeMissionStr = {"op":"subscribe","id":"RestTopics","topic": "/mission_control/states","type":"elle_interfaces/msg/MissionControlMissionArray"}
+        subscribeMissionStr = {"op":"subscribe","id":"DefaultTopics","topic": "/mission_control/states","type":"elle_interfaces/msg/MissionControlMissionArray"}
         cacheSubscribeData.update({"/mission_control/states":{'data':None,'lastUpdateTime':datetime.now()}})
         await self.write(self,json_encode(subscribeMissionStr))
 
@@ -197,28 +199,46 @@ class ROSWebSocketConn:
             except Exception:  # The rosbridge abnormal observe by write function
                 if not recoveryMode:
                     self.queue = []
+                    print("## write to rosbridge exception")
+                    rws = None
                     await self.reconnect(self)    
                 self.queue.append(msg)        
                 
         elif not recoveryMode: # The rosbridge abnormal observe by recv_ros_message function
             self.queue = []
             self.queue.append(msg)        
+            print("#### RWS == None and not recoveryMode")
             await self.reconnect(self)
         else:  # already stay in recovery mode
             self.queue.append(msg)        
 
+    def clearROSConn():
+        global checkingROSConn        
+        if  checkingROSConn: #Still not receive service call response after 3 seconds
+            global rws
+            rws.close()
+            rws = None
+            print("Reconnect to rosbridge "+str(datetime.now()))
+            asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.reconnect(ROSWebSocketConn)))
+                    
+    def double_check_ros_conn():   
+        # msg = {"op":"call_service","id":"TestRestServiceCall","service": "/amcl/get_state","type":"lifecycle_msgs/srv/GetState"}
+        # asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(   ROSWebSocketConn.write(ROSWebSocketConn,json_encode(msg))   ))
+                   
+        loop = asyncio.get_event_loop()
+        loop.call_later(3,ROSWebSocketConn.clearROSConn) 
+
     def recv_ros_message(msg): # receive data from rosbridge
         global rws
         global recoveryMode
+        global checkingROSConn
         if msg == None:
-            print("Recv nothing from rosbridge, clear rosbridge connection...")
-            
-            #TODO try service call again, if still fail, then disconnect
-            rws.close()
-            rws = None
-            asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.reconnect(ROSWebSocketConn)))
-
+            print("Recv nothing from rosbridge, checking rosbridge connection...")            
+            checkingROSConn = True
+            ROSWebSocketConn.double_check_ros_conn()
         else:
+            if checkingROSConn:
+                checkingROSConn = False
             data = json.loads(msg)
             if data['op'] == 'publish':
                 if showdebug:
