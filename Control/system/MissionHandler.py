@@ -1,6 +1,8 @@
 
-from control import EventController as ClientPool
+from control.EventController import SSEHandler as EventHandler
 import config
+import asyncio
+import nest_asyncio
 
 class MissionHandler:
     # Input: the ref of notify client
@@ -20,16 +22,7 @@ class MissionHandler:
         # if timeout, callback and handle next task if exist
         pass
         
-    def UpdateMissionStatus(self, mission):
-        
-        # TODO mission status parser , to aware the status change 
-        
-        
-        
-        
-        self.CallbackMissionSender(mission)
-        self.EventLogger(mission)
-        self.NotifyMissionReader(mission)
+
 
     # Client come from REST request. 
     # issue: how to deal with mulitiple sender. 
@@ -39,10 +32,6 @@ class MissionHandler:
         pass
 
 
-    # Client should register server side event for callback
-    def NotifyMissionReader(self,missionArray):
-        ClientPool.SSEHandler.eventUpdate("mission",None,missionArray)
-    
     # A general interface to ave event to database
     def BasicLogger(mission):
         pass
@@ -56,4 +45,17 @@ class MissionHandler:
     def StatisticLogger():
         pass
     
+    def UpdateMissionStatus(self, mission):
+        # TODO mission status parser , to aware the status change 
+        # self.CallbackMissionSender(mission)
+        # self.EventLogger(mission)
+        
+        #Notify Browser client
+        if not EventHandler.clientIsEmpty():
+            try:
+                nest_asyncio.apply()
+                asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(EventHandler.eventUpdate(EventHandler,"mission",None,mission) ))
+            except Exception as err:
+                print(" Update status err: "+err)
+                
 

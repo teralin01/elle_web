@@ -14,6 +14,7 @@ subCmds = SubscribeCommands()
 rosCmds = ROSCommands()
 topictable = SubscribeTypes()
 ws_browser_clients = set()
+missionHandler = MissionHandler()
 rws = None
 futureCB = {}
 cacheSubscribeData = dict()
@@ -72,15 +73,21 @@ class ROSWebSocketConn:
             print("Try to connect rosbridge: "+ str(datetime.now()))
             recoveryMode = True
             self.retryCnt = 0 
+            cacheSubscribeData.clear()
+            
             await self.connect(self)  #only connect once even call reconnect multi times
         idx = 0
         while True:
             if rws != None: 
                 if showdebug:
-                    print("Submit predefined ROS command")
+                    print("1: Submit predefined ROS command")
                 recoveryMode = False
                 await self.subscribe_default_topics(self)
-                await self.subscribe_runtime_topics(self)            
+                if showdebug:
+                    print("2: Submit runtime ROS command")                
+                await self.subscribe_runtime_topics(self)
+                if showdebug:
+                    print("3: Submit presubmit ROS command")                            
                 await self.resubmit_write_cmds(self)
                 break
             else:
@@ -119,6 +126,12 @@ class ROSWebSocketConn:
         for key,value in subCmds.ros_Sub_Commands.items():
             type = topictable.get(key.lstrip("/")) # only subscribe to predefined types now
             if type != None:
+                
+                #skip newly subscribe topic in previous function
+                if cacheSubscribeData.get(key) != None:
+                    print("##Skip Key: "+ key)
+                    continue
+                
                 subCmdStr = {"op":"subscribe","id":"ResubmitTopics_"+key,"topic": key,"type":type,"throttle_rate":0,"queue_length":0}
                 await self.write(self,json_encode(subCmdStr))
             if showdebug:
@@ -199,6 +212,8 @@ class ROSWebSocketConn:
         global recoveryMode
         if msg == None:
             print("Recv nothing from rosbridge, clear rosbridge connection...")
+            
+            #TODO try service call again, if still fail, then disconnect
             rws.close()
             rws = None
             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.reconnect(ROSWebSocketConn)))
@@ -223,7 +238,7 @@ class ROSWebSocketConn:
                     topic_alive = True
 
                 if data['topic'] == "/mission_control/states":
-                    MissionHandler.UpdateMissionStatus(data)
+                   missionHandler.UpdateMissionStatus(data['msg'])
 
                 #unsubscribe this topic if no browser client or REST client found
                 if cacheSubscribeData.get(data['topic'])!= None: # Default subscribe topic, shch as mission status
