@@ -39,6 +39,9 @@ class RESTHandler(tornado.web.RequestHandler):
         global cacheRESTData
         global cacheSub
         
+        if len(cacheSub) == 0 :            
+            asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSConn.reconnect(ROSConn)))
+        
     def prepare(self):
         self.URI = self.request.path
         cache = cacheRESTData.get(self.URI)
@@ -169,11 +172,24 @@ class RESTHandler(tornado.web.RequestHandler):
         self._status_code = 200
         if self.cacheHit:
             logging.debug("Return cache data")
-            self.REST_response(cacheRESTData.get(self.URI)['cacheData'])     
-        
+            self.REST_response(cacheRESTData.get(self.URI)['cacheData']['data'])     
+
+        elif self.URI == '/1.0/missions/release_wait_state':
+            callData = {'id':self.URI, 'op':"call_service",'type': "std_srvs/srv/Empty",'service': "/mission_control/trigger_button",'args': {} }
+            await self.ROS_service_handler(callData,None)          
+
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
-            subscribeMsg = {"op":"subscribe","id":"RestTopics","topic": "/mission_control/states","type":"elle_interfaces/msg/MissionControlMissionArray"}
-            await self.ROS_subscribe_handler(subscribeMsg,None,True)
+            #TODO add cache fomr mission status
+            subdata = cacheSub.get('/mission_control/states')
+            if subdata != None:
+                self.cacheHit = True
+                cacheRESTData.update({self.URI:{'cacheData':subdata,'lastUpdateTime':datetime.now()}})
+                self.REST_response(subdata['data'])
+            else:
+                self._status_code = 304
+                self.REST_response({"result":False,"info":"Backend have not yet receieve mission data"})     
+            # subscribeMsg = {"op":"subscribe","id":"RestTopics","topic": "/mission_control/states","type":"elle_interfaces/msg/MissionControlMissionArray"}
+            # await self.ROS_subscribe_handler(subscribeMsg,None,True)
             
         elif self.URI == '/1.0/maps' or self.URI == '/1.0/maps/GetMap':
             callData = {'id':self.URI, 'op':"call_service",'type': "nav_msgs/GetMap",'service': "/map_server/map",'args': {} }

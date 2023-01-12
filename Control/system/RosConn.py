@@ -95,7 +95,7 @@ class ROSWebSocketConn:
             else:
                 idx = idx+1
                 if showdebug:
-                    print("Wait for connecting rosbridge " )
+                    print("Wait for connecting rosbridge, sequence "+ idx )
                 if idx > 5:
                     await self.connect(self)
             await asyncio.sleep(3)
@@ -145,7 +145,9 @@ class ROSWebSocketConn:
             print("Resubmit queuing ROS command")
         length = len(self.queue)
         for i in range(length):
-            await self.write(self,self.queue[i])
+            cmd = self,self.queue[i]
+            if cmd['topic'] != "/mission_control/states":
+                await self.write(cmd)
             
         self.queue = []
 
