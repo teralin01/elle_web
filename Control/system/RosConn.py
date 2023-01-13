@@ -259,8 +259,8 @@ class ROSWebSocketConn:
                     cb.set_result(data)
                     topic_alive = True
 
-                if data['topic'] == "/mission_control/states":
-                   missionHandler.UpdateMissionStatus(data['msg'])
+                # if data['topic'] == "/mission_control/states":
+                #    missionHandler.UpdateMissionStatus(data['msg'])
 
                 #unsubscribe this topic if no browser client or REST client found
                 if cacheSubscribeData.get(data['topic'])!= None: # Default subscribe topic, shch as mission status

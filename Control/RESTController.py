@@ -11,7 +11,7 @@ from control.system.HWStatus import HWInfoHandler as HWInfo
 from control.system.jsonValidatorSchema import missionSchema
 from tornado.escape import json_decode, json_encode
 from dataModel import landmarkModel as LM
-from dataModel import configModel as Config
+from dataModel import configModel as DBConfig
 import asyncio
 from asyncio import Future
 import json
@@ -54,7 +54,7 @@ class RESTHandler(tornado.web.RequestHandler):
             config.settings['hostIP'] = self.request.host
 
     def set_default_headers(self):
-        if self.application.settings.get('debug'): # debug mode is True
+        if self.application.settings.get('debug'): # debug mode is True then support CORS
             self.set_dev_cors_headers()
 
     def set_dev_cors_headers(self):
@@ -182,12 +182,16 @@ class RESTHandler(tornado.web.RequestHandler):
             #TODO add cache fomr mission status
             subdata = cacheSub.get('/mission_control/states')
             if subdata != None:
-                self.cacheHit = True
-                cacheRESTData.update({self.URI:{'cacheData':subdata,'lastUpdateTime':datetime.now()}})
+                if subdata['data'] == None:
+                    self._status_code = 201
+                    self.REST_response({"result":False,"errno":102,"info":"Current cached date is None"})         
+                else:
+                    self.cacheHit = True
+                    cacheRESTData.update({self.URI:{'cacheData':subdata,'lastUpdateTime':datetime.now()}})
                 self.REST_response(subdata['data'])
             else:
                 self._status_code = 304
-                self.REST_response({"result":False,"info":"Backend have not yet receieve mission data"})     
+                self.REST_response({"result":False,"errno":101,"info":"Backend have never receieve mission data"})     
             # subscribeMsg = {"op":"subscribe","id":"RestTopics","topic": "/mission_control/states","type":"elle_interfaces/msg/MissionControlMissionArray"}
             # await self.ROS_subscribe_handler(subscribeMsg,None,True)
             
@@ -238,7 +242,7 @@ class RESTHandler(tornado.web.RequestHandler):
             self.REST_response(json.dumps(LM.GetPoints()))
         
         elif self.URI == '/1.0/config/viewer':
-            self.REST_response(json.dumps(Config.GetViewerConfig()))
+            self.REST_response(json.dumps(DBConfig.GetViewerConfig()))
             
         elif self.URI == '/1.0/network/wifilist':
             self.REST_response(pynmcli.NetworkManager.Device().wifi('list').execute())                        
@@ -250,7 +254,7 @@ class RESTHandler(tornado.web.RequestHandler):
             self.REST_response(pynmcli.NetworkManager.Connection().show().execute())                                  
             
         elif '/1.0/config/user/' in self.URI: #Return privilige of this user
-            self.REST_response(json.dumps(Config.GetSingleUserConfig(self.URI[len('/1.0/config/user/'):])))                          
+            self.REST_response(json.dumps(DBConfig.GetSingleUserConfig(self.URI[len('/1.0/config/user/'):])))                          
             
             
     async def post(self,*args):
@@ -338,7 +342,7 @@ class RESTHandler(tornado.web.RequestHandler):
             self.REST_response(ret)
 
         elif self.URI == '/1.0/config/viewer':
-            ret = Config.SetUserConfig(data)
+            ret = DBConfig.SetUserConfig(data)
             self.REST_response(ret)
         
         elif self.URI == '/1.0/network/WiFiconnectionUP':
@@ -397,6 +401,9 @@ class RESTHandler(tornado.web.RequestHandler):
             
         if self._status_code != 201:
             self.REST_response({'result':False})
+        elif self.URI == '/1.0/missions/predefined_mission':    
+            callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlStationCall remote_number",'service': "/mission_control/station_call",'args': {'remote_number':int(data['remote_number'])} }
+            await self.ROS_service_handler(callData,None)        
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':  #start/stop mission
             callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':data['command']} }
             await self.ROS_service_handler(callData,None)        

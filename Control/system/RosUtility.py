@@ -135,7 +135,7 @@ class SubscribeTypes():
             "rosout":"rcl_interfaces/msg/Log",
             "robot_description":"std_msgs/msg/String",
             "waypoints":"visualization_msgs/msg/MarkerArray",
-            "map":"nav_msgs/msg/OccpancyGrid"
+            "map":"nav_msgs/msg/OccupancyGrid"
         }
     
     def get(self,op):
