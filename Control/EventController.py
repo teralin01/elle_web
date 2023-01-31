@@ -37,7 +37,7 @@ class SSEHandler(tornado.web.RequestHandler):
         subdata = cacheSub.get('/mission_control/states')
         if subdata != None:
             if subdata['data'] != None:
-                self.constructSSE("message","0",{ "missions":subdata['data']} )
+                self.constructSSE("message","0",subdata['data'] )
             else:
                 self.constructSSE("message","0",{ "missions":[]} )    
             
