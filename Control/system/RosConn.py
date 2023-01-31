@@ -3,6 +3,7 @@ import tornado.websocket
 import config
 import json
 import asyncio
+import os
 import logging
 from tornado.escape import json_encode
 from datetime import datetime
@@ -56,6 +57,9 @@ class ROSWebSocketConn:
             self.retryCnt = self.retryCnt+1
             if (self.retryCnt > rosbridgeRetryMax):
                 print("Plan to trigger external command to restart rosbridge process")
+                cmd = "sh kill_rosbridge.sh"
+                returned_value = os.system(cmd)  # returns the exit code in unix
+                print('returned value:', returned_value)
             
             await asyncio.sleep(rosbridgeRetryPeriod)
             await self.connect(self)
@@ -216,19 +220,21 @@ class ROSWebSocketConn:
 
     def clearROSConn():
         global checkingROSConn        
-        if  checkingROSConn: #Still not receive service call response after 3 seconds
+        if  checkingROSConn: #Still not receive service call response after 5 seconds
             global rws
             rws.close()
             rws = None
             print("Reconnect to rosbridge "+str(datetime.now()))
             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.reconnect(ROSWebSocketConn)))
-                    
+
+    def testROSConn():
+        msg = {"op":"call_service","id":"TestRestServiceCall","service": "/amcl/get_state","type":"lifecycle_msgs/srv/GetState"}
+        asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.write(ROSWebSocketConn,json_encode(msg))))
+                            
     def double_check_ros_conn():   
-        # msg = {"op":"call_service","id":"TestRestServiceCall","service": "/amcl/get_state","type":"lifecycle_msgs/srv/GetState"}
-        # asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(   ROSWebSocketConn.write(ROSWebSocketConn,json_encode(msg))   ))
-                   
+        loop.call_later(3,ROSWebSocketConn.testROSConn)            
         loop = asyncio.get_event_loop()
-        loop.call_later(3,ROSWebSocketConn.clearROSConn) 
+        loop.call_later(5,ROSWebSocketConn.clearROSConn) 
 
     def recv_ros_message(msg): # receive data from rosbridge
         global rws
@@ -237,7 +243,7 @@ class ROSWebSocketConn:
         if msg == None:
             print("Recv nothing from rosbridge, checking rosbridge connection...")            
             checkingROSConn = True
-            ROSWebSocketConn.double_check_ros_conn()
+            # ROSWebSocketConn.double_check_ros_conn()
         else:
             if checkingROSConn:
                 checkingROSConn = False

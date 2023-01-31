@@ -56,6 +56,7 @@ class MissionHandler:
         
         #Notify Browser client
         if not EventHandler.clientIsEmpty():
+            pass
             try:
                 nest_asyncio.apply()
                 asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(EventHandler.eventUpdate(EventHandler,"mission",None,mission) ))

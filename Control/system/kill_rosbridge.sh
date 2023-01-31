@@ -1,0 +1,1 @@
+for i in $( ps ax | awk '/rosbridge_websocket/ {print $1}'); do kill ${i}; done
