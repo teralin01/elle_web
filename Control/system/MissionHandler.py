@@ -2,7 +2,6 @@
 from control.EventController import SSEHandler as EventHandler
 import config
 import asyncio
-import nest_asyncio
 
 class MissionHandler:
     # Input: the ref of notify client
@@ -57,8 +56,6 @@ class MissionHandler:
         #Notify Browser client
         if not EventHandler.clientIsEmpty():
             try:
-                # nest_asyncio.apply()
-                # asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(EventHandler.eventUpdate(EventHandler,"mission",None,mission) ))
                 EventHandler.eventUpdate(EventHandler,"mission",None,mission)
             except Exception as err:
                 print(" Update status err: "+err)

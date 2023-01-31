@@ -22,7 +22,7 @@ rws = None
 futureCB = {}
 cacheSubscribeData = dict()
 rosbridgeRetryPeriod = 3
-rosbridgeRetryMax = 10
+rosbridgeRetryMax = 5
 showdebug = True
 recoveryMode = False # avoid auto unsubscribe topic during recovery mode
 checkingROSConn = False
@@ -63,6 +63,7 @@ class ROSWebSocketConn:
                 cmd = "sh kill_rosbridge.sh"
                 returned_value = os.system(cmd)  # returns the exit code in unix
                 print('returned value:', returned_value)
+                # Rosbridge restart procedure is handle at rosbridge_websocket.launcy.py  -> Node -> respwan=True
             
             await asyncio.sleep(rosbridgeRetryPeriod)
             await self.connect(self)
@@ -103,7 +104,7 @@ class ROSWebSocketConn:
                 idx = idx+1
                 if showdebug:
                     print("Wait for connecting rosbridge, sequence "+ int(idx) )
-                if idx > 5:
+                if idx > rosbridgeRetryMax:
                     await self.connect(self)
             await asyncio.sleep(3)
   
@@ -237,9 +238,9 @@ class ROSWebSocketConn:
         asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.write(ROSWebSocketConn,json_encode(msg))))
                             
     def double_check_ros_conn():   
-        loop.call_later(3,ROSWebSocketConn.testROSConn)            
+        loop.call_later(rosbridgeRetryPeriod-1,ROSWebSocketConn.testROSConn)            
         loop = asyncio.get_event_loop()
-        loop.call_later(5,ROSWebSocketConn.clearROSConn) 
+        loop.call_later(rosbridgeRetryPeriod,ROSWebSocketConn.clearROSConn) 
 
     def recv_ros_message(msg): # receive data from rosbridge
         global rws
