@@ -12,7 +12,7 @@ from control.system.RosUtility import ROSCommands
 from control.system.RosUtility import SubscribeCommands
 from control.system.RosUtility import SubscribeTypes
 from control.system.MissionHandler import MissionHandler
-
+from control.system.CacheData import cacheSubscribeData
 subCmds = SubscribeCommands()
 rosCmds = ROSCommands()
 topictable = SubscribeTypes()
@@ -20,7 +20,6 @@ ws_browser_clients = set()
 missionHandler = MissionHandler()
 rws = None
 futureCB = {}
-cacheSubscribeData = dict()
 rosbridgeRetryPeriod = 3
 rosbridgeRetryMax = 5
 showdebug = True

@@ -6,7 +6,7 @@ from dataModel.AuthModel import AuthDB
 from datetime import datetime
 from jsonschema import validate
 from control.system.RosConn import ROSWebSocketConn as ROSConn
-from control.system.RosConn import cacheSubscribeData as cacheSub
+from control.system.CacheData import cacheSubscribeData as cacheSub
 from control.system.HWStatus import HWInfoHandler as HWInfo
 from control.system.jsonValidatorSchema import missionSchema
 from tornado.escape import json_decode, json_encode

@@ -2,6 +2,7 @@ import tornado.web
 import tornado.ioloop
 import logging
 import config
+from control.system.CacheData import cacheSubscribeData as cacheSub
 browser_clients = set()
 
 class SSEHandler(tornado.web.RequestHandler):
@@ -31,7 +32,15 @@ class SSEHandler(tornado.web.RequestHandler):
         global browser_clients
         logging.debug("Client connected")
         browser_clients.add(self)
-        self.constructSSE("message","0",{ "general":"SSE Connected"} )
+        # self.constructSSE("message","0",{ "general":"SSE Connected"} )
+        
+        subdata = cacheSub.get('/mission_control/states')
+        if subdata != None:
+            if subdata['data'] != None:
+                self.constructSSE("message","0",{ "missions":subdata['data']} )
+            else:
+                self.constructSSE("message","0",{ "missions":[]} )    
+            
         #TODO if mission exist, publish mission to client
 
     def constructSSE(res, event, id, data):
@@ -42,12 +51,13 @@ class SSEHandler(tornado.web.RequestHandler):
             if id != None:
                 res.write('id: ' + id + '\n')
 
-            res.write("data: " + str(data) + '\n\n')
+            res.write("data: " + str(data).replace("'", '"') + '\n\n')
             res.flush()
         except Exception as err:
             logging.debug(" SSE error:"+err.args)
     
     def eventUpdate(self,event,id,data):
+        
         global browser_clients
         for client in browser_clients:
             self.constructSSE(client,'message',id,{ event:data})      
