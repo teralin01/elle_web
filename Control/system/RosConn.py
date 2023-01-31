@@ -5,6 +5,7 @@ import json
 import asyncio
 import os
 import logging
+import nest_asyncio
 from tornado.escape import json_encode
 from datetime import datetime
 from control.system.RosUtility import ROSCommands
@@ -25,6 +26,7 @@ rosbridgeRetryMax = 10
 showdebug = True
 recoveryMode = False # avoid auto unsubscribe topic during recovery mode
 checkingROSConn = False
+
 
 class ROSWebSocketConn:
     def __init__(self):
@@ -57,6 +59,7 @@ class ROSWebSocketConn:
             self.retryCnt = self.retryCnt+1
             if (self.retryCnt > rosbridgeRetryMax):
                 print("Plan to trigger external command to restart rosbridge process")
+                logging.info("Calling Restart rosbridge shell")
                 cmd = "sh kill_rosbridge.sh"
                 returned_value = os.system(cmd)  # returns the exit code in unix
                 print('returned value:', returned_value)
@@ -225,10 +228,12 @@ class ROSWebSocketConn:
             rws.close()
             rws = None
             print("Reconnect to rosbridge "+str(datetime.now()))
+            nest_asyncio.apply()
             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.reconnect(ROSWebSocketConn)))
 
     def testROSConn():
         msg = {"op":"call_service","id":"TestRestServiceCall","service": "/amcl/get_state","type":"lifecycle_msgs/srv/GetState"}
+        nest_asyncio.apply()
         asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.write(ROSWebSocketConn,json_encode(msg))))
                             
     def double_check_ros_conn():   
@@ -241,9 +246,10 @@ class ROSWebSocketConn:
         global recoveryMode
         global checkingROSConn
         if msg == None:
-            print("Recv nothing from rosbridge, checking rosbridge connection...")            
+            print("Recv nothing from rosbridge, checking rosbridge connection...")    
+            logging.info("## Recv None from rosbridge, something wrong")        
             checkingROSConn = True
-            # ROSWebSocketConn.double_check_ros_conn()
+            ROSWebSocketConn.double_check_ros_conn()
         else:
             if checkingROSConn:
                 checkingROSConn = False
@@ -273,12 +279,15 @@ class ROSWebSocketConn:
                     cacheSubscribeData.update({data['topic']:{'data':msg,'lastUpdateTime':datetime.now()}})
                 elif topic_alive == None and not recoveryMode : # No way to publish
                     print("--Unsubscribe topic: " + data['topic'])
-                    topicidstr = browsers[0]
-                    topicid = topicidstr[list(topicidstr.keys())[0]]
-                    message = {"op":"unsubscribe","id":topicid,"topic": data['topic'] }
-                    print (message)
-                    rws.write_message(json_encode(message))
-                    subCmds.deleteOP(data['topic'])
+                    try:
+                        topicidstr = browsers[0]
+                        topicid = topicidstr[list(topicidstr.keys())[0]]
+                        message = {"op":"unsubscribe","id":topicid,"topic": data['topic'] }
+                        print (message)
+                        rws.write_message(json_encode(message))
+                        subCmds.deleteOP(data['topic'])
+                    except:
+                        print("the browser client had been removed from ws_browser_clients")
 
             if data['op'] == 'service_response':
                 # print(data['service'] + " " + "id" + data['id'] + " result" + str(data['result']))   

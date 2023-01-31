@@ -27,14 +27,14 @@ class SSEHandler(tornado.web.RequestHandler):
     def on_finish(self):
         browser_clients.remove(self)
          
-    async def get(self,*args):
+    def get(self,*args):
         global browser_clients
         logging.debug("Client connected")
         browser_clients.add(self)
-        await self.constructSSE("message","0",{ "general":"SSE Connected"} )
+        self.constructSSE("message","0",{ "general":"SSE Connected"} )
         #TODO if mission exist, publish mission to client
 
-    async def constructSSE(res, event, id, data):
+    def constructSSE(res, event, id, data):
         logging.debug(data)
         try:
             if event != None:
@@ -43,14 +43,14 @@ class SSEHandler(tornado.web.RequestHandler):
                 res.write('id: ' + id + '\n')
 
             res.write("data: " + str(data) + '\n\n')
-            await res.flush()
+            res.flush()
         except Exception as err:
             logging.debug(" SSE error:"+err.args)
     
-    async def eventUpdate(self,event,id,data):
+    def eventUpdate(self,event,id,data):
         global browser_clients
         for client in browser_clients:
-            await self.constructSSE(client,'message',id,{ event:data})      
+            self.constructSSE(client,'message',id,{ event:data})      
           
     def clientIsEmpty():
         if len(browser_clients) == 0:
