@@ -20,9 +20,10 @@ ws_browser_clients = set()
 missionHandler = MissionHandler()
 rws = None
 futureCB = {}
-rosbridgeRetryPeriod = 3
-rosbridgeRetryMax = 5
-rosbridgeRetryDelayTime = 3
+ROSBRIDGE_RETRY_PERIOD = 3
+ROSBRIDGE_RETRY_MAX = 5
+ROSBRIDGE_RETRY_DELAY_TIME = 3
+RESUMIT_PERIOD = 5e-3   # 5 ms sleep
 showdebug = True
 recoveryMode = False # avoid auto unsubscribe topic during recovery mode
 checkingROSConn = False
@@ -57,7 +58,7 @@ class ROSWebSocketConn:
         except Exception:
             print("ROS bridge connection fail, retry later")
             self.retryCnt = self.retryCnt+1
-            if (self.retryCnt > rosbridgeRetryMax):
+            if (self.retryCnt > ROSBRIDGE_RETRY_MAX):
                 print("Plan to trigger external command to restart rosbridge process")
                 logging.info("Calling Restart rosbridge shell")
                 cmd = "sh kill_rosbridge.sh"
@@ -65,7 +66,7 @@ class ROSWebSocketConn:
                 print('returned value:', returned_value)
                 # Rosbridge restart procedure is handle at rosbridge_websocket.launcy.py  -> Node -> respwan=True
             
-            await asyncio.sleep(rosbridgeRetryPeriod)
+            await asyncio.sleep(ROSBRIDGE_RETRY_PERIOD)
             await self.connect(self)
     
     #Reference code https://www.georgeho.org/tornado-websockets/
@@ -104,9 +105,9 @@ class ROSWebSocketConn:
                 idx = idx+1
                 if showdebug:
                     print("Wait for connecting rosbridge, sequence "+ int(idx) )
-                if idx > rosbridgeRetryMax:
+                if idx > ROSBRIDGE_RETRY_MAX:
                     await self.connect(self)
-            await asyncio.sleep(rosbridgeRetryPeriod)
+            await asyncio.sleep(ROSBRIDGE_RETRY_PERIOD)
   
         # TODO Notify browser to reconnect, in order to avoid request mission
     
@@ -155,6 +156,7 @@ class ROSWebSocketConn:
         for i in range(length):
             cmd = self,self.queue[i]
             if cmd['topic'] != "/mission_control/states":
+                await asyncio.sleep(RESUMIT_PERIOD)
                 await self.write(cmd)
             
         self.queue = []
@@ -238,9 +240,9 @@ class ROSWebSocketConn:
         asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.write(ROSWebSocketConn,json_encode(msg))))
                             
     def double_check_ros_conn():   
-        loop.call_later(rosbridgeRetryDelayTime-1,ROSWebSocketConn.testROSConn)            
+        loop.call_later(ROSBRIDGE_RETRY_DELAY_TIME-1,ROSWebSocketConn.testROSConn)  #send test reqeust before retry        
         loop = asyncio.get_event_loop()
-        loop.call_later(rosbridgeRetryDelayTime,ROSWebSocketConn.clearROSConn) 
+        loop.call_later(ROSBRIDGE_RETRY_DELAY_TIME,ROSWebSocketConn.clearROSConn) 
 
     def recv_ros_message(msg): # receive data from rosbridge
         global rws
