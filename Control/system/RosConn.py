@@ -22,6 +22,7 @@ rws = None
 futureCB = {}
 rosbridgeRetryPeriod = 3
 rosbridgeRetryMax = 5
+rosbridgeRetryDelayTime = 3
 showdebug = True
 recoveryMode = False # avoid auto unsubscribe topic during recovery mode
 checkingROSConn = False
@@ -105,7 +106,7 @@ class ROSWebSocketConn:
                     print("Wait for connecting rosbridge, sequence "+ int(idx) )
                 if idx > rosbridgeRetryMax:
                     await self.connect(self)
-            await asyncio.sleep(3)
+            await asyncio.sleep(rosbridgeRetryPeriod)
   
         # TODO Notify browser to reconnect, in order to avoid request mission
     
@@ -237,9 +238,9 @@ class ROSWebSocketConn:
         asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.write(ROSWebSocketConn,json_encode(msg))))
                             
     def double_check_ros_conn():   
-        loop.call_later(rosbridgeRetryPeriod-1,ROSWebSocketConn.testROSConn)            
+        loop.call_later(rosbridgeRetryDelayTime-1,ROSWebSocketConn.testROSConn)            
         loop = asyncio.get_event_loop()
-        loop.call_later(rosbridgeRetryPeriod,ROSWebSocketConn.clearROSConn) 
+        loop.call_later(rosbridgeRetryDelayTime,ROSWebSocketConn.clearROSConn) 
 
     def recv_ros_message(msg): # receive data from rosbridge
         global rws
