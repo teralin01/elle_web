@@ -3,7 +3,6 @@ from control.EventController import SSEHandler as EventHandler
 from control.system.CacheData import cacheSubscribeData as cacheSub
 from datetime import datetime
 from time import time 
-import tornado.ioloop
 import config
 import asyncio
 import math
@@ -23,7 +22,7 @@ class MissionHandler:
             "missions":[]} }
         
         task = AsyncIOScheduler()
-        task.add_job(self.ActiveSendETA, 'interval', seconds = 15)
+        task.add_job(self.ActiveSendETA, 'interval', seconds = NOTIFY_CLIENT_DURATION)
         task.start()        
 
     def SetMission():
@@ -40,16 +39,18 @@ class MissionHandler:
         pass
             
     async def ActiveSendETA(self):
-        print("@ prepare active Send")
         subdata = cacheSub.get('mission_control/states')
+        new_mission = self.mission
         if subdata != None:
             if subdata['data'] != None:
-                self.mission = self.EstimateArrivalTimeCaculator(subdata['data'],False)
+                new_mission = self.EstimateArrivalTimeCaculator(subdata['data'],False)
             else:
-                self.mission = self.EstimateArrivalTimeCaculator(self.mission,False)
+                new_mission = self.EstimateArrivalTimeCaculator(self.mission,False)
         else:
-            self.mission = self.EstimateArrivalTimeCaculator(self.mission,False)        
-        print(self.mission)
+            new_mission = self.EstimateArrivalTimeCaculator(self.mission,False)        
+        
+        new_mission['msg']['stamp']['sec'] = int(time())
+        self.mission = new_mission
         await self.SendMissionToClient()
         
     def ParseMission(self, rawMission,AMCLPose):        
@@ -62,7 +63,6 @@ class MissionHandler:
         missionList = rawMission
         Total_ETA = 0         
         curPose = AMCLPose['position']
-        print(missionList['msg'])
         print(curPose)
         for iterator in missionList['msg']['missions']:
             for act in iterator['actions']:
@@ -86,10 +86,14 @@ class MissionHandler:
                         act['ActETA'] = -1
                     curPose = act['coordinate']  # shift current position to new location
                 if act['type'] == 5:
-                    del act['coordinate']
-                    del act['docking_info']
-                    del act['pose_cmd']
-                    del act['station']
+                    if 'coordinate' in act:
+                        del act['coordinate']
+                    if 'docking_info' in act:
+                        del act['docking_info']
+                    if 'pose_cmd' in act:
+                        del act['pose_cmd']
+                    if 'station' in act:
+                        del act['station']
                     
                     if act['action_state'] <= 1:
                         Total_ETA = Total_ETA + WAIT_ETA
@@ -108,14 +112,13 @@ class MissionHandler:
             if AMCLPoseStr["data"] != None:
                 AMCLPoseData = json.loads( (AMCLPoseStr["data"]))
                 AMCLPose = AMCLPoseData['msg']['pose']['pose']
-        print(AMCLPose)        
+       
         if CallByEvent:  
             return self.ParseMission(self,mission, AMCLPose)    
         else:  # call by periodic task, it use static object. No need "self" parameter
             return self.ParseMission(mission, AMCLPose)
 
     async def SendMissionToClient(self):
-        print("@send")
         #Notify Browser client
         if not EventHandler.clientIsEmpty():
             try:

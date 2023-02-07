@@ -2,6 +2,7 @@ import tornado.web
 import tornado.ioloop
 import logging
 import config
+import json
 from time import time 
 from control.system.CacheData import cacheSubscribeData as cacheSub
 browser_clients = set()
@@ -58,7 +59,7 @@ class SSEHandler(tornado.web.RequestHandler):
             if id != None:
                 res.write('id: ' + id + '\n')
             
-            res.write("data: " + str(data).replace("'", '"') + '\n\n')
+            res.write("data: " + str(data).replace("'", '"').replace('False','false').replace('True','true') + '\n\n')
             await res.flush()
         except Exception as err:
             logging.debug(" SSE error:"+ str(err.args))

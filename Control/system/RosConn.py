@@ -279,8 +279,6 @@ class ROSWebSocketConn:
                 if cb != None:
                     cb.set_result(data)
                     topic_alive = True
-                
-
 
                 #unsubscribe this topic if no browser client or REST client found
                 if cacheSubscribeData.get(data['topic'])!= None: # Default subscribe topic, shch as mission status
