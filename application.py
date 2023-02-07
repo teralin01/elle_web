@@ -4,6 +4,7 @@ import os
 import config
 import datetime
 from control import RESTController, SystemController,mainController, wsController
+from control.system.MissionHandler import MissionHandler as missionHandler
 from control import statusController
 from control import mapController
 from control import missionController
@@ -52,5 +53,5 @@ class Application(tornado.web.Application):
         super(Application,self).__init__(handlers,**config.settings )
         
         print("Tornado Server start at " + str(datetime.datetime.now()))
-
+        missionHandler()
      

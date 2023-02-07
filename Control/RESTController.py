@@ -9,6 +9,7 @@ from control.system.RosConn import ROSWebSocketConn as ROSConn
 from control.system.CacheData import cacheSubscribeData as cacheSub
 from control.system.HWStatus import HWInfoHandler as HWInfo
 from control.system.jsonValidatorSchema import missionSchema
+from control.system.MissionHandler import MissionHandler as missionHandler
 from tornado.escape import json_decode, json_encode
 from dataModel import landmarkModel as LM
 from dataModel import configModel as DBConfig
@@ -180,7 +181,7 @@ class RESTHandler(tornado.web.RequestHandler):
 
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
             #TODO add cache fomr mission status
-            subdata = cacheSub.get('/mission_control/states')
+            subdata = cacheSub.get('mission_control/states')
             if subdata != None:
                 if subdata['data'] == None:
                     self._status_code = 201
@@ -282,7 +283,7 @@ class RESTHandler(tornado.web.RequestHandler):
                 self.REST_response({'result':False})
                 return
             
-            callData = {'type': "elle_interfaces/msg/MissionControlMission",'topic': "/mission_control/mission",'msg':data['mission']}
+            callData = {'type': "elle_interfaces/msg/MissionControlMission",'topic': "mission_control/mission",'msg':data['mission']}
             await self.ROS_publish_handler(callData,False)
 
         elif self.URI == '/1.0/nav/initialpose': 
@@ -300,7 +301,7 @@ class RESTHandler(tornado.web.RequestHandler):
                 return
                         
             publishMsg = {'type': "elle_interfaces/msg/MissionControlMission",'topic': "/mission_control/mission",'msg':data['mission']}
-            subscribeMsg = {"op":"subscribe","id":"RestTopics","topic": "/mission_control/states","type":"elle_interfaces/msg/MissionControlMissionArray"}
+            subscribeMsg = {"op":"subscribe","id":"RestTopics","topic": "mission_control/states","type":"elle_interfaces/msg/MissionControlMissionArray"}
             callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':0} }
             
             ret = await self.ROS_publish_handler(publishMsg,True)

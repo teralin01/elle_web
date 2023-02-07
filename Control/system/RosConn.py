@@ -11,18 +11,18 @@ from datetime import datetime
 from control.system.RosUtility import ROSCommands
 from control.system.RosUtility import SubscribeCommands
 from control.system.RosUtility import SubscribeTypes
-from control.system.MissionHandler import MissionHandler
+from control.system.MissionHandler import MissionHandler as missionHandler
 from control.system.CacheData import cacheSubscribeData
 subCmds = SubscribeCommands()
 rosCmds = ROSCommands()
 topictable = SubscribeTypes()
 ws_browser_clients = set()
-missionHandler = MissionHandler()
+# missionHandler = MissionHandler()
 rws = None
 futureCB = {}
-ROSBRIDGE_RETRY_PERIOD = 3
-ROSBRIDGE_RETRY_MAX = 5
-ROSBRIDGE_RETRY_DELAY_TIME = 3
+ROSBRIDGE_RETRY_PERIOD = 1
+ROSBRIDGE_RETRY_MAX = 3
+ROSBRIDGE_RETRY_DELAY_TIME = 2
 RESUMIT_PERIOD = 5e-3   # 5 ms sleep
 showdebug = True
 recoveryMode = False # avoid auto unsubscribe topic during recovery mode
@@ -50,8 +50,8 @@ class ROSWebSocketConn:
                     on_message_callback=self.recv_ros_message,
                     max_message_size=int(config.settings['rosbridgeMsgSize']),
                     #callback=self.retry_connection
-                    ping_interval=2,
-                    ping_timeout=10,
+                    ping_interval=1,
+                    ping_timeout=5,
                     )
             print("ROSBridge connected at: "+str(datetime.now()))
             return rws
@@ -61,7 +61,7 @@ class ROSWebSocketConn:
             if (self.retryCnt > ROSBRIDGE_RETRY_MAX):
                 print("Plan to trigger external command to restart rosbridge process")
                 logging.info("Calling Restart rosbridge shell")
-                cmd = "sh kill_rosbridge.sh"
+                cmd = "sh ./control/system/kill_rosbridge.sh"
                 returned_value = os.system(cmd)  # returns the exit code in unix
                 print('returned value:', returned_value)
                 # Rosbridge restart procedure is handle at rosbridge_websocket.launcy.py  -> Node -> respwan=True
@@ -128,9 +128,14 @@ class ROSWebSocketConn:
 
     async def subscribe_default_topics(self):
         #subscribe mission 
-        subscribeMissionStr = {"op":"subscribe","id":"DefaultTopics","topic": "/mission_control/states","type":"elle_interfaces/msg/MissionControlMissionArray"}
-        cacheSubscribeData.update({"/mission_control/states":{'data':None,'lastUpdateTime':datetime.now()}})
+        subscribeMissionStr = {"op":"subscribe","id":"DefaultTopics","topic": "mission_control/states","type":"elle_interfaces/msg/MissionControlMissionArray"}
+        cacheSubscribeData.update({"mission_control/states":{'data':None,'lastUpdateTime':datetime.now()}})
         await self.write(self,json_encode(subscribeMissionStr))
+        await asyncio.sleep(RESUMIT_PERIOD)
+        #subscribe AMCL
+        subscribeAMCLStr = {"op":"subscribe","id":"DefaultTopics","topic": "amcl_pose","type":"geometry_msgs/msg/PoseWithCovarianceStamped"}
+        cacheSubscribeData.update({"amcl_pose":{'data':None,'lastUpdateTime':datetime.now()}})
+        await self.write(self,json_encode(subscribeAMCLStr))        
 
     async def subscribe_runtime_topics(self):
         global subCmds
@@ -154,8 +159,8 @@ class ROSWebSocketConn:
             print("Resubmit queuing ROS command")
         length = len(self.queue)
         for i in range(length):
-            cmd = self,self.queue[i]
-            if cmd['topic'] != "/mission_control/states":
+            cmd = self.queue[i]
+            if not "mission_control/states" in cmd  and not "TestRestServiceCall" in cmd : #skip defualt topic and test connection call
                 await asyncio.sleep(RESUMIT_PERIOD)
                 await self.write(cmd)
             
@@ -240,8 +245,8 @@ class ROSWebSocketConn:
         asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.write(ROSWebSocketConn,json_encode(msg))))
                             
     def double_check_ros_conn():   
-        loop.call_later(ROSBRIDGE_RETRY_DELAY_TIME-1,ROSWebSocketConn.testROSConn)  #send test reqeust before retry        
         loop = asyncio.get_event_loop()
+        loop.call_later(ROSBRIDGE_RETRY_DELAY_TIME-1,ROSWebSocketConn.testROSConn)  #send test reqeust before retry        
         loop.call_later(ROSBRIDGE_RETRY_DELAY_TIME,ROSWebSocketConn.clearROSConn) 
 
     def recv_ros_message(msg): # receive data from rosbridge
@@ -251,8 +256,9 @@ class ROSWebSocketConn:
         if msg == None:
             print("Recv nothing from rosbridge, checking rosbridge connection...")    
             logging.info("## Recv None from rosbridge, something wrong")        
+            if checkingROSConn == False: #only check connection once
+                ROSWebSocketConn.double_check_ros_conn()
             checkingROSConn = True
-            ROSWebSocketConn.double_check_ros_conn()
         else:
             if checkingROSConn:
                 checkingROSConn = False
@@ -273,13 +279,20 @@ class ROSWebSocketConn:
                 if cb != None:
                     cb.set_result(data)
                     topic_alive = True
+                
 
-                if data['topic'] == "/mission_control/states":
-                   missionHandler.UpdateMissionStatus(msg)
 
                 #unsubscribe this topic if no browser client or REST client found
                 if cacheSubscribeData.get(data['topic'])!= None: # Default subscribe topic, shch as mission status
-                    cacheSubscribeData.update({data['topic']:{'data':msg,'lastUpdateTime':datetime.now()}})
+                    if data['topic'] == "mission_control/states":
+                        try:
+                            nest_asyncio.apply()
+                            asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(missionHandler.UpdateMissionStatus(missionHandler,msg)))
+                        except Exception as e:
+                            print("## Publish mission fail: " + str(e))
+                            logging.info("## Publish SSE fail"+str(datetime.now())+ "msg: "+e)   
+                    else:    
+                        cacheSubscribeData.update({data['topic']:{'data':msg,'lastUpdateTime':datetime.now()}})
                 elif topic_alive == None and not recoveryMode : # No way to publish
                     print("--Unsubscribe topic: " + data['topic'])
                     try:
