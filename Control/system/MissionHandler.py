@@ -77,7 +77,7 @@ class MissionHandler:
                     if 'station' in act:
                         del act['station']                    
                     if act['action_state'] <= 1:
-                        time = round( math.sqrt(((curPose['x']-act['coordinate']['x'])**2)+((curPose['y']-act['coordinate']['y'])**2) ) * AMR_SPEED)
+                        time = round( math.sqrt(((curPose['x']-act['coordinate']['x'])**2)+((curPose['y']-act['coordinate']['y'])**2) ) / AMR_SPEED)
                         Total_ETA = Total_ETA + time
                         act['ActETA'] = time
                     elif act['action_state'] == 2:
