@@ -80,11 +80,12 @@ class MissionHandler:
                         time = round( math.sqrt(((curPose['x']-act['coordinate']['x'])**2)+((curPose['y']-act['coordinate']['y'])**2) ) / AMR_SPEED)
                         Total_ETA = Total_ETA + time
                         act['ActETA'] = time
+                        curPose = act['coordinate'] # shift current position to new location            
                     elif act['action_state'] == 2:
                         act['ActETA'] = 0
                     else: 
                         act['ActETA'] = -1
-                    curPose = act['coordinate']  # shift current position to new location
+
                 if act['type'] == 5:
                     if 'coordinate' in act:
                         del act['coordinate']
@@ -103,6 +104,7 @@ class MissionHandler:
                     else:    # ERROR or abort
                         act['ActETA'] = -1
             iterator['TotalETA'] = round(Total_ETA)       
+            print(iterator['TotalETA'])
         return missionList
         
     def EstimateArrivalTimeCaculator(self, mission, CallByEvent):
