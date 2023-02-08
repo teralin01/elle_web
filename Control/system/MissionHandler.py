@@ -75,7 +75,8 @@ class MissionHandler:
                     if 'pose_cmd' in act:    
                         del act['pose_cmd']
                     if 'station' in act:
-                        del act['station']                    
+                        del act['station']                   
+ 
                     if missionList['msg']['state'] == -1:
                         act['ActETA'] = Total_ETA
                     if act['action_state'] <= 1:
@@ -102,12 +103,12 @@ class MissionHandler:
                     if missionList['msg']['state'] == -1:
                         act['ActETA'] = Total_ETA
                     if act['action_state'] <= 1:
-                        Total_ETA = Total_ETA + WAIT_ETA
-                        act['ActETA'] = WAIT_ETA
+                        act['ActETA'] = Total_ETA + WAIT_ETA
                     elif act['action_state'] == 2:
                         act['ActETA'] = 0
                     else:    # ERROR or abort
-                        act['ActETA'] = -1
+                        act['ActETA'] = Total_ETA
+
             iterator['TotalETA'] = round(Total_ETA)       
             print(iterator['TotalETA'])
         return missionList
