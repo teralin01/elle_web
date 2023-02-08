@@ -10,7 +10,7 @@ import json
 
 NOTIFY_CLIENT_DURATION = 15
 AMR_SPEED = 0.2
-WAIT_ETA = 60
+WAIT_ETA = 0
 DEFAULT_AMCL = {"position":{"x": 0, "y": 0, "z": 0}}
 
 class MissionHandler:
@@ -76,15 +76,18 @@ class MissionHandler:
                         del act['pose_cmd']
                     if 'station' in act:
                         del act['station']                    
+                    if missionList['msg']['state'] == -1:
+                        act['ActETA'] = Total_ETA
                     if act['action_state'] <= 1:
                         time = round( math.sqrt(((curPose['x']-act['coordinate']['x'])**2)+((curPose['y']-act['coordinate']['y'])**2) ) / AMR_SPEED)
                         Total_ETA = Total_ETA + time
-                        act['ActETA'] = time
+                        act['ActETA'] = Total_ETA
                         curPose = act['coordinate'] # shift current position to new location            
                     elif act['action_state'] == 2:
                         act['ActETA'] = 0
-                    else: 
-                        act['ActETA'] = -1
+                    else: # Abort
+                        act['ActETA'] = Total_ETA
+                        missionList['msg']['state'] = -1
 
                 if act['type'] == 5:
                     if 'coordinate' in act:
@@ -96,6 +99,8 @@ class MissionHandler:
                     if 'station' in act:
                         del act['station']
                     
+                    if missionList['msg']['state'] == -1:
+                        act['ActETA'] = Total_ETA
                     if act['action_state'] <= 1:
                         Total_ETA = Total_ETA + WAIT_ETA
                         act['ActETA'] = WAIT_ETA
