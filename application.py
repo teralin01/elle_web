@@ -1,9 +1,10 @@
-import imp
 import tornado.web
 import os
 import config
+import asyncio
 import datetime
 from control import RESTController, SystemController,mainController, wsController
+from control.system.RosConn import ROSWebSocketConn as ROSConn
 from control.system.MissionHandler import MissionHandler as missionHandler
 from control import statusController
 from control import mapController
@@ -53,5 +54,10 @@ class Application(tornado.web.Application):
         super(Application,self).__init__(handlers,**config.settings )
         
         print("Tornado Server start at " + str(datetime.datetime.now()))
+
+        try:            
+            asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSConn.connect(ROSConn)))
+        except Exception as e:
+            print("## Init rosbridge " + str(e))        
         missionHandler()
      

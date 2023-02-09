@@ -39,10 +39,7 @@ class RESTHandler(tornado.web.RequestHandler):
         global ROSConn
         global cacheRESTData
         global cacheSub
-        
-        if len(cacheSub) == 0 :            
-            asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSConn.reconnect(ROSConn)))
-        
+
     def prepare(self):
         self.URI = self.request.path
         cache = cacheRESTData.get(self.URI)

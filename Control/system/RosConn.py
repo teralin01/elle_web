@@ -17,7 +17,6 @@ subCmds = SubscribeCommands()
 rosCmds = ROSCommands()
 topictable = SubscribeTypes()
 ws_browser_clients = set()
-# missionHandler = MissionHandler()
 rws = None
 futureCB = {}
 ROSBRIDGE_RETRY_PERIOD = 1
@@ -288,7 +287,7 @@ class ROSWebSocketConn:
                             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(missionHandler.UpdateMissionStatus(missionHandler,msg)))
                         except Exception as e:
                             print("## Publish mission fail: " + str(e))
-                            logging.info("## Publish SSE fail"+str(datetime.now())+ "msg: "+e)   
+                            logging.info("## Publish SSE fail"+str(datetime.now())+ "msg: "+ str(e) )   
                     else:    
                         cacheSubscribeData.update({data['topic']:{'data':msg,'lastUpdateTime':datetime.now()}})
                 elif topic_alive == None and not recoveryMode : # No way to publish
