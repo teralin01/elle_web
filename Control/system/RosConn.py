@@ -104,7 +104,7 @@ class ROSWebSocketConn:
             else:
                 idx = idx+1
                 if showdebug:
-                    print("Wait for connecting rosbridge, sequence "+ int(idx) )
+                    print("Wait for connecting rosbridge, sequence "+ str(idx) )
                 if idx > ROSBRIDGE_RETRY_MAX:
                     await self.connect(self)
             await asyncio.sleep(ROSBRIDGE_RETRY_PERIOD)
