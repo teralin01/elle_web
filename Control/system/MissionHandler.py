@@ -1,6 +1,7 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from control.EventController import SSEHandler as EventHandler
 from control.system.CacheData import cacheSubscribeData as cacheSub
+from dataModel import eventModel
 from datetime import datetime
 from time import time 
 import config
@@ -150,8 +151,9 @@ class MissionHandler:
     
     # First level logger
     def EventLogger(mission):
-        #TODO save this mission into log file 
-        pass
+        ret = eventModel.SaveBasicMissionLog("update",mission)
+        if not ret:
+            print("## save db fail")
     
     # advanced logger with roles
     def StatisticLogger():
@@ -167,7 +169,7 @@ class MissionHandler:
         # TODO Check previous and current mission is the same or not. If it is the same, the skip
         
         # self.CallbackMissionSender(mission)
-        # self.EventLogger(mission)
+        self.EventLogger(extMission)
         
 
 

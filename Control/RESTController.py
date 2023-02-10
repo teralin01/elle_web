@@ -9,7 +9,7 @@ from control.system.RosConn import ROSWebSocketConn as ROSConn
 from control.system.CacheData import cacheSubscribeData as cacheSub
 from control.system.HWStatus import HWInfoHandler as HWInfo
 from control.system.jsonValidatorSchema import missionSchema
-from control.system.MissionHandler import MissionHandler as missionHandler
+from dataModel import eventModel
 from tornado.escape import json_decode, json_encode
 from dataModel import landmarkModel as LM
 from dataModel import configModel as DBConfig
@@ -188,7 +188,7 @@ class RESTHandler(tornado.web.RequestHandler):
                     cacheRESTData.update({self.URI:{'cacheData':subdata,'lastUpdateTime':datetime.now()}})
                 self.REST_response(subdata['data'])
             else:
-                self._status_code = 304
+                self._status_code = 201
                 self.REST_response({"result":False,"errno":101,"info":"Backend have never receieve mission data"})     
             # subscribeMsg = {"op":"subscribe","id":"RestTopics","topic": "/mission_control/states","type":"elle_interfaces/msg/MissionControlMissionArray"}
             # await self.ROS_subscribe_handler(subscribeMsg,None,True)
@@ -369,6 +369,7 @@ class RESTHandler(tornado.web.RequestHandler):
             pass
 
         elif self.URI == '/1.0/missions/predefined_mission':    
+            eventModel.SaveBasicMissionLog("set",data['remote_number'])
             callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlStationCall remote_number",'service': "/mission_control/station_call",'args': {'remote_number':int(data['remote_number'])} }
             await self.ROS_service_handler(callData,None)        
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':  #start/stop mission

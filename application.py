@@ -56,7 +56,7 @@ class Application(tornado.web.Application):
         print("Tornado Server start at " + str(datetime.datetime.now()))
 
         try:            
-            asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSConn.connect(ROSConn)))
+            asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSConn.reconnect(ROSConn)))
         except Exception as e:
             print("## Init rosbridge " + str(e))        
         missionHandler()
