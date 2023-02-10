@@ -1,12 +1,20 @@
 import json
+import datetime
 from dataModel.mongoDBQuery import MongoDB
 
-def SaveBasicMissionLog(act,data):
-    try:
-        print("####  Save Log to database")
-        print(data)
+def SaveBasicMissionLog(data):
+    try:        
         dbinstance = MongoDB("elle")
-        dbinstance.insert_data("missionLog",{"act":act,"data":data})
+        dbinstance.insert_data('missionLog',{"data":data})
+        return {"result":True}    
+    except:
+        return {"result": False, "reason": "save db fail"}
+    
+    
+def SaveMissionAct(data):
+    try:
+        dbinstance = MongoDB("elle")
+        dbinstance.insert_data('missionAct',data)
         return {"result":True}
     except:
-        return {"result": False, "reason": "query db fail"}
+        return {"result": False, "reason": "save db fail"}    

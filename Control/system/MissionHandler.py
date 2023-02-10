@@ -57,8 +57,10 @@ class MissionHandler:
     def ParseMission(self, rawMission,AMCLPose):        
         cacheMission = cacheSub.get('mission_control/states')
         if cacheMission == None:  # mission not yet initialized
+            rawMission['msg']['mission_state'] = "None"
             return rawMission
         elif cacheMission['data'] == None:
+            rawMission['msg']['mission_state'] = "None"
             return rawMission
 
         missionList = rawMission
@@ -151,7 +153,7 @@ class MissionHandler:
     
     # First level logger
     def EventLogger(mission):
-        ret = eventModel.SaveBasicMissionLog("update",mission)
+        ret = eventModel.SaveBasicMissionLog(mission)
         if not ret:
             print("## save db fail")
     

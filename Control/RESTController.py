@@ -368,8 +368,8 @@ class RESTHandler(tornado.web.RequestHandler):
             
             pass
 
-        elif self.URI == '/1.0/missions/predefined_mission':    
-            eventModel.SaveBasicMissionLog("set",data['remote_number'])
+        elif self.URI == '/1.0/missions/predefined_mission':                
+            eventModel.SaveMissionAct({"status":"success","action":data['remote_number'],"timestamp": datetime.now().strftime("%m/%d/%Y, %H:%M:%S")})
             callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlStationCall remote_number",'service': "/mission_control/station_call",'args': {'remote_number':int(data['remote_number'])} }
             await self.ROS_service_handler(callData,None)        
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':  #start/stop mission
