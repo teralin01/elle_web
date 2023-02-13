@@ -40,10 +40,9 @@ class SSEHandler(tornado.web.RequestHandler):
     async def get(self,*args):
         global browser_clients
         print("RESTful Client connected at " + str(time()) + " => " + str(self) + " " + self.request.path)
-        print("number of browser client " + len(browser_clients))
         logging.debug("RESTful Client connected at" + str(time()) + " => " + str(self) + " " + self.request.path)
         browser_clients.add(self)
-        
+        print("Number of RESTFul API Event push clients " + str(len(browser_clients)))
         #publish current mission to client
         subdata = cacheSub.get('mission_control/states')
         if subdata != None:
