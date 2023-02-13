@@ -33,11 +33,15 @@ class SSEHandler(tornado.web.RequestHandler):
 
     # TODO clear client if disconnected    
     def on_finish(self):
+        print("RESTful Client disconnected at " + str(time())+ " => "+ str(self)+ " " + self.request.path )
+        logging.debug("RESTful Client disconnected at" + str(time())+ " => "+ str(self)+ " " + self.request.path )
         browser_clients.remove(self)
 
     async def get(self,*args):
         global browser_clients
-        logging.debug("Client connected")
+        print("RESTful Client connected at " + str(time()) + " => " + str(self) + " " + self.request.path)
+        print("number of browser client " + len(browser_clients))
+        logging.debug("RESTful Client connected at" + str(time()) + " => " + str(self) + " " + self.request.path)
         browser_clients.add(self)
         
         #publish current mission to client
