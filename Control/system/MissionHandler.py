@@ -69,8 +69,8 @@ class MissionHandler:
 
         missionList = rawMission
         Total_ETA = 0         
-        curPose = AMCLPose['position']
-        print(curPose)
+        curPose = AMCLPose['position']        
+        missionList['AMCLPose'] = AMCLPose['position']
         missionList['msg']['mission_state'] = missionList['msg']['state']
         for iterator in missionList['msg']['missions']:
             for act in iterator['actions']:
@@ -118,7 +118,7 @@ class MissionHandler:
                         missionList['msg']['mission_state'] = -1
 
             iterator['TotalETA'] = round(Total_ETA)       
-        print(iterator['TotalETA'])
+        print( "AMR pose"+ str(AMCLPose['position']) + " Total time: " +  str(iterator['TotalETA']))
         return missionList
         
     def EstimateArrivalTimeCaculator(self, mission, CallByEvent):
