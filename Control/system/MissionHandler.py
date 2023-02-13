@@ -14,8 +14,12 @@ AMR_SPEED = 0.2
 WAIT_ETA = 0
 DEFAULT_AMCL = {"position":{"x": 0, "y": 0, "z": 0}}
 
+preMissionTimestampSec = 0 
+preMissionTimestampNanoSec = 0 
+
 class MissionHandler:
     def __init__(self):     
+
         self.mission = {
             "op": "publish", "topic": "mission_control/states","backendMsg":"No cache found","msg":{
             "stamp":{"sec":int(time()),"nanosec":0},
@@ -114,7 +118,7 @@ class MissionHandler:
                         missionList['msg']['mission_state'] = -1
 
             iterator['TotalETA'] = round(Total_ETA)       
-            print(iterator['TotalETA'])
+        print(iterator['TotalETA'])
         return missionList
         
     def EstimateArrivalTimeCaculator(self, mission, CallByEvent):
@@ -163,15 +167,22 @@ class MissionHandler:
     
     async def UpdateMissionStatus(self, mission):
         extMission = self.EstimateArrivalTimeCaculator(self, json.loads(mission), True)
-        self.mission = extMission
-        cacheSub.update({"mission_control/states":{"data":self.mission,"lastUpdateTime":datetime.now()}})
-        await self.SendMissionToClient(self)
-        # TODO mission status parser , to aware the status change 
-
-        # TODO Check previous and current mission is the same or not. If it is the same, the skip
+        # Check previous and current mission is the same or not. If it is the same, then stop handle this update
+        global preMissionTimestampSec
+        global preMissionTimestampNanoSec
         
-        # self.CallbackMissionSender(mission)
-        self.EventLogger(extMission)
+        if preMissionTimestampSec == extMission['msg']['stamp']['sec'] and preMissionTimestampNanoSec == extMission['msg']['stamp']['nanosec']:
+            print("The timestamp is the same as previous one, skip update")
+        else:            
+            preMissionTimestampSec = extMission['msg']['stamp']['sec'] 
+            preMissionTimestampNanoSec = extMission['msg']['stamp']['nanosec']
+        
+            self.mission = extMission
+            cacheSub.update({"mission_control/states":{"data":self.mission,"lastUpdateTime":datetime.now()}})
+            await self.SendMissionToClient(self)
+
+            # self.CallbackMissionSender(mission)
+            self.EventLogger(extMission)
         
 
 
