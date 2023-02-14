@@ -8,7 +8,7 @@ MAXLOGCOUNT = 50000
 def SaveBasicMissionLog(data):
     try:        
         dbinstance = MongoDB("elle")
-        dbinstance.insert_data('missionLog',{"data":data})
+        dbinstance.insert_data('missionLog',data)
         return {"result":True}    
     except:
         return {"result": False, "reason": "save db fail"}

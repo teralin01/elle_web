@@ -8,6 +8,7 @@ import config
 import asyncio
 import math
 import json
+import copy
 
 NOTIFY_CLIENT_DURATION = 15
 AMR_SPEED = 0.2
@@ -167,6 +168,7 @@ class MissionHandler:
         pass
     
     async def UpdateMissionStatus(self, mission):
+        print(mission)
         extMission = self.EstimateArrivalTimeCaculator(self, json.loads(mission), True)
         # Check previous and current mission is the same or not. If it is the same, then stop handle this update
         global preMissionTimestampSec
@@ -183,7 +185,10 @@ class MissionHandler:
             await self.SendMissionToClient(self)
 
             # self.CallbackMissionSender(mission)
-            self.EventLogger(extMission)
+            
+            dbmission = copy.deepcopy(extMission)
+            dbmission['msg']['timstamp'] = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+            self.EventLogger(dbmission['msg'])
         
 
 
