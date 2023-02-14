@@ -24,6 +24,7 @@ class MissionHandler:
             "op": "publish", "topic": "mission_control/states","backendMsg":"No cache found","msg":{
             "stamp":{"sec":int(time()),"nanosec":0},
             "state":0,    
+            "mission_state":0,    
             "missions":[]} }
         
         eventModel.InitCollection()
@@ -62,10 +63,10 @@ class MissionHandler:
     def ParseMission(self, rawMission,AMCLPose):        
         cacheMission = cacheSub.get('mission_control/states')
         if cacheMission == None:  # mission not yet initialized
-            rawMission['msg']['mission_state'] = "None"
+            rawMission['msg']['mission_state'] = "0"
             return rawMission
         elif cacheMission['data'] == None:
-            rawMission['msg']['mission_state'] = "None"
+            rawMission['msg']['mission_state'] = "0"
             return rawMission
 
         missionList = rawMission
@@ -116,9 +117,9 @@ class MissionHandler:
                     else:    # ERROR or abort
                         Total_ETA = Total_ETA + WAIT_ETA
                         act['ActETA'] = Total_ETA
-                        missionList['msg']['mission_state'] = -1
-                iterator['TotalETA'] = round(Total_ETA)       
-        print( "AMR pose"+ str(AMCLPose['position']) + " Total time: " +  str(iterator['TotalETA']))
+                        missionList['msg']['mission_state'] = -1  
+            iterator['Total_ETA'] = round(Total_ETA)
+        print( "AMR pose"+ str(AMCLPose['position']) + " Total time: " +  str(Total_ETA))
         return missionList
         
     def EstimateArrivalTimeCaculator(self, mission, CallByEvent):
