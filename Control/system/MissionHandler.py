@@ -26,6 +26,7 @@ class MissionHandler:
             "state":0,    
             "missions":[]} }
         
+        eventModel.InitCollection()
         task = AsyncIOScheduler()
         task.add_job(self.ActiveSendETA, 'interval', seconds = NOTIFY_CLIENT_DURATION)
         task.start()        
@@ -116,8 +117,7 @@ class MissionHandler:
                         Total_ETA = Total_ETA + WAIT_ETA
                         act['ActETA'] = Total_ETA
                         missionList['msg']['mission_state'] = -1
-
-            iterator['TotalETA'] = round(Total_ETA)       
+                iterator['TotalETA'] = round(Total_ETA)       
         print( "AMR pose"+ str(AMCLPose['position']) + " Total time: " +  str(iterator['TotalETA']))
         return missionList
         

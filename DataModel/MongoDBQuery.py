@@ -10,6 +10,11 @@ class MongoDB():
         self.mydb = self.myclient[mydb_Name]
         #你的collection名稱
 
+    def create_log_collection(self,collection, maxsize,maxnum):
+        collist = self.mydb.list_collection_names()
+        if collection not in collist:
+            mycol = self.mydb.create_collection(collection, { "capped" : True, "size" : maxsize, max : maxnum } ) # size in bytes
+        
     def insert_data(self, collection, data): #新增功能
         self.mycol = self.mydb[collection]
         self.mydata = data
