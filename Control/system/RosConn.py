@@ -235,6 +235,7 @@ class ROSWebSocketConn:
             rws.close()
             rws = None
             print("Reconnect to rosbridge "+str(datetime.now()))
+            logging.info("Clear ROS connection, trying to reconnect")
             nest_asyncio.apply()
             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.reconnect(ROSWebSocketConn)))
 

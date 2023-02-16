@@ -9,12 +9,14 @@ import asyncio
 import math
 import json
 import copy
+import nest_asyncio
+import logging
 
 NOTIFY_CLIENT_DURATION = 15
 AMR_SPEED = 0.2
 WAIT_ETA = 0
 DEFAULT_AMCL = {"position":{"x": 0, "y": 0, "z": 0}}
-
+EVENT_TIMTOUT = 2
 preMissionTimestampSec = 0 
 preMissionTimestampNanoSec = 0 
 
@@ -31,6 +33,7 @@ class MissionHandler:
         eventModel.InitCollection()
         task = AsyncIOScheduler()
         task.add_job(self.ActiveSendETA, 'interval', seconds = NOTIFY_CLIENT_DURATION)
+        logging.debug("Start Mission ActiveSendETA")
         task.start()        
 
     def SetMission():
@@ -59,7 +62,8 @@ class MissionHandler:
         
         new_mission['msg']['stamp']['sec'] = int(time())
         self.mission = new_mission
-        await self.SendMissionToClient()
+        nest_asyncio.apply()
+        await asyncio.wait_for(self.SendMissionToClient(),EVENT_TIMTOUT)
         
     def ParseMission(self, rawMission,AMCLPose):        
         cacheMission = cacheSub.get('mission_control/states')
@@ -169,7 +173,10 @@ class MissionHandler:
     
     async def UpdateMissionStatus(self, mission):
         print(mission)
-        extMission = self.EstimateArrivalTimeCaculator(self, json.loads(mission), True)
+        try:
+            extMission = self.EstimateArrivalTimeCaculator(self, json.loads(mission), True)
+        except  Exception as err:
+            print(" Parse Server Side Event err: "+ str(err))
         # Check previous and current mission is the same or not. If it is the same, then stop handle this update
         global preMissionTimestampSec
         global preMissionTimestampNanoSec
@@ -182,7 +189,7 @@ class MissionHandler:
         
             self.mission = extMission
             cacheSub.update({"mission_control/states":{"data":self.mission,"lastUpdateTime":datetime.now()}})
-            await self.SendMissionToClient(self)
+            await asyncio.wait_for(self.SendMissionToClient(self),EVENT_TIMTOUT)
 
             # self.CallbackMissionSender(mission)
             

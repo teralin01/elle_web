@@ -55,7 +55,6 @@ class SSEHandler(tornado.web.RequestHandler):
             await self.constructSSE("message","0",self.dmission )    
             
     async def constructSSE(res, event, id, data):
-        logging.debug(data)
         try:
             if event != None:
                 res.write('event: ' + event + '\n')
