@@ -64,10 +64,10 @@ class MissionHandler:
     def ParseMission(self, rawMission,AMCLPose):        
         cacheMission = cacheSub.get('mission_control/states')
         if cacheMission == None:  # mission not yet initialized
-            rawMission['msg']['mission_state'] = "0"
+            rawMission['msg']['mission_state'] = 0
             return rawMission
         elif cacheMission['data'] == None:
-            rawMission['msg']['mission_state'] = "0"
+            rawMission['msg']['mission_state'] = 0
             return rawMission
 
         missionList = rawMission
