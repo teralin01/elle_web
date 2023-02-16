@@ -31,18 +31,16 @@ class SSEHandler(tornado.web.RequestHandler):
         self.set_header('Access-Control-Request-Headers', '*')
         self.set_header('Access-Control-Allow-Credentials', 'true')
 
-    # TODO clear client if disconnected    
     def on_finish(self):
-        print("RESTful Client disconnected at " + str(time())+ " => "+ str(self)+ " " + self.request.path )
-        logging.debug("RESTful Client disconnected at" + str(time())+ " => "+ str(self)+ " " + self.request.path )
+        print("#### RESTful Client disconnected at " + str(time())+ " => "+ str(self)+ " " + self.request.path + " client count:"+ str(len(browser_clients)) )
         browser_clients.remove(self)
-
+    
     async def get(self,*args):
         global browser_clients
-        print("RESTful Client connected at " + str(time()) + " => " + str(self) + " " + self.request.path)
-        logging.debug("RESTful Client connected at" + str(time()) + " => " + str(self) + " " + self.request.path)
         browser_clients.add(self)
-        print("Number of RESTFul API Event push clients " + str(len(browser_clients)))
+        print("### RESTful Client connected at " + str(time()) + " => " + str(self) + " " + self.request.path + " client count:"+ str(len(browser_clients)))
+        logging.debug("RESTful Client connected at" + str(time()) + " => " + str(self) + " " + self.request.path + " client count:"+ str(len(browser_clients)))
+        
         #publish current mission to client
         subdata = cacheSub.get('mission_control/states')
         if subdata != None:
@@ -64,11 +62,16 @@ class SSEHandler(tornado.web.RequestHandler):
             res.write("data: " + str(data).replace("'", '"').replace('False','false').replace('True','true') + '\n\n')
             await res.flush()
         except Exception as err:
-            logging.debug(" SSE error:"+ str(err.args))
+            if 'Stream is closed' in str(err.args) :
+                browser_clients.remove(res)
+                logging.debug("RESTful Client resource clear at" + str(time()) )
+            else:
+                print("SSE error"+ str(err.args))
+                logging.debug(" SSE error:"+ str(err.args))
     
     async def eventUpdate(self,event,id,data):
         global browser_clients
-        for client in browser_clients:
+        for client in browser_clients.copy():
             await self.constructSSE(client,'message',id,data)      
           
     def clientIsEmpty():
