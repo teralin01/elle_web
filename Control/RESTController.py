@@ -77,7 +77,7 @@ class RESTHandler(tornado.web.RequestHandler):
                 serviceResult.set_result(data)        
 
         except asyncio.TimeoutError:
-            self._status_code = 500
+            self._status_code = 504
             if None != serviceResult:
                 self.REST_response(TimeoutStr)
             else:
@@ -103,7 +103,7 @@ class RESTHandler(tornado.web.RequestHandler):
                     subResult.set_result(data)
                     
             except asyncio.TimeoutError:
-                self._status_code = 500
+                self._status_code = 504
                 if None == subResult:
                     self.REST_response(TimeoutStr)
                 else:
@@ -122,7 +122,7 @@ class RESTHandler(tornado.web.RequestHandler):
                     return False  
                 
         except asyncio.TimeoutError:
-            self._status_code = 500
+            self._status_code = 504
             if not needReturn:
                 self.REST_response(TimeoutStr)
             else:
