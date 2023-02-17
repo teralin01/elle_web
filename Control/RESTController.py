@@ -71,6 +71,7 @@ class RESTHandler(tornado.web.RequestHandler):
         try:                    
             await asyncio.wait_for( ROSConn.prepare_serviceCall_to_ROS(ROSConn,serviceFuture,self.URI,calldata) , timeout = restTimeoutPeriod)
             if None == serviceResult:
+                self.cacheHit = True  # The result of ROS2 Service call is no need to cache
                 self.REST_response(serviceFuture.result())
             else:
                 data = serviceFuture.result()
@@ -134,6 +135,7 @@ class RESTHandler(tornado.web.RequestHandler):
         try:                    
             await asyncio.wait_for( ROSConn.prepare_publish_to_ROS(ROSConn,pubFuture,self.URI,calldata) , timeout = restTimeoutPeriod)
             if not needReturn:
+                self.cacheHit = True # The result of publish is no need to cache
                 self.REST_response(pubFuture.result())
             else:
                 data = pubFuture.result()
@@ -143,7 +145,7 @@ class RESTHandler(tornado.web.RequestHandler):
                     return False  
 
         except asyncio.TimeoutError:
-            self._status_code = 500
+            self._status_code = 504
             if not needReturn:
                 self.REST_response(TimeoutStr)
             else:
