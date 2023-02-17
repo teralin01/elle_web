@@ -236,12 +236,10 @@ class ROSWebSocketConn:
             rws = None
             print("Reconnect to rosbridge "+str(datetime.now()))
             logging.info("Clear ROS connection, trying to reconnect")
-            nest_asyncio.apply()
             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.reconnect(ROSWebSocketConn)))
 
     def testROSConn():
         msg = {"op":"call_service","id":"TestRestServiceCall","service": "/amcl/get_state","type":"lifecycle_msgs/srv/GetState"}
-        nest_asyncio.apply()
         asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.write(ROSWebSocketConn,json_encode(msg))))
                             
     def double_check_ros_conn():   
@@ -284,7 +282,6 @@ class ROSWebSocketConn:
                 if cacheSubscribeData.get(data['topic'])!= None: # Default subscribe topic, shch as mission status
                     if data['topic'] == "mission_control/states":
                         try:
-                            nest_asyncio.apply()
                             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(missionHandler.UpdateMissionStatus(missionHandler,msg)))
                         except Exception as e:
                             print("## Publish mission fail: " + str(e))

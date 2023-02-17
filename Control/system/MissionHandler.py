@@ -1,6 +1,6 @@
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from control.EventController import SSEHandler as EventHandler
 from control.system.CacheData import cacheSubscribeData as cacheSub
+from control.system.CacheData import scheduler as TornadoScheduler
 from dataModel import eventModel
 from datetime import datetime
 from time import time 
@@ -29,12 +29,17 @@ class MissionHandler:
             "state":0,    
             "mission_state":0,    
             "missions":[]} }
-        
+
         eventModel.InitCollection()
-        task = AsyncIOScheduler()
-        task.add_job(self.ActiveSendETA, 'interval', seconds = NOTIFY_CLIENT_DURATION)
+        TornadoScheduler.add_job(self.ActiveSendETA, 'interval', seconds = NOTIFY_CLIENT_DURATION)
         logging.debug("Start Mission ActiveSendETA")
-        task.start()        
+        TornadoScheduler.start()                
+        
+        
+        # task = AsyncIOScheduler()
+        # task.add_job(self.ActiveSendETA, 'interval', seconds = NOTIFY_CLIENT_DURATION)
+        # logging.debug("Start Mission ActiveSendETA")
+        # task.start()        
 
     def SetMission():
         # publish mission 
@@ -65,20 +70,17 @@ class MissionHandler:
         nest_asyncio.apply()
         await asyncio.wait_for(self.SendMissionToClient(),EVENT_TIMTOUT)
         
-    def ParseMission(self, rawMission,AMCLPose):        
-        cacheMission = cacheSub.get('mission_control/states')
-        if cacheMission == None:  # mission not yet initialized
-            rawMission['msg']['mission_state'] = 0
-            return rawMission
-        elif cacheMission['data'] == None:
+    def ParseMission(self, rawMission,AMCLPose):       
+        if cacheSub.get('mission_control/states')['data'] == None:
+            # mission not yet initialized
             rawMission['msg']['mission_state'] = 0
             return rawMission
 
         missionList = rawMission
         Total_ETA = 0         
         curPose = AMCLPose['position']        
-        missionList['AMCLPose'] = AMCLPose['position']
-        missionList['msg']['mission_state'] = missionList['msg']['state']
+        missionList['AMCLPose'] = { 'x': round(AMCLPose['position']['x'],2),'y':round(AMCLPose['position']['y'],2),'z':round(AMCLPose['position']['z'],2)}
+        missionList['msg']['mission_state'] = missionList['msg']['state']        
         for iterator in missionList['msg']['missions']:
             for act in iterator['actions']:
                 if act['type'] == 0:
@@ -124,7 +126,7 @@ class MissionHandler:
                         act['ActETA'] = Total_ETA
                         missionList['msg']['mission_state'] = -1  
             iterator['Total_ETA'] = round(Total_ETA)
-        print( "AMR pose"+ str(AMCLPose['position']) + " Total time: " +  str(Total_ETA))
+        print( "AMR pose"+ str(missionList['AMCLPose']) + " Total time: " +  str(Total_ETA))
         return missionList
         
     def EstimateArrivalTimeCaculator(self, mission, CallByEvent):
@@ -134,7 +136,7 @@ class MissionHandler:
             if AMCLPoseStr["data"] != None:
                 AMCLPoseData = json.loads( (AMCLPoseStr["data"]))
                 AMCLPose = AMCLPoseData['msg']['pose']['pose']
-       
+
         if CallByEvent:  
             return self.ParseMission(self,mission, AMCLPose)    
         else:  # call by periodic task, it use static object. No need "self" parameter
@@ -172,9 +174,11 @@ class MissionHandler:
         pass
     
     async def UpdateMissionStatus(self, mission):
-        print(mission)
         try:
+            if cacheSub.get('mission_control/states')['data'] == None:
+                cacheSub.update({"mission_control/states":{"data":json.loads(mission),"lastUpdateTime":datetime.now()}})
             extMission = self.EstimateArrivalTimeCaculator(self, json.loads(mission), True)
+            print(extMission)
         except  Exception as err:
             print(" Parse Server Side Event err: "+ str(err))
         # Check previous and current mission is the same or not. If it is the same, then stop handle this update
@@ -188,7 +192,8 @@ class MissionHandler:
             preMissionTimestampNanoSec = extMission['msg']['stamp']['nanosec']
         
             self.mission = extMission
-            cacheSub.update({"mission_control/states":{"data":self.mission,"lastUpdateTime":datetime.now()}})
+            cacheSub.update({"mission_control/states":{"data":extMission,"lastUpdateTime":datetime.now()}})
+                
             await asyncio.wait_for(self.SendMissionToClient(self),EVENT_TIMTOUT)
 
             # self.CallbackMissionSender(mission)
