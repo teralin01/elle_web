@@ -1,8 +1,5 @@
-.vscode/sftp.json
 *.pyc
 /__pycache__/*
 .vscode
 static/
-Static/
 /vue
-Static/js/ros2d.js
