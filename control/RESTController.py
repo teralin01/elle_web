@@ -20,7 +20,7 @@ import pynmcli
 
 cacheRESTData = dict()
 TimeoutStr = {"result":False}
-restTimeoutPeriod = 10
+restTimeoutPeriod = 5
 restCachePeriod = 5
 
 logging.basicConfig(filename='/var/log/tornado.log', level=logging.DEBUG)
@@ -79,6 +79,8 @@ class RESTHandler(tornado.web.RequestHandler):
 
         except asyncio.TimeoutError:
             self._status_code = 504
+            logging.debug("##### REST Timeout "+ self.URI)
+            await ROSConn.reconnect(ROSConn)
             if None != serviceResult:
                 self.REST_response(TimeoutStr)
             else:
@@ -375,7 +377,7 @@ class RESTHandler(tornado.web.RequestHandler):
             callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlStationCall remote_number",'service': "/mission_control/station_call",'args': {'remote_number':int(data['remote_number'])} }
             await self.ROS_service_handler(callData,None)        
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':  #start/stop mission
-            callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':data['command']} }
+            callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':int(data['command'])} }
             await self.ROS_service_handler(callData,None)        
             
 
@@ -414,7 +416,7 @@ class RESTHandler(tornado.web.RequestHandler):
             callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlStationCall remote_number",'service': "/mission_control/station_call",'args': {'remote_number':int(data['remote_number'])} }
             await self.ROS_service_handler(callData,None)        
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':  #start/stop mission
-            callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':data['command']} }
+            callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':int(data['command'])} }
             await self.ROS_service_handler(callData,None)        
         elif self.URI == '/1.0/maps/landmarks':
             #TODO validate with landmark Schema 

@@ -5,7 +5,7 @@ import json
 import asyncio
 import os
 import logging
-import nest_asyncio
+#import nest_asyncio
 from tornado.escape import json_encode
 from datetime import datetime
 from control.system.RosUtility import ROSCommands
@@ -80,7 +80,7 @@ class ROSWebSocketConn:
         global recoveryMode
         
         if not recoveryMode:
-            print("Try to connect rosbridge: "+ str(datetime.now()))
+            logging.debug("Try to connect rosbridge: "+ str(datetime.now()))
             recoveryMode = True
             self.retryCnt = 0 
             cacheSubscribeData.clear()
