@@ -15,6 +15,7 @@ class SSEHandler(tornado.web.RequestHandler):
             "op": "publish", "topic": "mission_control/states","backendMsg":"initMission","msg":{
             "stamp":{"sec":int(time()),"nanosec":0},
             "state":0,    
+            "mission_state":0,   
             "missions":[]} }
         self.set_header('Content-Type', 'text/event-stream')
         self.set_header('cache-control', 'no-cache')
