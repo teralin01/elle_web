@@ -1,6 +1,6 @@
 import json
 import datetime
-from dataModel.mongoDBQuery import MongoDB
+from dataModel.MongoDBQuery import MongoDB
 
 MAXLOGSIZE = 5242880
 MAXLOGCOUNT = 50000

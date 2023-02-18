@@ -1,6 +1,6 @@
 import json
 from bson import json_util
-from dataModel.mongoDBQuery import MongoDB
+from dataModel.MongoDBQuery import MongoDB
 
 def SetPoints(data):
     dbinstance = MongoDB("elle")

@@ -1,5 +1,5 @@
 import tornado.web
-from dataModel.mongoDBQuery import MongoDB
+from dataModel.MongoDBQuery import MongoDB
 
 
 def AuthDB(account, password):
