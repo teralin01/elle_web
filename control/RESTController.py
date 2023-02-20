@@ -81,7 +81,6 @@ class RESTHandler(tornado.web.RequestHandler):
             self._status_code = 504
             logging.debug("##### REST Timeout "+ self.URI)
             await ROSConn.reconnect(ROSConn)
-            ROSConn.clear_serviceCall(ROSConn,self.URI)
             if None != serviceResult:
                 self.REST_response(TimeoutStr)
             else:
