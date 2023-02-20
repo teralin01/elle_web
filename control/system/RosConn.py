@@ -5,7 +5,7 @@ import json
 import asyncio
 import os
 import logging
-#import nest_asyncio
+import nest_asyncio
 from tornado.escape import json_encode
 from datetime import datetime
 from control.system.RosUtility import ROSCommands
@@ -23,6 +23,7 @@ ROSBRIDGE_RETRY_PERIOD = 1
 ROSBRIDGE_RETRY_MAX = 3
 ROSBRIDGE_RETRY_DELAY_TIME = 2
 RESUMIT_PERIOD = 5e-3   # 5 ms sleep
+SERVICE_CALL_TIMEOUT = 4
 showdebug = True
 recoveryMode = False # avoid auto unsubscribe topic during recovery mode
 checkingROSConn = False
@@ -83,6 +84,9 @@ class ROSWebSocketConn:
             logging.debug("Try to connect rosbridge: "+ str(datetime.now()))
             recoveryMode = True
             self.retryCnt = 0 
+            if rws != None:
+                rws.close()
+                rws = None
             cacheSubscribeData.clear()
             
             await self.connect(self)  #only connect once even call reconnect multi times
@@ -192,18 +196,40 @@ class ROSWebSocketConn:
             RESTCB.set_result({'result':True})
             subCmds.deleteOP(unsubscribeMsg['topic'])
             cacheSubscribeData.update({unsubscribeMsg['topic']:None})
-        
+    
+    def clear_serviceCall(self,URL): # Delete service data after Exception timeout
+        del futureCB[URL]
+            
     async def prepare_serviceCall_to_ROS(self,RESTCB,URL,msg):
         loop = asyncio.get_running_loop()
         futureObj = loop.create_future()
         futureCB.update({URL:futureObj}) #append ros callback to dict
-        loop.create_task(self.write(self,json_encode(msg)))
+        task = loop.create_task(self.write(self,json_encode(msg)))
         
         await futureObj
         data = futureObj.result() # Get result from ROS callback
         RESTCB.set_result(data)  # Save result to Rest callback
-        del futureCB[URL] # remove ros callback from dict
+        del futureCB[URL] # remove ros callback from dict       
 
+        # try:
+        #     # await futureObj
+        #     asyncio.wait_for(futureObj,timeout = SERVICE_CALL_TIMEOUT)
+        #     data = futureObj.result() # Get result from ROS callback
+        #     RESTCB.set_result(data)  # Save result to Rest callback
+        #     del futureCB[URL] # remove ros callback from dict
+        # except TimeoutError:
+        #     data = {'result':False, "reason":"Service call timeout"}
+        #     logging.debug("##### Time out error")
+        #     task.cancel()
+
+        # except Exception as e:
+        #     data = {'result':False, "reason":str(e)}
+        #     logging.debug("#####  ERROR " +str(datetime.now())+ "=> "+ str(e))
+        #     task.cancel()
+        # finally:
+        #     RESTCB.set_result(data)  # Save result to Rest callback
+        #     del futureCB[URL] # remove ros callback from dict
+            
     async def write(self,msg):       
         global rws 
         global recoveryMode
@@ -212,10 +238,11 @@ class ROSWebSocketConn:
         if rws != None:
             try:
                 await rws.write_message(msg)
-            except Exception:  # The rosbridge abnormal observe by write function
+            except Exception as e:  # The rosbridge abnormal observe by write function
                 if not recoveryMode:
                     self.queue = []
                     print("## write to rosbridge exception")
+                    logging.debug("Rosbridge write exception: "+str(datetime.now()) + str(e))
                     rws = None
                     await self.reconnect(self)    
                 self.queue.append(msg)        
@@ -226,14 +253,18 @@ class ROSWebSocketConn:
             print("#### RWS == None and not recoveryMode")
             await self.reconnect(self)
         else:  # already stay in recovery mode
+            # if None == self.queue :
+            if not hasattr(self, 'queue'):                
+                self.queue = []
             self.queue.append(msg)        
 
     def clearROSConn():
         global checkingROSConn        
         if  checkingROSConn: #Still not receive service call response after 5 seconds
             global rws
-            rws.close()
-            rws = None
+            if rws != None:
+                rws.close()
+                rws = None
             print("Reconnect to rosbridge "+str(datetime.now()))
             logging.info("Clear ROS connection, trying to reconnect")
             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.reconnect(ROSWebSocketConn)))
@@ -281,7 +312,9 @@ class ROSWebSocketConn:
                 #unsubscribe this topic if no browser client or REST client found
                 if cacheSubscribeData.get(data['topic'])!= None: # Default subscribe topic, shch as mission status
                     if data['topic'] == "mission_control/states":
+                        logging.debug(" <- Get mission")
                         try:
+                            nest_asyncio.apply()
                             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(missionHandler.UpdateMissionStatus(missionHandler,msg)))
                         except Exception as e:
                             print("## Publish mission fail: " + str(e))
