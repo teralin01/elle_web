@@ -27,7 +27,9 @@ class MissionHandler:
             "op": "publish", "topic": "mission_control/states","backendMsg":"No cache found","msg":{
             "stamp":{"sec":int(time()),"nanosec":0},
             "state":0,    
-            "mission_state":0,    
+            "mission_state":0,
+            "actionPtr":-1,
+            "action_state":-1,
             "missions":[]} }
 
         eventModel.InitCollection()
@@ -43,6 +45,9 @@ class MissionHandler:
         # logging.debug("Start Mission ActiveSendETA")
         # task.start()        
 
+    def GetMission(self):
+        return self.mission
+    
     def SetMission():
         # publish mission 
         # receive mission update
@@ -84,7 +89,9 @@ class MissionHandler:
         Total_ETA = 0         
         curPose = AMCLPose['position']        
         missionList['AMCLPose'] = { 'x': round(AMCLPose['position']['x'],2),'y':round(AMCLPose['position']['y'],2),'z':round(AMCLPose['position']['z'],2)}
-        missionList['msg']['mission_state'] = missionList['msg']['state']        
+        missionList['msg']['mission_state'] = missionList['msg']['state']      
+        missionList['msg']['actionPtr'] = -1
+        missionList['msg']['action_state'] = -1       
         for iterator in missionList['msg']['missions']:
             for act in iterator['actions']:
                 if act['type'] == 0:
@@ -98,7 +105,12 @@ class MissionHandler:
                     if 'station' in act:
                         del act['station']                   
                     
+                    if act['action_state'] == 1:
+                        missionList['msg']['actionPtr'] = act['type']
+                        missionList['msg']['action_state'] = 1                    
+                    
                     time = round( math.sqrt(((curPose['x']-act['coordinate']['x'])**2)+((curPose['y']-act['coordinate']['y'])**2) ) / AMR_SPEED)
+                    
                     if act['action_state'] <= 1:
                         Total_ETA = Total_ETA + time
                         act['ActETA'] = Total_ETA 
@@ -119,6 +131,10 @@ class MissionHandler:
                         del act['pose_cmd']
                     if 'station' in act:
                         del act['station']
+
+                    if act['action_state'] == 1:
+                        missionList['msg']['actionPtr'] = act['type']
+                        missionList['msg']['action_state'] = 1   
 
                     if act['action_state'] <= 1:
                         Total_ETA = Total_ETA + WAIT_ETA

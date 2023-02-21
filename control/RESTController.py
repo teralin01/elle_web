@@ -8,6 +8,7 @@ from datetime import datetime
 from jsonschema import validate
 from control.system.RosConn import ROSWebSocketConn as ROSConn
 from control.system.CacheData import cacheSubscribeData as cacheSub
+from control.system.MissionHandler import MissionHandler as MissionCache
 from control.system.HWStatus import HWInfoHandler as HWInfo
 from control.system.jsonValidatorSchema import missionSchema
 from dataModel import eventModel
@@ -194,8 +195,14 @@ class RESTHandler(tornado.web.RequestHandler):
             self.REST_response(cacheRESTData.get(self.URI)['cacheData']['data'])     
 
         elif self.URI == '/1.0/missions/release_wait_state':
-            callData = {'id':self.URI, 'op':"call_service",'type': "std_srvs/srv/Empty",'service': "/mission_control/trigger_button",'args': {} }
-            await self.ROS_service_handler(callData,None)          
+            # Check mission stage 
+            mission = MissionCache.GetMission(MissionCache)
+            if mission['msg']['actionPtr'] == 5 and mission['msg']['action_state'] == 1: # The action is Wait and status in 1
+                callData = {'id':self.URI, 'op':"call_service",'type': "std_srvs/srv/Empty",'service': "/mission_control/trigger_button",'args': {} }
+                await self.ROS_service_handler(callData,None)          
+            else:
+                self.cacheHit = False
+                self.REST_response({"result":False,"reason": "Not allow to trigger button now."})
 
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
             #TODO add cache fomr mission status

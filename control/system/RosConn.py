@@ -218,7 +218,7 @@ class ROSWebSocketConn:
             await self.reconnect(self)
             RESTCB.set_result({"result":False,
                                "msg":{
-                                "stamp":{"sec":int(time()),"nanosec":0},
+                                "stamp":{"sec":0,"nanosec":0},
                                 "state":0,    
                                 "mission_state":-1,    
                                 "missions":[]},
