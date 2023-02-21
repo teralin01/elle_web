@@ -74,9 +74,9 @@ class RESTHandler(tornado.web.RequestHandler):
             await asyncio.wait_for( ROSConn.prepare_serviceCall_to_ROS(ROSConn,serviceFuture,self.URI,calldata) , timeout = restTimeoutPeriod)
             data = serviceFuture.result()
             
-            if hasattr(data,"result"):
-                if data['result'] == False:
-                    await ROSConn.reconnect(ROSConn)
+            # if hasattr(data,"result"):
+            #     if data['result'] == False:
+            #         await ROSConn.reconnect(ROSConn)
             
             if None == serviceResult:
                 self.cacheHit = True  # The result of ROS2 Service call is no need to cache
@@ -97,8 +97,6 @@ class RESTHandler(tornado.web.RequestHandler):
         except Exception as e:
             self._status_code = 504
             logging.debug("##### REST Default Error "+ self.URI + " "+ str(e))
-            ROSConn.clear_serviceCall(self.URI)
-            await ROSConn.reconnect(ROSConn)
             if None == serviceResult:
                 self.REST_response(TimeoutStr)
             else:
@@ -192,7 +190,7 @@ class RESTHandler(tornado.web.RequestHandler):
         self._status_code = 200
         if self.cacheHit:
             logging.debug("Return cache data")
-            self.REST_response(cacheRESTData.get(self.URI)['cacheData']['data'])     
+            self.REST_response(cacheRESTData.get(self.URI)['cacheData'])     
 
         elif self.URI == '/1.0/missions/release_wait_state':
             # Check mission stage 
@@ -201,7 +199,7 @@ class RESTHandler(tornado.web.RequestHandler):
                 callData = {'id':self.URI, 'op':"call_service",'type': "std_srvs/srv/Empty",'service': "/mission_control/trigger_button",'args': {} }
                 await self.ROS_service_handler(callData,None)          
             else:
-                self.cacheHit = False
+                self.cacheHit = True
                 self.REST_response({"result":False,"reason": "Not allow to trigger button now."})
 
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
@@ -401,16 +399,24 @@ class RESTHandler(tornado.web.RequestHandler):
             callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlStationCall remote_number",'service': "/mission_control/station_call",'args': {'remote_number':int(data['remote_number'])} }
             await self.ROS_service_handler(callData,None)        
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':  #start/stop mission
-            if int(data['command']) == 1 or int(data['command']) == 2:
-                self.REST_response({
-                "op": "publish", "topic": "mission_control/states","backendMsg":"Not support parameter","msg":{
-                "stamp":{"sec":int(time()),"nanosec":0},
+            mission = MissionCache.GetMission(MissionCache)
+            defaultStr = {
+                "op": "service_response", "topic": "/mission_control/command","backendMsg":"Not support parameter", 
+                "result": False,"msg":{
                 "state":0,    
                 "mission_state":0,    
-                "missions":[]} })  
-            else:
+                "missions":[]} }
+            if int(data['command']) == 1 or int(data['command']) == 2: # Not support stop, reload mission
+                self.REST_response(defaultStr)  
+            elif int(data['command']) == 0 and mission['msg']['state'] == 0: # allow to start mission only when mission state is 0
                 callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':int(data['command'])} }
-                await self.ROS_service_handler(callData,None)        
+                await self.ROS_service_handler(callData,None)   
+            elif int(data['command']) == 3 or int(data['command']) == 4:
+                callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':int(data['command'])} }
+                await self.ROS_service_handler(callData,None)   
+            else:
+                defaultStr['backendMsg'] = "Not support at this time"
+                self.REST_response(defaultStr)        
             
 
     async def delete(self,*args):
@@ -448,17 +454,25 @@ class RESTHandler(tornado.web.RequestHandler):
             callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlStationCall remote_number",'service': "/mission_control/station_call",'args': {'remote_number':int(data['remote_number'])} }
             await self.ROS_service_handler(callData,None)        
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':  #start/stop mission
-            if int(data['command']) == 1 or int(data['command']) == 2:
-                self.REST_response({
-                "op": "publish", "topic": "mission_control/states","backendMsg":"Not support parameter","msg":{
-                "stamp":{"sec":int(time()),"nanosec":0},
+            mission = MissionCache.GetMission(MissionCache)
+            defaultStr = {
+                "op": "service_response", "topic": "/mission_control/command","backendMsg":"Not support parameter", 
+                "result": False,"msg":{
                 "state":0,    
                 "mission_state":0,    
-                "missions":[]} })  
-            else:
+                "missions":[]} }
+            if int(data['command']) == 1 or int(data['command']) == 2: # Not support stop, reload mission
+                self.REST_response(defaultStr)  
+            elif int(data['command']) == 0 and mission['msg']['state'] == 0: # allow to start mission only when mission state is 0
                 callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':int(data['command'])} }
                 await self.ROS_service_handler(callData,None)   
-                    
+            elif int(data['command']) == 3 or int(data['command']) == 4:
+                callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':int(data['command'])} }
+                await self.ROS_service_handler(callData,None)   
+            else:
+                defaultStr['backendMsg'] = "Not support at this time"
+                self.REST_response(defaultStr)  
+   
         elif self.URI == '/1.0/maps/landmarks':
             #TODO validate with landmark Schema 
             ret = LM.InsertPoint(data)

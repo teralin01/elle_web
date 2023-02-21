@@ -206,9 +206,11 @@ class ROSWebSocketConn:
         loop = asyncio.get_running_loop()
         futureObj = loop.create_future()
         futureCB.update({URL:futureObj}) #append ros callback to dict
-        loop.create_task(self.write(self,json_encode(msg)))
+        task = loop.create_task(self.write(self,json_encode(msg)))
         
         try:
+            if recoveryMode:
+                asyncio.sleep(1)
             await futureObj
             data = futureObj.result() # Get result from ROS callback
             RESTCB.set_result(data)  # Save result to Rest callback
@@ -218,12 +220,11 @@ class ROSWebSocketConn:
             await self.reconnect(self)
             RESTCB.set_result({"result":False,
                                "msg":{
-                                "stamp":{"sec":0,"nanosec":0},
                                 "state":0,    
                                 "mission_state":-1,    
                                 "missions":[]},
                                 "reason":"CancelledError exception, Rosbridge connection abnormal"})  # Save result to Rest callback
-            del futureCB[URL] # remove ros callback from dict                        
+            del futureCB[URL] # remove ros callback from dict                                 
             
         except Exception as e:            
             logging.info("## Service call error: "+str(datetime.now())+ "msg: "+ str(e) )   
@@ -268,9 +269,11 @@ class ROSWebSocketConn:
                 rws = None
             print("Reconnect to rosbridge "+str(datetime.now()))
             logging.info("Clear ROS connection, trying to reconnect")
+            nest_asyncio.apply()
             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.reconnect(ROSWebSocketConn)))
 
     def testROSConn():
+        nest_asyncio.apply()
         msg = {"op":"call_service","id":"TestRestServiceCall","service": "/amcl/get_state","type":"lifecycle_msgs/srv/GetState"}
         asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.write(ROSWebSocketConn,json_encode(msg))))
                             
@@ -286,7 +289,7 @@ class ROSWebSocketConn:
         if msg == None:
             print("Recv nothing from rosbridge, checking rosbridge connection...")    
             logging.info("## Recv None from rosbridge, something wrong")        
-            if checkingROSConn == False: #only check connection once
+            if checkingROSConn == False and not recoveryMode : #only check connection once
                 ROSWebSocketConn.double_check_ros_conn()
             checkingROSConn = True
         else:

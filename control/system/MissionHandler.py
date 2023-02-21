@@ -9,7 +9,7 @@ import asyncio
 import math
 import json
 import copy
-import nest_asyncio
+# import nest_asyncio
 import logging
 
 NOTIFY_CLIENT_DURATION = 15
@@ -19,11 +19,7 @@ DEFAULT_AMCL = {"position":{"x": 0, "y": 0, "z": 0}}
 EVENT_TIMTOUT = 2
 preMissionTimestampSec = 0 
 preMissionTimestampNanoSec = 0 
-
-class MissionHandler:
-    def __init__(self):     
-
-        self.mission = {
+DEFAULT_MISSION = {
             "op": "publish", "topic": "mission_control/states","backendMsg":"No cache found","msg":{
             "stamp":{"sec":int(time()),"nanosec":0},
             "state":0,    
@@ -32,22 +28,21 @@ class MissionHandler:
             "action_state":-1,
             "missions":[]} }
 
+class MissionHandler:
+    def __init__(self):     
+        self.mission = DEFAULT_MISSION
         eventModel.InitCollection()
         TornadoScheduler.add_job(self.ActiveSendETA, 'interval', seconds = NOTIFY_CLIENT_DURATION)
         logging.debug("Start Mission ActiveSendETA")
         logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING)
-
         TornadoScheduler.start()                
-        
-        
-        # task = AsyncIOScheduler()
-        # task.add_job(self.ActiveSendETA, 'interval', seconds = NOTIFY_CLIENT_DURATION)
-        # logging.debug("Start Mission ActiveSendETA")
-        # task.start()        
 
     def GetMission(self):
-        return self.mission
-    
+        if hasattr(self,'mission'):
+            return self.mission
+        else:
+            return DEFAULT_MISSION
+        
     def SetMission():
         # publish mission 
         # receive mission update
@@ -74,7 +69,7 @@ class MissionHandler:
         
         new_mission['msg']['stamp']['sec'] = int(time())
         self.mission = new_mission
-        nest_asyncio.apply()
+        # nest_asyncio.apply()
         await asyncio.wait_for(self.SendMissionToClient(),EVENT_TIMTOUT)
         
     def ParseMission(self, rawMission,AMCLPose):       
@@ -157,10 +152,13 @@ class MissionHandler:
                 AMCLPoseData = json.loads( (AMCLPoseStr["data"]))
                 AMCLPose = AMCLPoseData['msg']['pose']['pose']
 
-        if CallByEvent:  
-            return self.ParseMission(self,mission, AMCLPose)    
-        else:  # call by periodic task, it use static object. No need "self" parameter
-            return self.ParseMission(mission, AMCLPose)
+        try:
+            if CallByEvent:  
+                return self.ParseMission(self,mission, AMCLPose)    
+            else:  # call by periodic task, it use static object. No need "self" parameter
+                return self.ParseMission(mission, AMCLPose)
+        except Exception as err:
+            logging.DEBUG("Caculate ETA error "+ str(err))
 
     async def SendMissionToClient(self):
         #Notify Browser client
