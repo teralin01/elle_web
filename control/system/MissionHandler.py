@@ -33,6 +33,8 @@ class MissionHandler:
         eventModel.InitCollection()
         TornadoScheduler.add_job(self.ActiveSendETA, 'interval', seconds = NOTIFY_CLIENT_DURATION)
         logging.debug("Start Mission ActiveSendETA")
+        logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING)
+
         TornadoScheduler.start()                
         
         
@@ -71,9 +73,11 @@ class MissionHandler:
         await asyncio.wait_for(self.SendMissionToClient(),EVENT_TIMTOUT)
         
     def ParseMission(self, rawMission,AMCLPose):       
-        if cacheSub.get('mission_control/states')['data'] == None:
-            # mission not yet initialized
-            rawMission['msg']['mission_state'] = 0
+        subdata = cacheSub.get('mission_control/states')
+        rawMission['msg']['mission_state'] = 0 #Init mision_state 
+        if subdata == None:
+            return rawMission
+        elif subdata['data'] == None:
             return rawMission
 
         missionList = rawMission
@@ -182,26 +186,28 @@ class MissionHandler:
         except  Exception as err:
             print(" Parse Server Side Event err: "+ str(err))
         # Check previous and current mission is the same or not. If it is the same, then stop handle this update
-        global preMissionTimestampSec
-        global preMissionTimestampNanoSec
-        
-        if preMissionTimestampSec == extMission['msg']['stamp']['sec'] and preMissionTimestampNanoSec == extMission['msg']['stamp']['nanosec']:
-            print("The timestamp is the same as previous one, skip update")
-        else:            
-            preMissionTimestampSec = extMission['msg']['stamp']['sec'] 
-            preMissionTimestampNanoSec = extMission['msg']['stamp']['nanosec']
-        
-            self.mission = extMission
-            cacheSub.update({"mission_control/states":{"data":extMission,"lastUpdateTime":datetime.now()}})
-                
-            await asyncio.wait_for(self.SendMissionToClient(self),EVENT_TIMTOUT)
 
-            # self.CallbackMissionSender(mission)
+        else:
+            # Check previous and current mission is the same or not. If it is the same, then stop handle this update
+            global preMissionTimestampSec
+            global preMissionTimestampNanoSec
+            if preMissionTimestampSec == extMission['msg']['stamp']['sec'] and preMissionTimestampNanoSec == extMission['msg']['stamp']['nanosec']:
+                print("The timestamp is the same as previous one, skip update")
+            else:            
+                preMissionTimestampSec = extMission['msg']['stamp']['sec'] 
+                preMissionTimestampNanoSec = extMission['msg']['stamp']['nanosec']
             
-            dbmission = copy.deepcopy(extMission)
-            dbmission['msg']['timstamp'] = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
-            self.EventLogger(dbmission['msg'])
-        
+                self.mission = extMission
+                cacheSub.update({"mission_control/states":{"data":extMission,"lastUpdateTime":datetime.now()}})
+                    
+                await asyncio.wait_for(self.SendMissionToClient(self),EVENT_TIMTOUT)
+
+                # self.CallbackMissionSender(mission)
+                
+                dbmission = copy.deepcopy(extMission)
+                dbmission['msg']['timstamp'] = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+                self.EventLogger(dbmission['msg'])
+            
 
 
 

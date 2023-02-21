@@ -2,6 +2,7 @@ import tornado.web
 import tornado.ioloop
 import logging
 import config
+import time
 from dataModel.AuthModel import AuthDB
 from datetime import datetime
 from jsonschema import validate
@@ -67,21 +68,37 @@ class RESTHandler(tornado.web.RequestHandler):
         self.set_header('Access-Control-Allow-Credentials', 'true')
 
     async def ROS_service_handler(self,calldata,serviceResult):
-        serviceFuture = Future() 
+        serviceFuture = Future()         
         try:                    
             await asyncio.wait_for( ROSConn.prepare_serviceCall_to_ROS(ROSConn,serviceFuture,self.URI,calldata) , timeout = restTimeoutPeriod)
+            data = serviceFuture.result()
+            
+            if hasattr(data,"result"):
+                if data['result'] == False:
+                    await ROSConn.reconnect(ROSConn)
+            
             if None == serviceResult:
                 self.cacheHit = True  # The result of ROS2 Service call is no need to cache
-                self.REST_response(serviceFuture.result())
-            else:
-                data = serviceFuture.result()
+                self.REST_response(data)
+            else:    
                 serviceResult.set_result(data)        
 
         except asyncio.TimeoutError:
             self._status_code = 504
             logging.debug("##### REST Timeout "+ self.URI)
+            ROSConn.clear_serviceCall(self.URI)
             await ROSConn.reconnect(ROSConn)
-            if None != serviceResult:
+            if None == serviceResult:
+                self.REST_response(TimeoutStr)
+            else:
+                return False
+
+        except Exception as e:
+            self._status_code = 504
+            logging.debug("##### REST Default Error "+ self.URI + " "+ str(e))
+            ROSConn.clear_serviceCall(self.URI)
+            await ROSConn.reconnect(ROSConn)
+            if None == serviceResult:
                 self.REST_response(TimeoutStr)
             else:
                 return False
@@ -377,8 +394,16 @@ class RESTHandler(tornado.web.RequestHandler):
             callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlStationCall remote_number",'service': "/mission_control/station_call",'args': {'remote_number':int(data['remote_number'])} }
             await self.ROS_service_handler(callData,None)        
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':  #start/stop mission
-            callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':int(data['command'])} }
-            await self.ROS_service_handler(callData,None)        
+            if int(data['command']) == 1 or int(data['command']) == 2:
+                self.REST_response({
+                "op": "publish", "topic": "mission_control/states","backendMsg":"Not support parameter","msg":{
+                "stamp":{"sec":int(time()),"nanosec":0},
+                "state":0,    
+                "mission_state":0,    
+                "missions":[]} })  
+            else:
+                callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':int(data['command'])} }
+                await self.ROS_service_handler(callData,None)        
             
 
     async def delete(self,*args):
@@ -416,8 +441,17 @@ class RESTHandler(tornado.web.RequestHandler):
             callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlStationCall remote_number",'service': "/mission_control/station_call",'args': {'remote_number':int(data['remote_number'])} }
             await self.ROS_service_handler(callData,None)        
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':  #start/stop mission
-            callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':int(data['command'])} }
-            await self.ROS_service_handler(callData,None)        
+            if int(data['command']) == 1 or int(data['command']) == 2:
+                self.REST_response({
+                "op": "publish", "topic": "mission_control/states","backendMsg":"Not support parameter","msg":{
+                "stamp":{"sec":int(time()),"nanosec":0},
+                "state":0,    
+                "mission_state":0,    
+                "missions":[]} })  
+            else:
+                callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':int(data['command'])} }
+                await self.ROS_service_handler(callData,None)   
+                    
         elif self.URI == '/1.0/maps/landmarks':
             #TODO validate with landmark Schema 
             ret = LM.InsertPoint(data)
