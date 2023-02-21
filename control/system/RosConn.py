@@ -5,6 +5,7 @@ import json
 import asyncio
 import os
 import logging
+import time
 import nest_asyncio
 from tornado.escape import json_encode
 from datetime import datetime
@@ -214,7 +215,14 @@ class ROSWebSocketConn:
             del futureCB[URL] # remove ros callback from dict            
         except asyncio.CancelledError:
             logging.info("## Service call error due to asyncio.CancelledError. Form URL: " + URL)   
-            RESTCB.set_result({"result":False,"reason":"CancelledError exception, Rosbridge connection abnormal"})  # Save result to Rest callback
+            await self.reconnect(self)
+            RESTCB.set_result({"result":False,
+                               "msg":{
+                                "stamp":{"sec":int(time()),"nanosec":0},
+                                "state":0,    
+                                "mission_state":-1,    
+                                "missions":[]},
+                                "reason":"CancelledError exception, Rosbridge connection abnormal"})  # Save result to Rest callback
             del futureCB[URL] # remove ros callback from dict                        
             
         except Exception as e:            
