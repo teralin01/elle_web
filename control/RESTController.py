@@ -200,7 +200,8 @@ class RESTHandler(tornado.web.RequestHandler):
                 await self.ROS_service_handler(callData,None)          
             else:
                 self.cacheHit = True
-                self.REST_response({"result":False,"reason": "Not allow to trigger button now."})
+                resStr = {"op": "service_response", "service": "/mission_control/trigger_button", "values": {}, "result": False,"reason": "Not allow to trigger button now.", "id": "/1.0/missions/release_wait_state"}
+                self.REST_response(resStr)
 
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
             #TODO add cache fomr mission status

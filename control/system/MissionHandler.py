@@ -9,7 +9,7 @@ import asyncio
 import math
 import json
 import copy
-# import nest_asyncio
+import nest_asyncio
 import logging
 
 NOTIFY_CLIENT_DURATION = 15
@@ -69,7 +69,7 @@ class MissionHandler:
         
         new_mission['msg']['stamp']['sec'] = int(time())
         self.mission = new_mission
-        # nest_asyncio.apply()
+        nest_asyncio.apply()
         await asyncio.wait_for(self.SendMissionToClient(),EVENT_TIMTOUT)
         
     def ParseMission(self, rawMission,AMCLPose):       
