@@ -19,29 +19,30 @@ DEFAULT_AMCL = {"position":{"x": 0, "y": 0, "z": 0}}
 EVENT_TIMTOUT = 2
 preMissionTimestampSec = 0 
 preMissionTimestampNanoSec = 0 
-
-class MissionHandler:
-    def __init__(self):     
-
-        self.mission = {
+DEFAULT_MISSION = {
             "op": "publish", "topic": "mission_control/states","backendMsg":"No cache found","msg":{
             "stamp":{"sec":int(time()),"nanosec":0},
             "state":0,    
-            "mission_state":0,    
+            "mission_state":0,
+            "actionPtr":-1,
+            "action_state":-1,
             "missions":[]} }
 
+class MissionHandler:
+    def __init__(self):     
+        self.mission = DEFAULT_MISSION
         eventModel.InitCollection()
         TornadoScheduler.add_job(self.ActiveSendETA, 'interval', seconds = NOTIFY_CLIENT_DURATION)
         logging.debug("Start Mission ActiveSendETA")
         logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING)
         TornadoScheduler.start()                
-        
-        
-        # task = AsyncIOScheduler()
-        # task.add_job(self.ActiveSendETA, 'interval', seconds = NOTIFY_CLIENT_DURATION)
-        # logging.debug("Start Mission ActiveSendETA")
-        # task.start()        
 
+    def GetMission(self):
+        if hasattr(self,'mission'):
+            return self.mission
+        else:
+            return DEFAULT_MISSION
+        
     def SetMission():
         # publish mission 
         # receive mission update
@@ -83,7 +84,9 @@ class MissionHandler:
         Total_ETA = 0         
         curPose = AMCLPose['position']        
         missionList['AMCLPose'] = { 'x': round(AMCLPose['position']['x'],2),'y':round(AMCLPose['position']['y'],2),'z':round(AMCLPose['position']['z'],2)}
-        missionList['msg']['mission_state'] = missionList['msg']['state']        
+        missionList['msg']['mission_state'] = missionList['msg']['state']      
+        missionList['msg']['actionPtr'] = -1
+        missionList['msg']['action_state'] = -1       
         for iterator in missionList['msg']['missions']:
             for act in iterator['actions']:
                 if act['type'] == 0:
@@ -97,7 +100,12 @@ class MissionHandler:
                     if 'station' in act:
                         del act['station']                   
                     
+                    if act['action_state'] == 1:
+                        missionList['msg']['actionPtr'] = act['type']
+                        missionList['msg']['action_state'] = 1                    
+                    
                     time = round( math.sqrt(((curPose['x']-act['coordinate']['x'])**2)+((curPose['y']-act['coordinate']['y'])**2) ) / AMR_SPEED)
+                    
                     if act['action_state'] <= 1:
                         Total_ETA = Total_ETA + time
                         act['ActETA'] = Total_ETA 
@@ -118,6 +126,10 @@ class MissionHandler:
                         del act['pose_cmd']
                     if 'station' in act:
                         del act['station']
+
+                    if act['action_state'] == 1:
+                        missionList['msg']['actionPtr'] = act['type']
+                        missionList['msg']['action_state'] = 1   
 
                     if act['action_state'] <= 1:
                         Total_ETA = Total_ETA + WAIT_ETA
@@ -140,10 +152,13 @@ class MissionHandler:
                 AMCLPoseData = json.loads( (AMCLPoseStr["data"]))
                 AMCLPose = AMCLPoseData['msg']['pose']['pose']
 
-        if CallByEvent:  
-            return self.ParseMission(self,mission, AMCLPose)    
-        else:  # call by periodic task, it use static object. No need "self" parameter
-            return self.ParseMission(mission, AMCLPose)
+        try:
+            if CallByEvent:  
+                return self.ParseMission(self,mission, AMCLPose)    
+            else:  # call by periodic task, it use static object. No need "self" parameter
+                return self.ParseMission(mission, AMCLPose)
+        except Exception as err:
+            logging.DEBUG("Caculate ETA error "+ str(err))
 
     async def SendMissionToClient(self):
         #Notify Browser client

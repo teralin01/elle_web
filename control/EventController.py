@@ -16,6 +16,8 @@ class SSEHandler(tornado.web.RequestHandler):
             "stamp":{"sec":int(time()),"nanosec":0},
             "state":0,    
             "mission_state":0,   
+            "actionPtr":-1,
+            "action_state":-1,
             "missions":[]} }
         self.set_header('Content-Type', 'text/event-stream')
         self.set_header('cache-control', 'no-cache')
