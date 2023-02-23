@@ -55,9 +55,11 @@ class ROSWebSocketConn:
                     ping_timeout=5,
                     )
             print("ROSBridge connected at: "+str(datetime.now()))
+            logging.debug("ROSBridge connected at: "+str(datetime.now()))
             return rws
         except Exception:
             print("ROS bridge connection fail, retry later")
+            logging.debug("ROS bridge connection fail, retry later")
             self.retryCnt = self.retryCnt+1
             if (self.retryCnt > ROSBRIDGE_RETRY_MAX):
                 print("Plan to trigger external command to restart rosbridge process")
@@ -223,6 +225,7 @@ class ROSWebSocketConn:
             logging.info("## Service call error due to asyncio.CancelledError. Form URL: " + URL)   
             await self.reconnect(self)
             RESTCB.set_result({"result":False,
+                               "values":{"state":"","result":""},
                                "msg":{
                                 "state":0,    
                                 "mission_state":-1,    
@@ -260,6 +263,7 @@ class ROSWebSocketConn:
         global recoveryMode
         if showdebug:
             print(" -> write Message:"+msg)
+            logging.debug(" -> write Message:"+msg)
         if rws != None:
             try:
                 await rws.write_message(msg)
@@ -283,6 +287,7 @@ class ROSWebSocketConn:
 
     def clearROSConn():
         global checkingROSConn        
+        logging.info("Before Clear ROS connection")
         if  checkingROSConn: #Still not receive service call response after 5 seconds
             global rws
             if rws != None:
@@ -290,11 +295,11 @@ class ROSWebSocketConn:
                 rws = None
             print("Reconnect to rosbridge "+str(datetime.now()))
             logging.info("Clear ROS connection, trying to reconnect")
-            nest_asyncio.apply()
+            # nest_asyncio.apply()
             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.reconnect(ROSWebSocketConn)))
 
     def testROSConn():
-        nest_asyncio.apply()
+        # nest_asyncio.apply()
         msg = {"op":"call_service","id":"TestRestServiceCall","service": "/amcl/get_state","type":"lifecycle_msgs/srv/GetState"}
         asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.write(ROSWebSocketConn,json_encode(msg))))
                             
@@ -309,7 +314,7 @@ class ROSWebSocketConn:
         global checkingROSConn
         if msg == None:
             print("Recv nothing from rosbridge, checking rosbridge connection...")    
-            logging.info("## Recv None from rosbridge, something wrong")        
+            logging.info("## Recv None from rosbridge, something wrong. CheckRosConn:" + str(checkingROSConn) + " RecoverMode:"+str(recoveryMode))        
             if checkingROSConn == False and not recoveryMode : #only check connection once
                 ROSWebSocketConn.double_check_ros_conn()
             checkingROSConn = True
@@ -317,9 +322,11 @@ class ROSWebSocketConn:
             if checkingROSConn:
                 checkingROSConn = False
             data = json.loads(msg)
+            data['reason'] = ""
             if data['op'] == 'publish':
                 if showdebug:
                     print(" <- topic: "+ data['topic'])
+                    logging.debug(" <- topic: "+ data['topic'])
                 browsers = subCmds.get(data['topic'])
                 topic_alive = None
                 if browsers != None:               # Browser client exist
@@ -339,7 +346,6 @@ class ROSWebSocketConn:
                     if data['topic'] == "mission_control/states":
                         logging.debug(" <- Get mission")
                         try:
-                            nest_asyncio.apply()
                             nest_asyncio.apply()
                             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(missionHandler.UpdateMissionStatus(missionHandler,msg)))
                         except Exception as e:
@@ -368,7 +374,7 @@ class ROSWebSocketConn:
                         if str(cbws) == browser[0] : #return to first matching browser client
                             cbws.write_message(msg)
                             rosCmds.remove(data['id'])
-
+                data['values'] = {"state":"","result":""}
                 #send data back to REST client
                 cb = futureCB.get(data['id'])
                 if cb != None:

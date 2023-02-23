@@ -200,7 +200,7 @@ class RESTHandler(tornado.web.RequestHandler):
                 await self.ROS_service_handler(callData,None)          
             else:
                 self.cacheHit = True
-                resStr = {"op": "service_response", "service": "/mission_control/trigger_button", "values": {}, "result": False,"reason": "Not allow to trigger button now.", "id": "/1.0/missions/release_wait_state"}
+                resStr = {"op": "service_response", "service": "/mission_control/trigger_button", "values": {"state":""}, "result": False,"reason": "Not allow to trigger button now.", "id": "/1.0/missions/release_wait_state"}
                 self.REST_response(resStr)
 
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
@@ -403,6 +403,7 @@ class RESTHandler(tornado.web.RequestHandler):
             mission = MissionCache.GetMission(MissionCache)
             defaultStr = {
                 "op": "service_response", "topic": "/mission_control/command","backendMsg":"Not support parameter", 
+                "values":{"state":"","result":""},
                 "result": False,"msg":{
                 "state":0,    
                 "mission_state":0,    
@@ -452,12 +453,14 @@ class RESTHandler(tornado.web.RequestHandler):
         if self._status_code != 201:
             self.REST_response({'result':False})
         elif self.URI == '/1.0/missions/predefined_mission':    
+            eventModel.SaveMissionAct({"status":"success","action":data['remote_number'],"timestamp": datetime.now().strftime("%m/%d/%Y, %H:%M:%S")})
             callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlStationCall remote_number",'service': "/mission_control/station_call",'args': {'remote_number':int(data['remote_number'])} }
-            await self.ROS_service_handler(callData,None)        
+            await self.ROS_service_handler(callData,None)          
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':  #start/stop mission
             mission = MissionCache.GetMission(MissionCache)
             defaultStr = {
                 "op": "service_response", "topic": "/mission_control/command","backendMsg":"Not support parameter", 
+                "values":{"state":"","result":""},
                 "result": False,"msg":{
                 "state":0,    
                 "mission_state":0,    
