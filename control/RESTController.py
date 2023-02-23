@@ -395,10 +395,15 @@ class RESTHandler(tornado.web.RequestHandler):
             
             pass
 
-        elif self.URI == '/1.0/missions/predefined_mission':                
-            eventModel.SaveMissionAct({"status":"success","action":data['remote_number'],"timestamp": datetime.now().strftime("%m/%d/%Y, %H:%M:%S")})
-            callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlStationCall remote_number",'service': "/mission_control/station_call",'args': {'remote_number':int(data['remote_number'])} }
-            await self.ROS_service_handler(callData,None)        
+        elif self.URI == '/1.0/missions/predefined_mission':   
+            if MissionCache.IsMissionDuplication(MissionCache,data['remote_number']):
+                eventModel.SaveMissionAct({"status":"reject","action":data['remote_number'],"timestamp": datetime.now().strftime("%m/%d/%Y, %H:%M:%S")})    
+                defaultStr = {"result": False, "values": {"state": "", "result": ""}, "msg": {"state": 0, "mission_state": -1, "missions": []}, "reason": "Mission is duplicated, reject this request temperatory"}
+                self.REST_response(defaultStr)
+            else:                 
+                eventModel.SaveMissionAct({"status":"success","action":data['remote_number'],"timestamp": datetime.now().strftime("%m/%d/%Y, %H:%M:%S")})
+                callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlStationCall remote_number",'service': "/mission_control/station_call",'args': {'remote_number':int(data['remote_number'])} }
+                await self.ROS_service_handler(callData,None)        
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':  #start/stop mission
             mission = MissionCache.GetMission(MissionCache)
             defaultStr = {

@@ -268,11 +268,14 @@ class ROSWebSocketConn:
             try:
                 await rws.write_message(msg)
             except Exception:  # The rosbridge abnormal observe by write function
-                if not recoveryMode:
+                if not recoveryMode and not checkingROSConn:
                     self.queue = []
                     print("## write to rosbridge exception")
                     rws = None
                     await self.reconnect(self)    
+                
+                if not hasattr(self,'queue'):
+                    self.queue = []                    
                 self.queue.append(msg)        
                 
         elif not recoveryMode: # The rosbridge abnormal observe by recv_ros_message function
@@ -368,6 +371,7 @@ class ROSWebSocketConn:
             if data['op'] == 'service_response':
                 # print(data['service'] + " " + "id" + data['id'] + " result" + str(data['result']))   
                 #send data back to web socket browser client
+                logging.debug(data['service'] + " " + "id" + data['id'] + " result" + str(data['result']))
                 browser = rosCmds.get(data['id'])
                 if browser != None:  # id match in rosCmds
                     for cbws in ws_browser_clients:

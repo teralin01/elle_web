@@ -42,6 +42,28 @@ class MissionHandler:
             return self.mission
         else:
             return DEFAULT_MISSION
+
+    def IsMissionDuplication(self,missiontag):
+        targetMissionName = "remote"+str(missiontag)
+        subdata = cacheSub.get('mission_control/states')
+        if subdata != None and subdata['data'] != None:
+            missionList = subdata['data']
+        else:
+            logging.debug("### mission is empty")
+            return False # mission is empty
+        
+        for iterator in missionList['msg']['missions']: 
+            logging.debug("## Name: "+ iterator['name'] )
+            canDupOnce = False
+            if iterator['name'] == targetMissionName:                
+                if canDupOnce:
+                    canDupOnce = False
+                    continue
+                elif "has_completed_wait_action" in iterator and iterator['has_completed_wait_action'] == 1:
+                    canDupOnce = True
+                else:
+                    return True
+        return False
         
     def SetMission():
         # publish mission 
@@ -135,11 +157,16 @@ class MissionHandler:
                         Total_ETA = Total_ETA + WAIT_ETA
                         act['ActETA'] = Total_ETA
                     elif act['action_state'] == 2:
-                        act['ActETA'] = 0
+                        act['ActETA'] = 0                      
                     else:    # ERROR or abort
                         Total_ETA = Total_ETA + WAIT_ETA
                         act['ActETA'] = Total_ETA
                         missionList['msg']['mission_state'] = -1  
+                        
+                    #Check duplicate mission, if the wait action state becomes 2 more then one time, then enable
+                    if act['action_state'] > 1:
+                        iterator['has_completed_wait_action'] = 1  
+                        
             iterator['Total_ETA'] = round(Total_ETA)
         print( "AMR pose"+ str(missionList['AMCLPose']) + " Total time: " +  str(Total_ETA))
         return missionList
