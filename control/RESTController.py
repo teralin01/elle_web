@@ -22,7 +22,7 @@ import pynmcli
 
 cacheRESTData = dict()
 TimeoutStr = {"result":False}
-restTimeoutPeriod = 5
+restTimeoutPeriod = 10
 restCachePeriod = 5
 
 logging.basicConfig(filename='/var/log/tornado.log', level=logging.DEBUG)
