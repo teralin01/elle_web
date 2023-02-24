@@ -12,7 +12,9 @@ class SSEHandler(tornado.web.RequestHandler):
         self._status_code = 200
         self._auto_finish = False
         self.dmission = {
-            "op": "publish", "topic": "mission_control/states","backendMsg":"initMission","msg":{
+            "op": "publish", "topic": "mission_control/states","backendMsg":"initMission",
+            "isReset":False,
+            "msg":{
             "stamp":{"sec":int(time()),"nanosec":0},
             "state":0,    
             "mission_state":0,   

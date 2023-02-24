@@ -22,6 +22,7 @@ preMissionTimestampSec = 0
 preMissionTimestampNanoSec = 0 
 DEFAULT_MISSION = {
             "op": "publish", "topic": "mission_control/states","backendMsg":"No cache found",
+            "isReset":False,
             "msg":{
             "stamp":{"sec":int(time()),"nanosec":0},
             "state":0,    
@@ -236,14 +237,20 @@ class MissionHandler:
         
         pass
     
-    def ResetMissionStatus():
+    async def ResetMissionStatus():
         global ResendMission
         ResendMission = cacheSub.get('mission_control/states')
         logging.debug("Reset Cached mission to default")
         mission = DEFAULT_MISSION
         mission['reason']= "Reset mission due to Rosbridge connection reset"
+        
         cacheSub.update({"mission_control/states":{"data":mission,"lastUpdateTime":datetime.now()}})
         logging.debug(MissionHandler.mission)
+        
+        MissionHandler.mission = DEFAULT_MISSION
+        MissionHandler.mission['isReset'] = True
+        await MissionHandler.SendMissionToClient(MissionHandler)
+        
         
         MissionHandler.ResendPreiousMissions()
     
@@ -270,7 +277,7 @@ class MissionHandler:
             else:            
                 preMissionTimestampSec = extMission['msg']['stamp']['sec'] 
                 preMissionTimestampNanoSec = extMission['msg']['stamp']['nanosec']
-            
+                extMission['isReset'] = False
                 self.mission = extMission
                 cacheSub.update({"mission_control/states":{"data":extMission,"lastUpdateTime":datetime.now()}})
                     
