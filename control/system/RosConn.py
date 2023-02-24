@@ -101,6 +101,7 @@ class ROSWebSocketConn:
         idx = 0
         while True:
             if rws != None: 
+                TornadoScheduler.add_job(missionHandler.ResetMissionStatus, run_date = datetime.now())
                 if showdebug:
                     print("1: Submit predefined ROS command")
                 recoveryMode = False
@@ -173,6 +174,8 @@ class ROSWebSocketConn:
             length = len(self.queue)
             for i in range(length):
                 cmd = self.queue[i]
+                
+                logging.debug("resubmit cmd from queue"+cmd)
                 if not "mission_control/states" in cmd  and not "TestRestServiceCall" in cmd : #skip defualt topic and test connection call
                     await asyncio.sleep(RESUMIT_PERIOD)
                     await self.write(self,cmd)
@@ -363,13 +366,9 @@ class ROSWebSocketConn:
                     if data['topic'] == "mission_control/states":
                         logging.debug(" <- Get mission")
                         try:
-                            nest_asyncio.apply()
-                            # asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(missionHandler.UpdateMissionStatus(missionHandler,msg)))
-                            #asyncio.get_event_loop().run_coroutine_threadsafe()(missionHandler.UpdateMissionStatus(missionHandler,msg))
-                            
-                            TornadoScheduler.add_job(missionHandler.UpdateMissionStatus, run_date = datetime.now())
                             global CacheMission
                             CacheMission.update({"mission":msg}) 
+                            TornadoScheduler.add_job(missionHandler.UpdateMissionStatus, run_date = datetime.now())
                         except Exception as e:
                             print("## Publish mission fail: " + str(e))
                             logging.info("## Publish SSE fail"+str(datetime.now())+ "msg: "+ str(e) )   

@@ -30,6 +30,8 @@ DEFAULT_MISSION = {
             "action_state":-1,
             "missions":[]} }
 
+ResendMission = None
+
 class MissionHandler:
     def __init__(self):     
         self.mission = DEFAULT_MISSION
@@ -219,6 +221,31 @@ class MissionHandler:
     # advanced logger with roles
     def StatisticLogger():
         pass
+    
+    def ResendPreiousMissions():
+        # ToDo 
+        # Get previouse mission from cache
+        
+        # Publish mission 
+        
+        # Check mission update 
+        
+        # If disconnect is due to abort, the pending and wait for start
+        # If diconnect is due to other rosbridge issue, the start mission directlly. 
+        
+        
+        pass
+    
+    def ResetMissionStatus():
+        global ResendMission
+        ResendMission = cacheSub.get('mission_control/states')
+        logging.debug("Reset Cached mission to default")
+        mission = DEFAULT_MISSION
+        mission['reason']= "Reset mission due to Rosbridge connection reset"
+        cacheSub.update({"mission_control/states":{"data":mission,"lastUpdateTime":datetime.now()}})
+        logging.debug(MissionHandler.mission)
+        
+        MissionHandler.ResendPreiousMissions()
     
     async def UpdateMissionStatus():
         logging.debug("===> Start update mission")
