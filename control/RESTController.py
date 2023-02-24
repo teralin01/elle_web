@@ -408,6 +408,7 @@ class RESTHandler(tornado.web.RequestHandler):
             mission = MissionCache.GetMission(MissionCache)
             defaultStr = {
                 "op": "service_response", "topic": "/mission_control/command","backendMsg":"Not support parameter", 
+                "reason":"",
                 "values":{"state":"","result":""},
                 "result": False,"msg":{
                 "state":0,    
@@ -457,14 +458,20 @@ class RESTHandler(tornado.web.RequestHandler):
             
         if self._status_code != 201:
             self.REST_response({'result':False})
-        elif self.URI == '/1.0/missions/predefined_mission':    
-            eventModel.SaveMissionAct({"status":"success","action":data['remote_number'],"timestamp": datetime.now().strftime("%m/%d/%Y, %H:%M:%S")})
-            callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlStationCall remote_number",'service': "/mission_control/station_call",'args': {'remote_number':int(data['remote_number'])} }
-            await self.ROS_service_handler(callData,None)          
+        elif self.URI == '/1.0/missions/predefined_mission':   
+            if MissionCache.IsMissionDuplication(MissionCache,data['remote_number']):
+                eventModel.SaveMissionAct({"status":"reject","action":data['remote_number'],"timestamp": datetime.now().strftime("%m/%d/%Y, %H:%M:%S")})    
+                defaultStr = {"result": False, "values": {"state": "", "result": ""}, "msg": {"state": 0, "mission_state": -1, "missions": []}, "reason": "Mission is duplicated, reject this request temperatory"}
+                self.REST_response(defaultStr)
+            else:                 
+                eventModel.SaveMissionAct({"status":"success","action":data['remote_number'],"timestamp": datetime.now().strftime("%m/%d/%Y, %H:%M:%S")})
+                callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlStationCall remote_number",'service': "/mission_control/station_call",'args': {'remote_number':int(data['remote_number'])} }
+                await self.ROS_service_handler(callData,None)        
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':  #start/stop mission
             mission = MissionCache.GetMission(MissionCache)
             defaultStr = {
                 "op": "service_response", "topic": "/mission_control/command","backendMsg":"Not support parameter", 
+                "reason":"",
                 "values":{"state":"","result":""},
                 "result": False,"msg":{
                 "state":0,    
@@ -480,7 +487,7 @@ class RESTHandler(tornado.web.RequestHandler):
                 await self.ROS_service_handler(callData,None)   
             else:
                 defaultStr['backendMsg'] = "Not support at this time"
-                self.REST_response(defaultStr)  
+                self.REST_response(defaultStr)      
    
         elif self.URI == '/1.0/maps/landmarks':
             #TODO validate with landmark Schema 

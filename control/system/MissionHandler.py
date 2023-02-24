@@ -1,6 +1,7 @@
 from control.EventController import SSEHandler as EventHandler
 from control.system.CacheData import cacheSubscribeData as cacheSub
 from control.system.CacheData import scheduler as TornadoScheduler
+from control.system.CacheData import cacheMission as CacheMission
 from dataModel import eventModel
 from datetime import datetime
 from time import time 
@@ -20,7 +21,8 @@ EVENT_TIMTOUT = 2
 preMissionTimestampSec = 0 
 preMissionTimestampNanoSec = 0 
 DEFAULT_MISSION = {
-            "op": "publish", "topic": "mission_control/states","backendMsg":"No cache found","msg":{
+            "op": "publish", "topic": "mission_control/states","backendMsg":"No cache found",
+            "msg":{
             "stamp":{"sec":int(time()),"nanosec":0},
             "state":0,    
             "mission_state":0,
@@ -218,7 +220,12 @@ class MissionHandler:
     def StatisticLogger():
         pass
     
-    async def UpdateMissionStatus(self, mission):
+    async def UpdateMissionStatus():
+        logging.debug("===> Start update mission")
+        global CacheMission
+        mission = CacheMission.get("mission")
+        self = MissionHandler
+        
         try:
             if cacheSub.get('mission_control/states')['data'] == None:
                 cacheSub.update({"mission_control/states":{"data":json.loads(mission),"lastUpdateTime":datetime.now()}})

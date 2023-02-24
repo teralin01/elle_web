@@ -13,7 +13,9 @@ from control.system.RosUtility import ROSCommands
 from control.system.RosUtility import SubscribeCommands
 from control.system.RosUtility import SubscribeTypes
 from control.system.MissionHandler import MissionHandler as missionHandler
+from control.system.CacheData import scheduler as TornadoScheduler
 from control.system.CacheData import cacheSubscribeData
+from control.system.CacheData import cacheMission as CacheMission
 subCmds = SubscribeCommands()
 rosCmds = ROSCommands()
 topictable = SubscribeTypes()
@@ -173,7 +175,7 @@ class ROSWebSocketConn:
                 cmd = self.queue[i]
                 if not "mission_control/states" in cmd  and not "TestRestServiceCall" in cmd : #skip defualt topic and test connection call
                     await asyncio.sleep(RESUMIT_PERIOD)
-                    await self.write(cmd)
+                    await self.write(self,cmd)
             
         self.queue = []
 
@@ -257,7 +259,15 @@ class ROSWebSocketConn:
         # finally:
         #     RESTCB.set_result(data)  # Save result to Rest callback
         #     del futureCB[URL] # remove ros callback from dict
-            
+
+    def update_write_queue(self,msg):
+        for item in self.queue:    
+            if item == msg:  #Avoid duplicate message
+                logging.debug("Skip duplicate cmd: " + msg)
+                return    
+        
+        self.queue.append(msg) 
+                            
     async def write(self,msg):       
         global rws 
         global recoveryMode
@@ -276,17 +286,20 @@ class ROSWebSocketConn:
                 
                 if not hasattr(self,'queue'):
                     self.queue = []                    
-                self.queue.append(msg)        
+                self.update_write_queue(self,msg)
+                # self.queue.append(msg)        
                 
         elif not recoveryMode: # The rosbridge abnormal observe by recv_ros_message function
             self.queue = []
-            self.queue.append(msg)        
+            # self.queue.append(msg)        
+            self.update_write_queue(self,msg)
             print("#### RWS == None and not recoveryMode")
             await self.reconnect(self)
         else:  # already stay in recovery mode
             if not hasattr(self,'queue'):
                 self.queue = []
-            self.queue.append(msg)        
+            self.update_write_queue(self,msg)                
+            # self.queue.append(msg)        
 
     def clearROSConn():
         global checkingROSConn        
@@ -298,11 +311,11 @@ class ROSWebSocketConn:
                 rws = None
             print("Reconnect to rosbridge "+str(datetime.now()))
             logging.info("Clear ROS connection, trying to reconnect")
-            # nest_asyncio.apply()
+            nest_asyncio.apply()
             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.reconnect(ROSWebSocketConn)))
 
     def testROSConn():
-        # nest_asyncio.apply()
+        nest_asyncio.apply()
         msg = {"op":"call_service","id":"TestRestServiceCall","service": "/amcl/get_state","type":"lifecycle_msgs/srv/GetState"}
         asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.write(ROSWebSocketConn,json_encode(msg))))
                             
@@ -325,6 +338,7 @@ class ROSWebSocketConn:
             if checkingROSConn:
                 checkingROSConn = False
             data = json.loads(msg)
+            data['values'] = {"state":"","result":""}
             data['reason'] = ""
             if data['op'] == 'publish':
                 if showdebug:
@@ -350,7 +364,12 @@ class ROSWebSocketConn:
                         logging.debug(" <- Get mission")
                         try:
                             nest_asyncio.apply()
-                            asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(missionHandler.UpdateMissionStatus(missionHandler,msg)))
+                            # asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(missionHandler.UpdateMissionStatus(missionHandler,msg)))
+                            #asyncio.get_event_loop().run_coroutine_threadsafe()(missionHandler.UpdateMissionStatus(missionHandler,msg))
+                            
+                            TornadoScheduler.add_job(missionHandler.UpdateMissionStatus, run_date = datetime.now())
+                            global CacheMission
+                            CacheMission.update({"mission":msg}) 
                         except Exception as e:
                             print("## Publish mission fail: " + str(e))
                             logging.info("## Publish SSE fail"+str(datetime.now())+ "msg: "+ str(e) )   
@@ -379,6 +398,7 @@ class ROSWebSocketConn:
                             cbws.write_message(msg)
                             rosCmds.remove(data['id'])
                 data['values'] = {"state":"","result":""}
+                data['reason'] = ""
                 #send data back to REST client
                 cb = futureCB.get(data['id'])
                 if cb != None:
