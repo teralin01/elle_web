@@ -32,6 +32,7 @@ DEFAULT_MISSION = {
             "missions":[]} }
 
 ResendMission = None
+SKIP_DEFAULT_MISSION = True
 
 class MissionHandler:
     def __init__(self):     
@@ -114,7 +115,14 @@ class MissionHandler:
         missionList['msg']['mission_state'] = missionList['msg']['state']      
         missionList['msg']['actionPtr'] = -1
         missionList['msg']['action_state'] = -1       
+        
+        if SKIP_DEFAULT_MISSION:
+            IsDefault = False
+
         for iterator in missionList['msg']['missions']:
+            if SKIP_DEFAULT_MISSION and iterator['name'] == 'default':
+                IsDefault = True
+                break
             for act in iterator['actions']:
                 if act['type'] == 0:
                     act['coordinate']['x'] = round( act['coordinate']['x'],3)
@@ -174,6 +182,12 @@ class MissionHandler:
                         
             iterator['Total_ETA'] = round(Total_ETA)
         print( "AMR pose"+ str(missionList['AMCLPose']) + " Total time: " +  str(Total_ETA))
+       
+        if SKIP_DEFAULT_MISSION and IsDefault:
+            missionstr = DEFAULT_MISSION
+            missionstr['isReset'] = True
+            missionstr['backendMsg'] = "Default Mission exist, skip content"
+            return missionstr
         return missionList
         
     def EstimateArrivalTimeCaculator(self, mission, CallByEvent):
