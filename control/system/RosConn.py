@@ -95,13 +95,13 @@ class ROSWebSocketConn:
             if rws != None:
                 rws.close()
                 rws = None
-            cacheSubscribeData.clear()
+            # cacheSubscribeData.clear()
             
             await self.connect(self)  #only connect once even call reconnect multi times
         idx = 0
         while True:
             if rws != None: 
-                TornadoScheduler.add_job(missionHandler.ResetMissionStatus, run_date = datetime.now())
+                # TornadoScheduler.add_job(missionHandler.ResetMissionStatus, run_date = datetime.now())
                 if showdebug:
                     print("1: Submit predefined ROS command")
                 recoveryMode = False
@@ -352,13 +352,19 @@ class ROSWebSocketConn:
                 if browsers != None:               # Browser client exist
                     for cbws in ws_browser_clients:   # Iterate all browser clients
                         for bws in browsers:
-                            if str(cbws) == list(bws.keys())[0]:   # Find corresponding browser client
-                                cbws.write_message(msg) 
-                                topic_alive = True
+                            try:
+                                if len(list(bws.keys())) > 0 and str(cbws) == list(bws.keys())[0]:   # Find corresponding browser client
+                                    cbws.write_message(msg) 
+                                    topic_alive = True
+                            except Exception as e:
+                                logging.debug("ROS publish exception 1 "+ str(e))
                 #callback to REST client  
                 cb = futureCB.get(data['topic'])
                 if cb != None:
-                    cb.set_result(data)
+                    try:
+                        cb.set_result(data)
+                    except Exception as e:
+                        logging.debug("Ros publish exception 2 "+ str(e))
                     topic_alive = True
 
                 #unsubscribe this topic if no browser client or REST client found
@@ -390,15 +396,24 @@ class ROSWebSocketConn:
                 # print(data['service'] + " " + "id" + data['id'] + " result" + str(data['result']))   
                 #send data back to web socket browser client
                 logging.debug(data['service'] + " " + "id" + data['id'] + " result" + str(data['result']))
-                browser = rosCmds.get(data['id'])
-                if browser != None:  # id match in rosCmds
-                    for cbws in ws_browser_clients:
-                        if str(cbws) == browser[0] : #return to first matching browser client
-                            cbws.write_message(msg)
-                            rosCmds.remove(data['id'])
-                data['values'] = {"state":"","result":""}
-                data['reason'] = ""
-                #send data back to REST client
-                cb = futureCB.get(data['id'])
-                if cb != None:
-                    cb.set_result(data)
+                
+                #response to web socket client 
+                try:
+                    browser = rosCmds.get(data['id'])
+                    if browser != None:  # id match in rosCmds
+                        for cbws in ws_browser_clients:
+                            if len(browser) > 0 and str(cbws) == browser[0] : #return to first matching browser client
+                                cbws.write_message(msg)
+                                rosCmds.remove(data['id'])
+                except Exception as e:
+                    logging.debug("Service response error 1 "+ str(e))
+                else:
+                    data['values'] = {"state":"","result":""}
+                    data['reason'] = ""
+                    #send data back to REST client
+                    cb = futureCB.get(data['id'])
+                    if cb != None:
+                        try:
+                            cb.set_result(data)
+                        except Exception as e:
+                            logging.debug("Service response error 2 "+ str(e))

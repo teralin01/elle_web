@@ -96,7 +96,7 @@ class RESTHandler(tornado.web.RequestHandler):
 
         except Exception as e:
             self._status_code = 504
-            logging.debug("##### REST Default Error "+ self.URI + " "+ str(e))
+            logging.debug("## REST Default Error "+ self.URI + " "+ str(e) + " " + str(self.request.body))
             if None == serviceResult:
                 self.REST_response(TimeoutStr)
             else:

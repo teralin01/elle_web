@@ -34,6 +34,15 @@ DEFAULT_MISSION = {
 ResendMission = None
 SKIP_DEFAULT_MISSION = True
 
+BEITOU_2F = True
+Beitou_2F_Btn_State = {
+"remote1":{"icon_can_trigger":True, "ETA":0},
+"remote2":{"icon_can_trigger":True, "ETA":0},
+"remote3":{"icon_can_trigger":True, "ETA":0},
+"remote4":{"icon_can_trigger":True, "ETA":0},
+"elle":{"icon_can_trigger":False,"ETA":0},
+}
+
 class MissionHandler:
     def __init__(self):     
         self.mission = DEFAULT_MISSION
@@ -59,16 +68,14 @@ class MissionHandler:
             return False # mission is empty
         
         for iterator in missionList['msg']['missions']: 
-            logging.debug("## Name: "+ iterator['name'] )
-            canDupOnce = False
             if iterator['name'] == targetMissionName:                
-                if canDupOnce:
-                    canDupOnce = False
+                if "has_completed_wait_action" in iterator and iterator['has_completed_wait_action'] == 1 and targetMissionName == missionList['msg']['missions'][0]['name']:
+                    logging.debug("## Skip Name: "+ iterator['name'] )
                     continue
-                elif "has_completed_wait_action" in iterator and iterator['has_completed_wait_action'] == 1:
-                    canDupOnce = True
                 else:
-                    return True
+                    logging.debug("## Duplicate: "+ iterator['name'] )
+                    return True        
+        
         return False
         
     def SetMission():
@@ -119,10 +126,19 @@ class MissionHandler:
         if SKIP_DEFAULT_MISSION:
             IsDefault = False
 
+        if BEITOU_2F:
+            missionList['msg']['mission_state_icon'] = copy.deepcopy(Beitou_2F_Btn_State)
+
         for iterator in missionList['msg']['missions']:
             if SKIP_DEFAULT_MISSION and iterator['name'] == 'default':
                 IsDefault = True
+                logging.debug("Default mission exist: ===>")
+                logging.debug(iterator)
                 break
+            
+            if BEITOU_2F:
+                missionList['msg']['mission_state_icon'][iterator['name']]['icon_can_trigger'] = False
+                
             for act in iterator['actions']:
                 if act['type'] == 0:
                     act['coordinate']['x'] = round( act['coordinate']['x'],3)
@@ -135,16 +151,16 @@ class MissionHandler:
                     if 'station' in act:
                         del act['station']                   
                     
-                    if act['action_state'] == 1:
-                        missionList['msg']['actionPtr'] = act['type']
-                        missionList['msg']['action_state'] = 1                    
-                    
                     time = round( math.sqrt(((curPose['x']-act['coordinate']['x'])**2)+((curPose['y']-act['coordinate']['y'])**2) ) / AMR_SPEED)
-                    
+
                     if act['action_state'] <= 1:
                         Total_ETA = Total_ETA + time
                         act['ActETA'] = Total_ETA 
-                        curPose = act['coordinate'] # shift current position to new location            
+                        curPose = act['coordinate'] # shift current position to new location        
+                        
+                        if BEITOU_2F:
+                            missionList['msg']['mission_state_icon'][iterator['name']]['ETA'] = Total_ETA
+                            
                     elif act['action_state'] == 2:
                         act['ActETA'] = 0
                     else: # Abort
@@ -152,6 +168,10 @@ class MissionHandler:
                         act['ActETA'] = Total_ETA 
                         missionList['msg']['mission_state'] = -1
 
+                    if act['action_state'] == 1:
+                        missionList['msg']['actionPtr'] = act['type']
+                        missionList['msg']['action_state'] = 1                    
+                    
                 if act['type'] == 5:
                     if 'coordinate' in act:
                         del act['coordinate']
@@ -162,23 +182,36 @@ class MissionHandler:
                     if 'station' in act:
                         del act['station']
 
-                    if act['action_state'] == 1:
-                        missionList['msg']['actionPtr'] = act['type']
-                        missionList['msg']['action_state'] = 1   
 
                     if act['action_state'] <= 1:
                         Total_ETA = Total_ETA + WAIT_ETA
                         act['ActETA'] = Total_ETA
+
                     elif act['action_state'] == 2:
                         act['ActETA'] = 0                      
                     else:    # ERROR or abort
                         Total_ETA = Total_ETA + WAIT_ETA
                         act['ActETA'] = Total_ETA
                         missionList['msg']['mission_state'] = -1  
+
+                    if act['action_state'] == 0:
+                        if BEITOU_2F:
+                            pass
+                                
+                    if act['action_state'] == 1:
+                        missionList['msg']['actionPtr'] = act['type']
+                        missionList['msg']['action_state'] = 1   
                         
+                        if BEITOU_2F:
+                            missionList['msg']['mission_state_icon']['elle']['icon_can_trigger'] = True
+
                     #Check duplicate mission, if the wait action state becomes 2 more then one time, then enable
                     if act['action_state'] > 1:
                         iterator['has_completed_wait_action'] = 1  
+                        
+                        if BEITOU_2F:
+                            missionList['msg']['mission_state_icon'][iterator['name']]['icon_can_trigger'] = True
+
                         
             iterator['Total_ETA'] = round(Total_ETA)
         print( "AMR pose"+ str(missionList['AMCLPose']) + " Total time: " +  str(Total_ETA))
@@ -188,6 +221,7 @@ class MissionHandler:
             missionstr['isReset'] = True
             missionstr['backendMsg'] = "Default Mission exist, skip content"
             return missionstr
+
         return missionList
         
     def EstimateArrivalTimeCaculator(self, mission, CallByEvent):
