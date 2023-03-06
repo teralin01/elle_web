@@ -10,6 +10,8 @@ from control import statusController
 from control import mapController
 from control import missionController
 from control import EventController
+from control.system.logger import Logger
+logging = Logger("TornadoLogger")
 
 class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
     def set_extra_headers(self, path):
@@ -53,11 +55,11 @@ class Application(tornado.web.Application):
         ]
         super(Application,self).__init__(handlers,**config.settings )
         
-        print("Tornado Server start at " + str(datetime.datetime.now()))
+        logging.debug("Tornado Server start at " + str(datetime.datetime.now()))
 
         try:            
             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSConn.reconnect(ROSConn)))
         except Exception as e:
-            print("## Init rosbridge " + str(e))        
+            logging.debug("## Init rosbridge " + str(e))        
         missionHandler()
      

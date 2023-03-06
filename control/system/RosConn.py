@@ -4,7 +4,6 @@ import config
 import json
 import asyncio
 import os
-import logging
 import time
 import nest_asyncio
 from tornado.escape import json_encode
@@ -16,6 +15,8 @@ from control.system.MissionHandler import MissionHandler as missionHandler
 from control.system.CacheData import scheduler as TornadoScheduler
 from control.system.CacheData import cacheSubscribeData
 from control.system.CacheData import cacheMission as CacheMission
+from control.system.logger import Logger
+logging = Logger("TornadoLogger")
 subCmds = SubscribeCommands()
 rosCmds = ROSCommands()
 topictable = SubscribeTypes()

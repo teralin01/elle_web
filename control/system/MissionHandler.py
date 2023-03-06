@@ -11,7 +11,8 @@ import math
 import json
 import copy
 import nest_asyncio
-import logging
+from control.system.logger import Logger
+logging = Logger("TornadoLogger")
 
 NOTIFY_CLIENT_DURATION = 15
 AMR_SPEED = 0.2
@@ -49,7 +50,7 @@ class MissionHandler:
         eventModel.InitCollection()
         TornadoScheduler.add_job(self.ActiveSendETA, 'interval', seconds = NOTIFY_CLIENT_DURATION)
         logging.debug("Start Mission ActiveSendETA")
-        logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING)
+        # logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING)
         TornadoScheduler.start()                
 
     def GetMission(self):

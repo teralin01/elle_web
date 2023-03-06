@@ -1,6 +1,5 @@
 import tornado.web
 import tornado.ioloop
-import logging
 import config
 import time
 from dataModel.AuthModel import AuthDB
@@ -19,14 +18,13 @@ import asyncio
 from asyncio import Future
 import json
 import pynmcli
+from control.system.logger import Logger
+logging = Logger("TornadoLogger")
 
 cacheRESTData = dict()
 TimeoutStr = {"result":False}
 restTimeoutPeriod = 10
 restCachePeriod = 5
-
-logging.basicConfig(filename='/var/log/tornado.log', level=logging.DEBUG)
-logging.basicConfig(format='%(asctime)s %(message)s')
 
 #TODO user authenication
 # class BaseHandler(tornado.web.RequestHandler):
