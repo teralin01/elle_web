@@ -15,7 +15,7 @@ class Logger(logging.Logger):
         if not len(logger.handlers):
             logger.propagate = False   
             logger.setLevel(logging.DEBUG)
-            logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+            logFormatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s] %(message)s")
             fileHandler = logging.FileHandler("{0}/{1}.log".format(LOGGER_FILDER,LOGGER_NAME ))
             fileHandler.setFormatter(logFormatter)
             handlers.RotatingFileHandler(LOGGER_NAME, maxBytes=int(LOG_FILE_MAX_SIZE), backupCount=7)

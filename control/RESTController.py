@@ -69,16 +69,13 @@ class RESTHandler(tornado.web.RequestHandler):
 
     async def ROS_service_handler(self,calldata,serviceResult):
         serviceFuture = Future()         
-        
-        uniqueURI = self.URI+str(datetime.timestamp(datetime.now()))
+        uniqueURI = self.URI + "_"+ str(datetime.timestamp(datetime.now()))
         logging.debug("Service call ID "+uniqueURI)
+        calldata['id'] = uniqueURI
         try:                    
             await asyncio.wait_for( ROSConn.prepare_serviceCall_to_ROS(ROSConn,serviceFuture,uniqueURI,calldata) , timeout = restTimeoutPeriod)
-            logging.debug("Service call response")
             data = serviceFuture.result()
-            
 
-            
             if None == serviceResult:
                 self.cacheHit = True  # The result of ROS2 Service call is no need to cache
                 self.REST_response(data)
@@ -205,6 +202,7 @@ class RESTHandler(tornado.web.RequestHandler):
             else:
                 self.cacheHit = True
                 resStr = {"op": "service_response", "service": "/mission_control/trigger_button", "values": {"state":""}, "result": False,"reason": "Not allow to trigger button now.", "id": "/1.0/missions/release_wait_state"}
+                logging.debug("Release wait is not allow to trigger")
                 self.REST_response(resStr)
 
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':
