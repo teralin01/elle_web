@@ -11,7 +11,7 @@ from control import mapController
 from control import missionController
 from control import EventController
 from control.system.logger import Logger
-logging = Logger("TornadoLogger")
+logging = Logger()
 
 class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
     def set_extra_headers(self, path):

@@ -20,7 +20,7 @@ from asyncio import Future
 import json
 import pynmcli
 from control.system.logger import Logger
-logging = Logger("TornadoLogger")
+logging = Logger()
 
 cacheRESTData = dict()
 TimeoutStr = {"result":False}
@@ -73,7 +73,7 @@ class RESTHandler(tornado.web.RequestHandler):
         ## TODO add ramdon number for URL to generate unique ID
         
         uniqueURI = self.URI+str(datetime.timestamp(datetime.now()))
-        logging("Service call ID "+uniqueURI)
+        logging.debug("Service call ID "+uniqueURI)
         try:                    
             await asyncio.wait_for( ROSConn.prepare_serviceCall_to_ROS(ROSConn,serviceFuture,uniqueURI,calldata) , timeout = restTimeoutPeriod)
             data = serviceFuture.result()

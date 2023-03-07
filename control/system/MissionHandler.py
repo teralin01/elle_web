@@ -12,7 +12,7 @@ import json
 import copy
 import nest_asyncio
 from control.system.logger import Logger
-logging = Logger("TornadoLogger")
+logging = Logger()
 
 NOTIFY_CLIENT_DURATION = 15
 AMR_SPEED = 0.2
