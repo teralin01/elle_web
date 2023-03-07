@@ -5,7 +5,7 @@ import json
 from time import time 
 from control.system.CacheData import cacheSubscribeData as cacheSub
 from control.system.logger import Logger
-logging = Logger("TornadoLogger")
+logging = Logger()
 browser_clients = set()
 
 class SSEHandler(tornado.web.RequestHandler):

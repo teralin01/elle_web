@@ -16,7 +16,7 @@ from control.system.CacheData import scheduler as TornadoScheduler
 from control.system.CacheData import cacheSubscribeData
 from control.system.CacheData import cacheMission as CacheMission
 from control.system.logger import Logger
-logging = Logger("TornadoLogger")
+logging = Logger()
 subCmds = SubscribeCommands()
 rosCmds = ROSCommands()
 topictable = SubscribeTypes()
