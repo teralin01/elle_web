@@ -347,7 +347,7 @@ class ROSWebSocketConn:
             if data['op'] == 'publish':
                 if showdebug:
                     print(" <- topic: "+ data['topic'])
-                    logging.debug(" <- topic: "+ data['topic'])
+                    # logging.debug(" <- topic: "+ data['topic'])
                 browsers = subCmds.get(data['topic'])
                 topic_alive = None
                 if browsers != None:               # Browser client exist
@@ -407,7 +407,7 @@ class ROSWebSocketConn:
                                 cbws.write_message(msg)
                                 rosCmds.remove(data['id'])
                 except Exception as e:
-                    logging.debug("Service response error 1 "+ str(e))
+                    logging.info("Service response error 1 "+ str(e))
                 else:
                     data['values'] = {"state":"","result":""}
                     data['reason'] = ""
@@ -415,6 +415,7 @@ class ROSWebSocketConn:
                     cb = futureCB.get(data['id'])
                     if cb != None:
                         try:
+                            logging.info("## Service response for: "+ str(data['id'] ))
                             cb.set_result(data)
                         except Exception as e:
-                            logging.debug("Service response error 2 "+ str(e))
+                            logging.info("Service response error 2 "+ str(e))
