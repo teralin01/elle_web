@@ -2,6 +2,7 @@ import tornado.web
 import tornado.ioloop
 import config
 import time
+from datetime import datetime
 from dataModel.AuthModel import AuthDB
 from datetime import datetime
 from jsonschema import validate
@@ -68,8 +69,13 @@ class RESTHandler(tornado.web.RequestHandler):
 
     async def ROS_service_handler(self,calldata,serviceResult):
         serviceFuture = Future()         
+        
+        ## TODO add ramdon number for URL to generate unique ID
+        
+        uniqueURI = self.URI+str(datetime.timestamp(datetime.now()))
+        logging("Service call ID "+uniqueURI)
         try:                    
-            await asyncio.wait_for( ROSConn.prepare_serviceCall_to_ROS(ROSConn,serviceFuture,self.URI,calldata) , timeout = restTimeoutPeriod)
+            await asyncio.wait_for( ROSConn.prepare_serviceCall_to_ROS(ROSConn,serviceFuture,uniqueURI,calldata) , timeout = restTimeoutPeriod)
             data = serviceFuture.result()
             
             # if hasattr(data,"result"):
@@ -172,8 +178,11 @@ class RESTHandler(tornado.web.RequestHandler):
         if self._status_code == 200:
             if data != None and not self.cacheHit:
                 cacheRESTData.update({self.URI:{'cacheData':data,'lastUpdateTime':datetime.now()}})
-        self.write(data)
-        self.finish()       
+        try:
+            self.write(data)
+            self.finish()       
+        except Exception as e:
+            logging.info("REST Response Error %s",str(e))
 
     def CheckMissionIsUpdated(self,pubMission,existMissions):
         for mission in existMissions['msg']['missions']:
