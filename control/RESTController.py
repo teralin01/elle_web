@@ -9,6 +9,7 @@ from jsonschema import validate
 from control.system.RosConn import ROSWebSocketConn as ROSConn
 from control.system.CacheData import cacheSubscribeData as cacheSub
 from control.system.MissionHandler import MissionHandler as MissionCache
+from control.system.HttpResponse import HTTP_Response
 from control.system.HWStatus import HWInfoHandler as HWInfo
 from control.system.jsonValidatorSchema import missionSchema
 from dataModel import eventModel
@@ -83,7 +84,7 @@ class RESTHandler(tornado.web.RequestHandler):
                 serviceResult.set_result(data)        
 
         except asyncio.TimeoutError:
-            self._status_code = 504
+            self._status_code = HTTP_Response.get("408 Request Timeout")
             logging.debug("##### REST Timeout "+ self.URI)
             ROSConn.clear_serviceCall(self.URI)
             await ROSConn.reconnect(ROSConn)
@@ -93,7 +94,7 @@ class RESTHandler(tornado.web.RequestHandler):
                 return False
 
         except Exception as e:
-            self._status_code = 504
+            self._status_code = HTTP_Response.get("408 Request Timeout")
             logging.debug("## REST Default Error "+ self.URI + " "+ str(e) + " " + str(self.request.body))
             if None == serviceResult:
                 self.REST_response(TimeoutStr)
@@ -169,7 +170,7 @@ class RESTHandler(tornado.web.RequestHandler):
 
     def REST_response(self,data):
         # Todo add log if necessary
-        if self._status_code == 200:
+        if self._status_code == HTTP_Response.get("200 OK"):
             if data != None and not self.cacheHit:
                 cacheRESTData.update({self.URI:{'cacheData':data,'lastUpdateTime':datetime.now()}})
         try:
@@ -188,7 +189,7 @@ class RESTHandler(tornado.web.RequestHandler):
         return False
     
     async def get(self,*args):
-        self._status_code = 200
+        self._status_code = HTTP_Response.get("201 Created")
         if self.cacheHit:
             logging.debug("Return cache data")
             self.REST_response(cacheRESTData.get(self.URI)['cacheData'])     
@@ -210,14 +211,14 @@ class RESTHandler(tornado.web.RequestHandler):
             subdata = cacheSub.get('mission_control/states')
             if subdata != None:
                 if subdata['data'] == None:
-                    self._status_code = 201
+                    self._status_code = HTTP_Response.get("204 No Content")
                     self.REST_response({"result":False,"errno":102,"info":"Current cached date is None"})         
                 else:
                     self.cacheHit = True
                     cacheRESTData.update({self.URI:{'cacheData':subdata,'lastUpdateTime':datetime.now()}})
                 self.REST_response(subdata['data'])
             else:
-                self._status_code = 201
+                self._status_code = HTTP_Response.get("204 No Content")
                 self.REST_response({"result":False,"errno":101,"info":"Backend have never receieve mission data"})     
             # subscribeMsg = {"op":"subscribe","id":"RestTopics","topic": "/mission_control/states","type":"elle_interfaces/msg/MissionControlMissionArray"}
             # await self.ROS_subscribe_handler(subscribeMsg,None,True)
@@ -285,7 +286,7 @@ class RESTHandler(tornado.web.RequestHandler):
             
             
     async def post(self,*args):
-        self._status_code = 201 # 201 means REST resource Created
+        self._status_code = HTTP_Response.get("201 Created")
         errRet = None
         try:
             data = json_decode(self.request.body)
@@ -295,7 +296,7 @@ class RESTHandler(tornado.web.RequestHandler):
         except:            
             print(errRet)
             logging.warn(errRet)
-            self._status_code = 400 #Bad Request
+            self._status_code = HTTP_Response.get("422 Unprocessable Content")
             self.REST_response({'result':False})
             return
             
@@ -305,7 +306,7 @@ class RESTHandler(tornado.web.RequestHandler):
             except:
                 print(errRet)
                 logging.warn(errRet)
-                self._status_code = 400 #Bad Request
+                self._status_code = HTTP_Response.get("422 Unprocessable Content")
                 self.REST_response({'result':False})
                 return
             
@@ -322,7 +323,7 @@ class RESTHandler(tornado.web.RequestHandler):
             except:
                 print(errRet)
                 logging.warn(errRet)
-                self._status_code = 400 #Bad Request
+                self._status_code = HTTP_Response.get("422 Unprocessable Content")
                 self.REST_response({'result':False})
                 return
                         
@@ -430,7 +431,7 @@ class RESTHandler(tornado.web.RequestHandler):
             
 
     async def delete(self,*args):
-        self._status_code = 201 # 201 means REST resource Created
+        self._status_code = HTTP_Response.get("201 Created")
         errRet = None
         try:
             data = json_decode(self.request.body)
@@ -440,7 +441,7 @@ class RESTHandler(tornado.web.RequestHandler):
         except:            
             print(errRet)
             logging.warn(errRet)
-            self._status_code = 400 #Bad Request
+            self._status_code = HTTP_Response.get("400 Bad Request")
             self.REST_response({'result':False})
             return        
         
@@ -452,13 +453,13 @@ class RESTHandler(tornado.web.RequestHandler):
         await self.post(self,*args)
         pass
     async def put(self,*args):
-        self._status_code = 201 # 201 means REST resource Created
+        self._status_code = HTTP_Response.get("201 Created")
         try:
             data = json_decode(self.request.body)
         except:            
-            self._status_code = 400 #Bad Request
+            self._status_code = HTTP_Response.get("400 Bad Request")
             
-        if self._status_code != 201:
+        if self._status_code != HTTP_Response.get("201 Created"):
             self.REST_response({'result':False})
         elif self.URI == '/1.0/missions/predefined_mission':   
             if MissionCache.IsMissionDuplication(MissionCache,data['remote_number']):

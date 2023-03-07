@@ -415,7 +415,6 @@ class ROSWebSocketConn:
                     cb = futureCB.get(data['id'])
                     if cb != None:
                         try:
-                            logging.info("## Service response for: "+ str(data['id'] ))
                             cb.set_result(data)
                         except Exception as e:
                             logging.info("Service response error 2 "+ str(e))
