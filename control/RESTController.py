@@ -70,17 +70,14 @@ class RESTHandler(tornado.web.RequestHandler):
     async def ROS_service_handler(self,calldata,serviceResult):
         serviceFuture = Future()         
         
-        ## TODO add ramdon number for URL to generate unique ID
-        
         uniqueURI = self.URI+str(datetime.timestamp(datetime.now()))
         logging.debug("Service call ID "+uniqueURI)
         try:                    
             await asyncio.wait_for( ROSConn.prepare_serviceCall_to_ROS(ROSConn,serviceFuture,uniqueURI,calldata) , timeout = restTimeoutPeriod)
+            logging.debug("Service call response")
             data = serviceFuture.result()
             
-            # if hasattr(data,"result"):
-            #     if data['result'] == False:
-            #         await ROSConn.reconnect(ROSConn)
+
             
             if None == serviceResult:
                 self.cacheHit = True  # The result of ROS2 Service call is no need to cache
