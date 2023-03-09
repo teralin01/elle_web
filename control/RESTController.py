@@ -23,7 +23,7 @@ import pynmcli
 from control.system.logger import Logger
 logging = Logger()
 
-cacheRESTData = dict()
+# cacheRESTData = dict()
 TimeoutStr = {"result":False}
 restTimeoutPeriod = 10
 restCachePeriod = 5
@@ -38,15 +38,15 @@ class RESTHandler(tornado.web.RequestHandler):
     def initialize(self):
         self.cacheHit = False
         self.future = asyncio.get_running_loop().create_future()
+        self.cacheRESTData = dict()
         global ROSConn
-        global cacheRESTData
         global cacheSub
 
     def prepare(self):
         self.URI = self.request.path
-        cache = cacheRESTData.get(self.URI)
+        cache = self.cacheRESTData.get(self.URI)
         if cache == None:
-            cacheRESTData.update({self.URI:{'cacheData':None,'lastUpdateTime':datetime.now()}})
+            self.cacheRESTData.update({self.URI:{'cacheData':None,'lastUpdateTime':datetime.now()}})
         elif (datetime.now() - cache['lastUpdateTime']).seconds < restCachePeriod and cache['cacheData'] != None:
             self.cacheHit = True
 
@@ -172,7 +172,7 @@ class RESTHandler(tornado.web.RequestHandler):
         # Todo add log if necessary
         if self._status_code == HTTPStatus.OK.value:
             if data != None and not self.cacheHit:
-                cacheRESTData.update({self.URI:{'cacheData':data,'lastUpdateTime':datetime.now()}})
+                self.cacheRESTData.update({self.URI:{'cacheData':data,'lastUpdateTime':datetime.now()}})
         try:
             self.write(data)
             self.finish()       
@@ -192,7 +192,7 @@ class RESTHandler(tornado.web.RequestHandler):
         self._status_code = HTTPStatus.CREATED.value
         if self.cacheHit:
             logging.debug("Return cache data")
-            self.REST_response(cacheRESTData.get(self.URI)['cacheData'])     
+            self.REST_response(self.cacheRESTData.get(self.URI)['cacheData'])     
 
         elif self.URI == '/1.0/missions/release_wait_state':
             # Check mission stage 
@@ -215,7 +215,7 @@ class RESTHandler(tornado.web.RequestHandler):
                     self.REST_response({"result":False,"errno":102,"info":"Current cached date is None"})         
                 else:
                     self.cacheHit = True
-                    cacheRESTData.update({self.URI:{'cacheData':subdata,'lastUpdateTime':datetime.now()}})
+                    self.cacheRESTData.update({self.URI:{'cacheData':subdata,'lastUpdateTime':datetime.now()}})
                 self.REST_response(subdata['data'])
             else:
                 self._status_code = HTTPStatus.NO_CONTENT.value 
@@ -405,7 +405,7 @@ class RESTHandler(tornado.web.RequestHandler):
                 self.REST_response(defaultStr)
             else:                 
                 eventModel.SaveMissionAct({"status":"success","action":data['remote_number'],"timestamp": datetime.now().strftime("%m/%d/%Y, %H:%M:%S")})
-                callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlStationCall remote_number",'service': "/mission_control/station_call",'args': {'remote_number':int(data['remote_number'])} }
+                callData = {'id':self.URI, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlStationCall",'service': "/mission_control/station_call",'args': {'remote_number':int(data['remote_number'])} }
                 await self.ROS_service_handler(callData,None)        
         elif self.URI == '/1.0/missions' or self.URI == '/1.0/missions/':  #start/stop mission
             mission = MissionCache.GetMission(MissionCache)
