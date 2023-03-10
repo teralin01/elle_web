@@ -1,9 +1,10 @@
-import tornado.web
-import tornado.ioloop
-
+from control.system.TornadoExtension import BaseHandler
 from control.system.RosMap import RosMap as ROSMAP
 
-class RESTHandler(tornado.web.RequestHandler):
+class RESTHandler(BaseHandler):
+    def __init__(self, *args, **kwargs):
+        super(BaseHandler,self).__init__(*args, **kwargs)
+    
     def initialize(self):
         pass
     
