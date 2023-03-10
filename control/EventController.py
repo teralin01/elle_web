@@ -1,13 +1,14 @@
+import config
 from time import time 
 from control.system.CacheData import cacheSubscribeData as cacheSub
-from control.system.TornadoExtension import BaseHandler
+from control.system.TornadoBaseHandler import TornadoBaseHandler
 from control.system.logger import Logger
 logging = Logger()
 browser_clients = set()
 
-class SSEHandler(BaseHandler):
+class SSEHandler(TornadoBaseHandler):   
     def __init__(self, *args, **kwargs):
-        super(BaseHandler,self).__init__(*args, **kwargs)
+        super(TornadoBaseHandler,self).__init__(*args, **kwargs)
     
     def initialize(self):
         self._status_code = 200
@@ -25,8 +26,18 @@ class SSEHandler(BaseHandler):
         self.set_header('Content-Type', 'text/event-stream')
         self.set_header('cache-control', 'no-cache')
         self.set_header('Connection', 'keep-alive')
-        # if config.settings['debug'] == True:
-        #     self.set_dev_cors_headers()
+
+        if config.settings['debug'] == True:
+            self.set_dev_cors_headers()
+        
+    def set_dev_cors_headers(self):
+        origin = self.request.headers.get('Origin', '*') # use current requesting origin
+        self.set_header("Access-Control-Allow-Origin", origin)
+        self.set_header("Access-Control-Allow-Headers", "*, content-type, authorization, x-requested-with, x-xsrftoken, x-csrftoken")
+        self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, DELETE, PUT, PATCH')
+        self.set_header('Access-Control-Expose-Headers', 'content-type, location, *, set-cookie')
+        self.set_header('Access-Control-Request-Headers', '*')
+        self.set_header('Access-Control-Allow-Credentials', 'true')
 
     def on_finish(self):
         print("#### RESTful Client disconnected at " + str(time())+ " => "+ str(self)+ " " + self.request.path + " client count:"+ str(len(browser_clients)) )

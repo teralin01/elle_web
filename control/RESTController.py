@@ -3,7 +3,7 @@ from dataModel.AuthModel import AuthDB
 from datetime import datetime
 from jsonschema import validate
 import config
-from control.system.RosConn import ROSWebSocketConn as ROSConn
+# from control.system.RosConn import ROSWebSocketConn as ROSConn
 from control.system.CacheData import cacheSubscribeData as cacheSub
 from control.system.MissionHandler import MissionHandler as MissionCache
 from http import HTTPStatus   #Refer to https://docs.python.org/3/library/http.html
@@ -17,28 +17,19 @@ import asyncio
 from asyncio import Future
 import json
 import pynmcli
-from control.system.TornadoExtension import BaseHandler
+from control.system.TornadoROSHandler import TornadoROSHandler
 from control.system.logger import Logger
 logging = Logger()
 
-restCachePeriod = 5
-
-#TODO user authenication
-# class BaseHandler(tornado.web.RequestHandler):
-#     def get_current_user(self):
-#         return self.get_secure_cookie("user")     
-          
-# class RESTHandler(BaseHandler):
-# class RESTHandler(tornado.web.RequestHandler):
-class RESTHandler(BaseHandler):
+class RESTHandler(TornadoROSHandler):
     def __init__(self, *args, **kwargs):
-        super(BaseHandler,self).__init__(*args, **kwargs)
+        super(TornadoROSHandler,self).__init__(*args, **kwargs)
         
     def initialize(self):
         self.cacheHit = False
         self.future = asyncio.get_running_loop().create_future()
         self.cacheRESTData = dict()
-        global ROSConn
+        self.restCachePeriod = 5
         global cacheSub
 
     def prepare(self):
@@ -46,7 +37,7 @@ class RESTHandler(BaseHandler):
         cache = self.cacheRESTData.get(self.URI)
         if cache == None:
             self.cacheRESTData.update({self.URI:{'cacheData':None,'lastUpdateTime':datetime.now()}})
-        elif (datetime.now() - cache['lastUpdateTime']).seconds < restCachePeriod and cache['cacheData'] != None:
+        elif (datetime.now() - cache['lastUpdateTime']).seconds < self.restCachePeriod and cache['cacheData'] != None:
             self.cacheHit = True
 
         if config.settings['hostIP'] == "":

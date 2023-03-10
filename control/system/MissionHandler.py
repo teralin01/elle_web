@@ -1,7 +1,7 @@
-from control.EventController import SSEHandler as EventHandler
 from control.system.CacheData import cacheSubscribeData as cacheSub
 from control.system.CacheData import scheduler as TornadoScheduler
 from control.system.CacheData import cacheMission as CacheMission
+from control.EventController import SSEHandler as EventHandler
 from dataModel import eventModel
 from datetime import datetime
 from time import time 
