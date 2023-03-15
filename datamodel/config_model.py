@@ -1,10 +1,11 @@
 import json
+import logging
 from bson import json_util
-from dataModel.MongoDBQuery import MongoDB
+from datamodel.mongoDB_query import MongoDB
 
 def SetUserConfig(data):
     try:
-        print(data)
+        logging.debug(data)
         dbinstance = MongoDB("elle")
         dbinstance.upsert("config",{"name":data["name"]},{'$set':{"data":data["data"]}})
         return {"result":True}
@@ -15,7 +16,7 @@ def GetViewerConfig():
     try:
         dbinstance = MongoDB("elle")
         ret = dbinstance.get_data("config")
-        print(ret)
+        logging.debug(ret)
         if ret == None:
             return {"result": False, "reason": "no data found"}
         return json.loads(json_util.dumps(ret))
@@ -38,13 +39,11 @@ Config example:
    }
 }
 '''
-    
-    
 def GetSingleUserConfig(user):
     try:
         dbinstance = MongoDB("elle")
         result = json.loads( json_util.dumps(dbinstance.get_single_data("config",{'name':user})) )
-        print(result)
+        logging.debug(result)
         if result == None:
             return {"result": False, "reason": "no data found"}
         elif user != None:

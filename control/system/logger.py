@@ -1,39 +1,29 @@
 import logging
-from logging import DEBUG, INFO, ERROR, WARN
-from logging import handlers
-from sys import stdout
 
 LOGGER_FILDER = "/var/log/tornado/"
 LOGGER_NAME = "tornado"
-LOG_FILE_MAX_SIZE = 10485760 #10MB
 
-class Logger(logging.Logger):
-    def __init__(self):
-        logger = logging.getLogger(LOGGER_NAME)
-        self.logger = logger  
+class Logger:
+    _instance = None
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
         
-        if not len(logger.handlers):
-            logger.propagate = False   
-            logger.setLevel(logging.DEBUG)
-            logFormatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s] %(message)s")
-            fileHandler = logging.FileHandler("{0}/{1}.log".format(LOGGER_FILDER,LOGGER_NAME ))
-            fileHandler.setFormatter(logFormatter)
-            handlers.RotatingFileHandler(LOGGER_NAME, maxBytes=int(LOG_FILE_MAX_SIZE), backupCount=7)
-            logger.addHandler(fileHandler)
+    def __init__(self):
+        logger = logging.getLogger()
+        logger.setLevel(logging.DEBUG)
+        formatter = logging.Formatter(
+            '[%(levelname)1.1s %(asctime)s %(filename)s %(module)s:%(lineno)d] %(message)s',
+            datefmt='%Y%m%d %H:%M:%S')
 
-            consoleHandler = logging.StreamHandler(stdout)
-            consoleHandler.setFormatter(logFormatter)
-            logger.addHandler(consoleHandler)
-               
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.DEBUG)
+        ch.setFormatter(formatter)
 
-    def info(self, msg, extra=None):
-        self.logger.info(msg, extra=extra)
+        fh = logging.FileHandler(LOGGER_FILDER+LOGGER_NAME+".log")
+        fh.setLevel(logging.DEBUG)
+        fh.setFormatter(formatter)
 
-    def error(self, msg, extra=None):
-        self.logger.error(msg, extra=extra)
-
-    def debug(self, msg, extra=None):
-        self.logger.debug(msg, extra=extra)
-
-    def warn(self, msg, extra=None):
-        self.logger.warn(msg, extra=extra)        
+        logger.addHandler(ch)
+        logger.addHandler(fh)

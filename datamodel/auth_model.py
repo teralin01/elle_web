@@ -1,5 +1,4 @@
-import tornado.web
-from dataModel.MongoDBQuery import MongoDB
+from datamodel.mongoDB_query import MongoDB
 
 
 def AuthDB(account, password):
@@ -7,13 +6,10 @@ def AuthDB(account, password):
     query = {"username": account}
 
     ret = dbinstance.get_single_data("account",query)
-    
-    if(ret == None):
+
+    if(ret is None):
         return 1  # user not found
     if(ret.get('password') != password):
         return 2  # password not match
     return 0 #success
-
-    
-
 

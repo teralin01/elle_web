@@ -1,5 +1,5 @@
 from apscheduler.schedulers.tornado import TornadoScheduler
 
-cacheSubscribeData = dict()
-scheduler = TornadoScheduler()
+cache_subscribe_data = dict()
 cacheMission = dict()
+scheduler = TornadoScheduler()

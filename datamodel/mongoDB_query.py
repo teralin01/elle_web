@@ -1,13 +1,12 @@
+import pymongo
 import config
 
 class MongoDB():
     """docstring for myclass."""
-    def __init__(self,mydb_Name):
-        #連接本地端mongoDB
-        import pymongo
+    def __init__(self,mydb_name):
         self.myclient = pymongo.MongoClient("mongodb://"+config.settings['db_admin_username']+":"+config.settings['db_admin_password']+"@localhost:27017/db_name?authSource=admin")
         #設mydb繼承myclient[mydb_Name]的屬性。
-        self.mydb = self.myclient[mydb_Name]
+        self.mydb = self.myclient[mydb_name]
         #你的collection名稱
 
     def create_log_collection(self,collection, maxsize,maxnum):

@@ -1,4 +1,4 @@
-missionSchema = {
+mission_schema = {
     "definitions":
     {
         "missionEntry":
@@ -9,7 +9,7 @@ missionSchema = {
                     "type":"integer",
                     "minimum": 0,
                     "maximum": 5,
-                },  
+                },
                 "coordinate":{
                     "type":"object",
                     "properties": {
@@ -45,11 +45,9 @@ missionSchema = {
             "properties": {
                 "overwrite_current_mission":{
                     "type":"boolean"
-                    
                  },
                 "set_as_default_mission":{
                     "type":"boolean"
-                    
                  },
                 "first":{
                     "type":"integer",
@@ -67,7 +65,7 @@ missionSchema = {
                     "type":"array",
                     "minItems": 1,
                     "items": { "$ref": "#/definitions/missionEntry" }      
-                 },                                                                
+                 },
              },
             "required":["overwrite_current_mission","set_as_default_mission","first","repeats","actions"]
         }

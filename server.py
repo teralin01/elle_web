@@ -7,7 +7,7 @@ from application import Application
 
 
 if __name__ == "__main__":
-     if config.settings['debug'] == True:
+     if config.settings['debug'] is True:
           debugpy.listen(("0.0.0.0", 5678))
           debugpy.breakpoint()
      app = Application()

@@ -1,17 +1,15 @@
-import tornado.web
 import os
-import config
-import asyncio
 import datetime
-from control import RESTController, SystemController,mainController, wsController
-from control.system.RosConn import ROSWebSocketConn as ROSConn
-from control.system.MissionHandler import MissionHandler as missionHandler
-from control import statusController
-from control import mapController
-from control import missionController
-from control import EventController
+import asyncio
+import logging
+import tornado.web
+import config
+from control import controller_main, controller_rest, controller_system,controller_websocket
+from control.system.ros_connection import ROSWebSocketConn as ROSConn
+from control.system.mission_handler import MissionHandler as missionHandler
+from control import controller_event
 from control.system.logger import Logger
-logging = Logger()
+logger_init = Logger()
 
 class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
     def set_extra_headers(self, path):
@@ -24,42 +22,35 @@ class DefaultFileFallbackHandler(tornado.web.StaticFileHandler):
         except tornado.web.HTTPError:
             root = os.path.abspath(root)
             absolute_path = os.path.join(root, self.default_filename)
-        return absolute_path   
+        return absolute_path
 class Application(tornado.web.Application):
     def __init__(self):
         handlers = [
-            (r"/ws", wsController.RosWebSocketHandler), 
-            (r"/1.0/missions",RESTController.RESTHandler),
-            (r"/1.0/missions/(.*)",RESTController.RESTHandler),
-            (r"/1.0/maps",RESTController.RESTHandler),
-            (r"/1.0/maps/(.*)",RESTController.RESTHandler),   
-            (r"/1.0/map/(.*)",SystemController.RESTHandler),
-            (r"/1.0/nav",RESTController.RESTHandler),
-            (r"/1.0/nav/(.*)",RESTController.RESTHandler),            
-            (r"/1.0/network",RESTController.RESTHandler),
-            (r"/1.0/network/(.*)",RESTController.RESTHandler),                   
-            (r"/1.0/status/(.*)",RESTController.RESTHandler),                     
-            (r"/1.0/config/(.*)",RESTController.RESTHandler),     
-            (r"/1.0/ros/(.*)",RESTController.RESTHandler),   
-            (r"/1.0/event",EventController.SSEHandler),   
-            (r'/login',mainController.LoginHandler),
-            (r'/logout',mainController.LogoutHandler),
-            # (r"/control/HardwareStatus", statusController.HWInfoHandler),
-            # (r"/control/missionController", missionController.InitHandler),
-            # (r"/control/mapController", mapController.InitHandler),
-            # (r'/view/dashboard/(.*)',tornado.web.StaticFileHandler,{"path":"view/dashboard/"}),
-            # (r'/view/(.*)',tornado.web.StaticFileHandler,{"path":"view"}),
-            #(r'/static/(.*)',tornado.web.StaticFileHandler,{"path":os.path.join(config.BASE_DIRS,"static_path")}), 
-            (r'/static/(.*)',NoCacheStaticFileHandler,{"path":os.path.join(config.BASE_DIRS,"static_path")}), 
+            (r"/ws", controller_websocket.RosWebSocketHandler),
+            (r"/1.0/missions",controller_rest.RESTHandler),
+            (r"/1.0/missions/(.*)",controller_rest.RESTHandler),
+            (r"/1.0/maps",controller_rest.RESTHandler),
+            (r"/1.0/maps/(.*)",controller_rest.RESTHandler),
+            (r"/1.0/map/(.*)",controller_system.RESTHandler),
+            (r"/1.0/nav",controller_rest.RESTHandler),
+            (r"/1.0/nav/(.*)",controller_rest.RESTHandler),
+            (r"/1.0/network",controller_rest.RESTHandler),
+            (r"/1.0/network/(.*)",controller_rest.RESTHandler),
+            (r"/1.0/status/(.*)",controller_rest.RESTHandler),
+            (r"/1.0/config/(.*)",controller_rest.RESTHandler),
+            (r"/1.0/ros/(.*)",controller_rest.RESTHandler),
+            (r"/1.0/event",controller_event.SSEHandler),
+            (r'/login',controller_main.LoginHandler),
+            (r'/logout',controller_main.LogoutHandler),
+            (r'/static/(.*)',NoCacheStaticFileHandler,{"path":os.path.join(config.BASE_DIRS,"static_path")}),
             (r'/(.*)', DefaultFileFallbackHandler, {'path': 'vue','default_filename': 'index.html'}),
         ]
         super(Application,self).__init__(handlers,**config.settings )
-        
-        logging.debug("Tornado Server start at " + str(datetime.datetime.now()))
 
-        try:            
+        logging.debug("Tornado Server start at "+ str(datetime.datetime.now()))
+        try:
             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSConn.reconnect(ROSConn)))
-        except Exception as e:
-            logging.debug("## Init rosbridge " + str(e))        
+        except Exception as exception:
+            logging.debug("## Init rosbridge "+ str(exception))
         missionHandler()
-     
+    

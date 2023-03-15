@@ -1,28 +1,29 @@
 import pymysql
+import logging
 
 class MysqlQuery():
-    def __init__(self,host,user,passwd,dbName):
+    def __init__(self,host,user,passwd,db_name):
         self.host = host
         self.user = user
         self.passwd = passwd
-        self.dbName = dbName
+        self.db_name = db_name
     def connect(self):
-        self.db = pymysql.connect(self.host,self.user,self.passwd,self.dbName)
-        self.cursor = self.db.cursor()
+        self.database = pymysql.connect(self.host,self.user,self.passwd,self.db_name)
+        self.cursor = self.database.cursor()
     def close(self):
-        self.corsor.close()
-        self.db.close() 
+        self.cursor.close()
+        self.database.close()
     def get_one(self,sql):
         res = None
         try:
             self.connect()
             self.cursor.execute(sql)
-            res = self.corsor.fetchone()
+            res = self.cursor.fetchone()
             self.close()
         except:
-            print("query database fail")        
-            
-    def get_all(self,sql):        
+            logging.debug("query database fail")        
+
+    def get_all(self,sql):
         res = ()
         try:
             self.connect()
@@ -32,8 +33,7 @@ class MysqlQuery():
         except:
             print("query fail")
         return res
-            
-                
+
     def get_all_obj(self,sql, *args):
         resList = []
         fieldsList = []
@@ -54,8 +54,7 @@ class MysqlQuery():
                 count += 1
             resList.append(obj)        
         return resList
-    
-    
+
     def insert(self,sql):
         return self.__edit(sql)
     def update(self,sql):
@@ -67,12 +66,9 @@ class MysqlQuery():
         try:
             self.connect()
             count = self.cursor.execute(sql)
-            self.db.commit()
+            self.database.commit()
             self.close()
         except:
             print("sql query fail")
-            self.db.rollback()
+            self.database.rollback()
         return count
-                
-        
-                    

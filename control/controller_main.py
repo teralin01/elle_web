@@ -1,8 +1,6 @@
 import tornado.web
-from tornado.web import RequestHandler
-from dataModel.AuthModel import AuthDB
+from datamodel.auth_model import AuthDB
 import time
-import json
 
 class BaseHandler(tornado.web.RequestHandler):
     def get_current_user(self):

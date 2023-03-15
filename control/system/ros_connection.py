@@ -1,0 +1,379 @@
+import tornado.web
+import tornado.websocket
+import config
+import json
+import asyncio
+import os
+import nest_asyncio
+import logging
+from tornado.escape import json_encode
+from datetime import datetime
+from control.system.ros_utility import ROSCommands
+from control.system.ros_utility import SubscribeCommands
+from control.system.ros_utility import SubscribeTypes
+from control.system.mission_handler import MissionHandler as missionHandler
+from control.system.cache_data import scheduler as TornadoScheduler
+from control.system.cache_data import cache_subscribe_data
+from control.system.cache_data import cacheMission as CacheMission
+
+
+subscribe_commands = SubscribeCommands()
+ros_commands = ROSCommands()
+topictable = SubscribeTypes()
+ws_browser_clients = set()
+rws = None
+future_callback = {}
+ROSBRIDGE_RETRY_PERIOD = 1
+ROSBRIDGE_RETRY_MAX = 3
+ROSBRIDGE_RETRY_DELAY_TIME = 2
+RESUMIT_PERIOD = 5e-3   # 5 ms sleep
+SERVICE_CALL_TIMEOUT = 4
+show_debug = True
+recovery_mode = False # avoid auto unsubscribe topic during recovery mode
+checking_ros_connection = False
+
+class ROSWebSocketConn:
+    def __init__(self):
+        global future_callback
+        global ros_commands
+        global ws_browser_clients
+        global subscribe_commands
+        global cache_subscribe_data
+        self.retry_counter = 0
+        self.queue = []
+        self.connect()
+        self.subscribe_default_topics()
+
+    async def connect(self):
+        global rws
+        try:
+            rosbridgeURI = "ws://"+config.settings['hostIP']+":"+config.settings['rosbridgePort']  
+            rws = await tornado.websocket.websocket_connect(
+                    url= rosbridgeURI,
+                    on_message_callback=self.recv_ros_message,
+                    max_message_size=int(config.settings['rosbridgeMsgSize']),
+                    #callback=self.retry_connection
+                    ping_interval=1,
+                    ping_timeout=5,
+                    )
+            logging.debug("ROSBridge connected at: %s",str(datetime.now()))
+
+        except Exception as exception:
+            logging.error("ROS bridge connection fail, retry later - %s", str(exception))
+            self.retry_counter = self.retry_counter+1
+            if (self.retry_counter > ROSBRIDGE_RETRY_MAX):
+                logging.info("Calling Restart rosbridge shell")
+                cmd = "sh ./control/system/kill_rosbridge.sh"
+                returned_value = os.system(cmd)  # returns the exit code in unix
+                logging.info('returned value: %s' , returned_value)
+                # Rosbridge restart procedure is handle at rosbridge_websocket.launcy.py  -> Node -> respwan=True
+
+            await asyncio.sleep(ROSBRIDGE_RETRY_PERIOD)
+            await self.connect(self)
+
+    async def reconnect(self):
+        global rws
+        global recovery_mode
+
+        if not recovery_mode:
+            logging.info("Try to connect rosbridge: %s",str(datetime.now()))
+            recovery_mode = True
+            self.retry_counter = 0
+            if rws is not None:
+                rws.close()
+                rws = None
+            if rws is not None:
+                rws.close()
+                rws = None
+            # cacheSubscribeData.clear()
+
+            await self.connect(self)  #only connect once even call reconnect multi times
+        idx = 0
+        while True:
+            if rws is not None:
+                # TornadoScheduler.add_job(missionHandler.ResetMissionStatus, run_date = datetime.now())
+                if show_debug:
+                    logging.debug("1: Submit predefined ROS command")
+                recovery_mode = False
+                await self.subscribe_default_topics(self)
+                if show_debug:
+                    logging.debug("2: Submit runtime ROS command")
+                await self.subscribe_runtime_topics(self)
+                if show_debug:
+                    logging.debug("3: Submit presubmit ROS command")
+                await self.resubmit_write_cmds(self)
+                break
+            else:
+                idx = idx+1
+                if show_debug:
+                    logging.debug("Wait for connecting rosbridge, sequence %s", str(idx) )
+                if idx > ROSBRIDGE_RETRY_MAX:
+                    await self.connect(self)
+            await asyncio.sleep(ROSBRIDGE_RETRY_PERIOD)
+
+        # TODO Notify browser to reconnect, in order to avoid request mission
+
+    async def prepare_publish_to_ROS(self,rest_callback,url,data):
+        advertise_message = {'op':'advertise','id':url,'latch':False,'topic':data['topic'],'type':data['type']}
+        await self.write(json_encode(advertise_message))
+
+        publish_message = {'op':'publish','id':url,'latch':False,'topic':data['topic'],'type':data['type'],'msg':data['msg']}
+        await self.write(json_encode(publish_message))
+
+        # Issue: Rosbridge Bug - unadvertise topic here might cause rosbridge crash, so skip this step.
+        unadvertise_message = {'op':'unadvertise','id':url,'topic':data['topic']}
+        await self.write(json_encode(unadvertise_message))
+
+        result = {'result':True}
+        #success publish topic doesn't means the subscriber have already handler topic. 
+        rest_callback.set_result(result)  # Save result to Rest callback
+
+    async def subscribe_default_topics(self):
+        #subscribe mission
+        subscribe_mission_string = {"op":"subscribe","id":"DefaultTopics","topic": "mission_control/states","type":"elle_interfaces/msg/MissionControlMissionArray"}
+        cache_subscribe_data.update({"mission_control/states":{'data':None,'lastUpdateTime':datetime.now()}})
+        await self.write(json_encode(subscribe_mission_string))
+        await asyncio.sleep(RESUMIT_PERIOD)
+        #subscribe AMCL
+        subscribe_amcl_string = {"op":"subscribe","id":"DefaultTopics","topic": "amcl_pose","type":"geometry_msgs/msg/PoseWithCovarianceStamped"}
+        cache_subscribe_data.update({"amcl_pose":{'data':None,'lastUpdateTime':datetime.now()}})
+        await self.write(json_encode(subscribe_amcl_string))
+
+    async def subscribe_runtime_topics(self):
+        global subscribe_commands
+        for key,value in subscribe_commands.ros_Sub_Commands.items():
+            type = topictable.get(key.lstrip("/")) # only subscribe to predefined types now
+            if type is not None:
+
+                #skip newly subscribe topic in previous function
+                if cache_subscribe_data.get(key) is not None:
+                    logging.debug("##Skip Key: %s", key)
+                    continue
+
+                subscribe_command_string = {"op":"subscribe","id":"ResubmitTopics_"+key,"topic": key,"type":type,"throttle_rate":0,"queue_length":0}
+                await self.write(json_encode(subscribe_command_string))
+            if show_debug:
+                logging.debug("subscribe %s",str(subscribe_command_string))
+
+
+    async def resubmit_write_cmds(self):
+        if show_debug:
+            logging.debug("Resubmit queuing ROS command")
+
+        if hasattr(self,'queue'):
+            length = len(self.queue)
+            for i in range(length):
+                cmd = self.queue[i]
+
+                logging.debug("resubmit cmd from queue %s",cmd)
+                if not "mission_control/states" in cmd  and not "TestRestServiceCall" in cmd : #skip defualt topic and test connection call
+                    await asyncio.sleep(RESUMIT_PERIOD)
+                    await self.write(cmd)
+
+        self.queue = []
+    @classmethod
+    async def prepare_subscribe_from_ros(self,rest_callback,subscribe_message,needcache):
+        prev = cache_subscribe_data.get(subscribe_message['topic'])
+        if needcache and prev is not None and prev['data'] is not None : # Cache hit, just return without new subscription
+            result = {'result':True}
+            rest_callback.set_result(result)
+        else:                                      # Subscribe topic and wait for callback
+            cache_subscribe_data.update({subscribe_message['topic']:{'data':None,'lastUpdateTime':datetime.now()}})
+            loop = asyncio.get_running_loop()
+            future_object = loop.create_future()
+            future_callback.update({subscribe_message['topic']:future_object}) #append ros callback to dict
+            loop.create_task(self.write(json_encode(subscribe_message)))
+
+            await future_object
+            data = future_object.result() # Get result from ROS callback
+            rest_callback.set_result(data)  # Save result to Rest callback
+            del future_callback[subscribe_message['topic']] # remove ros callback from dict
+    @classmethod
+    async def prepare_unsubscribe_to_ROS(self,rest_callback,unsubscribe_message):
+        find = subscribe_commands.get(unsubscribe_message['topic'])
+        if find is None : # Cache hit, just return without unsubscribe
+            result = {'result':False,"info":"No subscription found"}
+            rest_callback.set_result(result)
+        else:                                     
+            await self.write(json_encode(unsubscribe_message))
+            rest_callback.set_result({'result':True})
+            subscribe_commands.deleteOP(unsubscribe_message['topic'])
+            cache_subscribe_data.update({unsubscribe_message['topic']:None})
+
+    def clear_service_call(self,url):
+        del future_callback[url]
+    
+    @classmethod
+    async def prepare_serviceCall_to_ROS(self,rest_callback,url,msg):
+        loop = asyncio.get_running_loop()
+        future_object = loop.create_future()
+        future_callback.update({url:future_object}) #append ros callback to dict
+        loop.create_task(self.write(json_encode(msg)))
+
+        try:
+            if recovery_mode:
+                asyncio.sleep(1)
+            await future_object
+            data = future_object.result() # Get result from ROS callback
+            rest_callback.set_result(data)  # Save result to Rest callback
+            del future_callback[url] # remove ros callback from dict                   
+        except asyncio.CancelledError:
+            logging.error("## Service call error due to asyncio.CancelledError. Form URL: %s", url)
+            await self.reconnect(self)
+            rest_callback.set_result({"result":False,
+                               "values":{"state":"","result":""},
+                               "msg":{
+                                "state":0,    
+                                "mission_state":-1,    
+                                "missions":[]},
+                                "reason":"CancelledError exception, Rosbridge connection abnormal"})  # Save result to Rest callback
+            del future_callback[url] # remove ros callback from dict                            
+
+        except Exception as exception:          
+            logging.error("## Service call error: msg %s",str(exception) )
+            rest_callback.set_result({"result":False,"reason":str(exception)})  # Save result to Rest callback
+            del future_callback[url] # remove ros callback from dict           
+
+    def update_write_queue(self,msg):
+        for item in self.queue:
+            if item == msg:  #Avoid duplicate message
+                logging.debug("Skip duplicate cmd: %s" , msg)
+                return
+
+        self.queue.append(msg)
+    @classmethod
+    async def write(self,msg):
+        global rws
+        global recovery_mode
+        if show_debug:
+            logging.debug(" -> write Message: %s ", msg)
+        if rws != None:
+            try:
+                await rws.write_message(msg)
+            except Exception:  # The rosbridge abnormal observe by write function
+                if not recovery_mode and not checking_ros_connection:
+                    self.queue = []
+                    logging.debug("## write to rosbridge exception")
+                    rws = None
+                    await self.reconnect(self)
+
+                if not hasattr(self,'queue'):
+                    self.queue = []             
+                self.update_write_queue(self,msg)
+                
+        elif not recovery_mode: # The rosbridge abnormal observe by recv_ros_message function
+            self.queue = []
+            self.update_write_queue(self,msg)
+            logging.debug("#### RWS == None and not recoveryMode")
+            await self.reconnect(self)
+        else:  # already stay in recovery mode
+            if not hasattr(self,'queue'):
+                self.queue = []
+            self.update_write_queue(self,msg)
+
+    def clearROSConn(self):
+        global checking_ros_connection
+        logging.info("Before Clear ROS connection")
+        if  checking_ros_connection: #Still not receive service call response after 5 seconds
+            global rws
+            if rws != None:
+                rws.close()
+                rws = None
+            logging.info("Clear ROS connection, trying to reconnect")
+            nest_asyncio.apply()
+            asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.reconnect(ROSWebSocketConn)))
+
+    def testROSConn(self):
+        nest_asyncio.apply()
+        msg = {"op":"call_service","id":"TestRestServiceCall","service": "/amcl/get_state","type":"lifecycle_msgs/srv/GetState"}
+        asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.write(ROSWebSocketConn,json_encode(msg))))
+
+    def double_check_ros_conn(self):
+        loop = asyncio.get_event_loop()
+        loop.call_later(ROSBRIDGE_RETRY_DELAY_TIME-1,ROSWebSocketConn.testROSConn)  #send test reqeust before retry        
+        loop.call_later(ROSBRIDGE_RETRY_DELAY_TIME,ROSWebSocketConn.clearROSConn)
+
+    def recv_ros_message(msg): # receive data from rosbridge
+        global rws
+        global recovery_mode
+        global checking_ros_connection
+        if msg == None:
+            logging.info("## Recv None from rosbridge, something wrong. CheckRosConn: %s", str(checking_ros_connection) + " RecoverMode:"+str(recovery_mode))        
+            if checking_ros_connection == False and not recovery_mode : #only check connection once
+                ROSWebSocketConn.double_check_ros_conn()
+            checking_ros_connection = True
+        else:
+            if checking_ros_connection:
+                checking_ros_connection = False
+            data = json.loads(msg)
+            data['values'] = {"state":"","result":""}
+            data['reason'] = ""
+            if data['op'] == 'publish':
+                logging.debug(" <- topic: "+ data['topic'])
+                browsers = subscribe_commands.get(data['topic'])
+                topic_alive = None
+                if browsers != None:               # Browser client exist
+                    for cbws in ws_browser_clients:   # Iterate all browser clients
+                        for bws in browsers:
+                            try:
+                                if len(list(bws.keys())) > 0 and str(cbws) == list(bws.keys())[0]:   # Find corresponding browser client
+                                    cbws.write_message(msg)
+                                    topic_alive = True
+                            except Exception as e:
+                                logging.debug("ROS publish exception 1 "+ str(e))
+                #callback to REST client  
+                cb = future_callback.get(data['topic'])
+                if cb != None:
+                    try:
+                        cb.set_result(data)
+                    except Exception as e:
+                        logging.debug("Ros publish exception 2 %s", str(e))
+                    topic_alive = True
+
+                #unsubscribe this topic if no browser client or REST client found
+                if cache_subscribe_data.get(data['topic'])!= None: # Default subscribe topic, shch as mission status
+                    if data['topic'] == "mission_control/states":
+                        logging.debug(" <- Get mission")
+                        try:
+                            global CacheMission
+                            CacheMission.update({"mission":msg})
+                            TornadoScheduler.add_job(missionHandler.update_mission_status, run_date = datetime.now())
+                        except Exception as e:
+                            logging.info("## Publish SSE fail msg: %s", str(e))
+                    else:
+                        cache_subscribe_data.update({data['topic']:{'data':msg,'lastUpdateTime':datetime.now()}})
+                elif topic_alive == None and not recovery_mode : # No way to publish
+                    logging.debug("--Unsubscribe topic: " + data['topic'])
+                    try:
+                        topicidstr = browsers[0]
+                        topicid = topicidstr[list(topicidstr.keys())[0]]
+                        message = {"op":"unsubscribe","id":topicid,"topic": data['topic'] }
+                        rws.write_message(json_encode(message))
+                        subscribe_commands.deleteOP(data['topic'])
+                    except:
+                        logging.debug("the browser client had been removed from ws_browser_clients")
+
+            if data['op'] == 'service_response':
+                #send data back to web socket browser client
+                logging.debug(data['service'] + " " + "id" + data['id'] + " result" + str(data['result']))
+
+                #response to web socket client
+                try:
+                    browser = ros_commands.get(data['id'])
+                    if browser != None:  # id match in rosCmds
+                        for cbws in ws_browser_clients:
+                            if len(browser) > 0 and str(cbws) == browser[0]:
+                                cbws.write_message(msg)
+                                ros_commands.remove(data['id'])
+                except Exception as e:
+                    logging.error("Service response error 1 %s", str(e))
+                else:
+                    data['values'] = {"state":"","result":""}
+                    data['reason'] = ""
+                    #send data back to REST client
+                    cb = future_callback.get(data['id'])
+                    if cb != None:
+                        try:
+                            cb.set_result(data)
+                        except Exception as e:
+                            logging.error("Service response error 2 %s", str(e))
