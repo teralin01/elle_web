@@ -1,11 +1,12 @@
 from http import HTTPStatus   #Refer to https://docs.python.org/3/library/http.html
 import asyncio
+import logging
 from asyncio import Future
 from datetime import datetime
 from control.system.tornado_base_handler import TornadoBaseHandler
 from control.system.ros_connection import ROSWebSocketConn as ROSConn
 from control.system.cache_data import cache_subscribe_data as cacheSub
-import logging
+
 
 class TornadoROSHandler(TornadoBaseHandler):
     def __init__(self,*args, **kwargs):
@@ -39,7 +40,7 @@ class TornadoROSHandler(TornadoBaseHandler):
         except Exception as exception:
             self._status_code = HTTPStatus.REQUEST_TIMEOUT.value
             logging.debug("## REST Default Error "+ self.uri + " "+ str(exception) + " " + str(self.request.body))
-            if None == service_result:
+            if None is service_result:
                 self.rest_response(self.timeout_string)
             else:
                 return False

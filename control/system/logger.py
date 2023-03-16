@@ -17,13 +17,13 @@ class Logger:
             '[%(levelname)1.1s %(asctime)s %(filename)s %(module)s:%(lineno)d] %(message)s',
             datefmt='%Y%m%d %H:%M:%S')
 
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.DEBUG)
-        ch.setFormatter(formatter)
+        stream_handler = logging.StreamHandler()
+        stream_handler.setLevel(logging.DEBUG)
+        stream_handler.setFormatter(formatter)
 
-        fh = logging.FileHandler(LOGGER_FILDER+LOGGER_NAME+".log")
-        fh.setLevel(logging.DEBUG)
-        fh.setFormatter(formatter)
+        file_handler = logging.FileHandler(LOGGER_FILDER+LOGGER_NAME+".log")
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(formatter)
 
-        logger.addHandler(ch)
-        logger.addHandler(fh)
+        logger.addHandler(stream_handler)
+        logger.addHandler(file_handler)

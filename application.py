@@ -1,5 +1,4 @@
 import os
-import datetime
 import asyncio
 import logging
 import tornado.web
@@ -47,10 +46,10 @@ class Application(tornado.web.Application):
         ]
         super(Application,self).__init__(handlers,**config.settings )
 
-        logging.debug("Tornado Server start at "+ str(datetime.datetime.now()))
+        logging.debug("==== Tornado Server started ====")
         try:
             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSConn.reconnect(ROSConn)))
         except Exception as exception:
-            logging.debug("## Init rosbridge "+ str(exception))
+            logging.error("## Init rosbridge error %s", str(exception))
         missionHandler()
     

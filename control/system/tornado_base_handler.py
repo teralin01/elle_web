@@ -1,8 +1,9 @@
 from http import HTTPStatus   #Refer to https://docs.python.org/3/library/http.html
 from datetime import datetime
+import logging
 import tornado.web
 import tornado.ioloop
-import logging
+
 
 class TornadoBaseHandler(tornado.web.RequestHandler):
     def __init__(self,*args, **kwargs):
@@ -43,5 +44,5 @@ class TornadoBaseHandler(tornado.web.RequestHandler):
             self.finish()
         except Exception as exception:
             logging.info("REST Response Error %s",str(exception))
-            
+
     #TODO Add default user authenication method

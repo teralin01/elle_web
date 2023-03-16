@@ -16,13 +16,13 @@ class RESTHandler(TornadoBaseHandler):
         if '/1.0/map/upload/layer/' in self.URI:
             if len(self.request.files) == 0:
                 self.rest_response({"Result:":False,"Info":"N○ file with key \'file1\' inside html form"}) 
-            ret = ROSMAP.UploadMapLayer(self.URI[len('/1.0/map/upload/layer/'):],self.request.files['file1'][0])
+            ret = ROSMAP.upload_map_layer(self.URI[len('/1.0/map/upload/layer/'):],self.request.files['file1'][0])
             print(ret)
             self.rest_response(ret)
         elif '/1.0/map/upload/maps/' in self.URI:
             if len(self.request.files) == 0:
                 self.rest_response({"Result:":False,"Info":"Upload file fail. N○ file with key \'file1\' inside html form"})               
-            ret = ROSMAP.UploadMapStatic(self.request.files['file1'][0])
+            ret = ROSMAP.upload_map_static(self.request.files['file1'][0])
             print(ret)
             self.rest_response(ret)
     def post(self,*args):
@@ -30,13 +30,13 @@ class RESTHandler(TornadoBaseHandler):
         if '/1.0/map/upload/layer/' in self.URI:
             if len(self.request.files) == 0:
                 self.rest_response({"Result:":False,"Info":"N○ file with key \'file1\' inside html form"}) 
-            ret = ROSMAP.UploadMapLayer(self.URI[len('/1.0/map/upload/layer/'):],self.request.files['file1'][0])
+            ret = ROSMAP.upload_map_layer(self.URI[len('/1.0/map/upload/layer/'):],self.request.files['file1'][0])
             print(ret)
             self.rest_response(ret)
         elif '/1.0/map/upload/maps/' in self.URI:
             if len(self.request.files) == 0:
                 self.rest_response({"Result:":False,"Info":"Upload file fail. N○ file with key \'file1\' inside html form"})               
-            ret = ROSMAP.UploadMapStatic(self.request.files['file1'][0])
+            ret = ROSMAP.upload_map_static(self.request.files['file1'][0])
             print(ret)
             self.rest_response(ret)                
     def rest_response(self,data):

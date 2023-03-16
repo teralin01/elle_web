@@ -8,7 +8,7 @@ import asyncio
 import nest_asyncio
 from control.system.cache_data import cache_subscribe_data as cacheSub
 from control.system.cache_data import scheduler as TornadoScheduler
-from control.system.cache_data import cacheMission as CacheMission
+# from control.system.cache_data import cacheMission as CacheMission
 from control.controller_event import SSEHandler as EventHandler
 from datamodel import event_model
 
@@ -56,11 +56,11 @@ class MissionHandler:
         else:
             return DEFAULT_MISSION
 
-    def is_mission_duplication(self,missiontag):
-        target_mission_name = "remote"+str(missiontag)
-        subdata = cacheSub.get('mission_control/states')
-        if subdata is not None and subdata['data'] is not None:
-            mission_list = subdata['data']
+    def is_mission_duplication(self,mission_tag):
+        target_mission_name = "remote"+str(mission_tag)
+        mission_data = cacheSub.get('mission_control/states')
+        if mission_data is not None and mission_data['data'] is not None:
+            mission_list = mission_data['data']
         else:
             logging.debug("### mission is empty")
             return False # mission is empty
@@ -126,7 +126,7 @@ class MissionHandler:
 
         if BEITOU_2F:
             mission_list['msg']['mission_state_icon'] = copy.deepcopy(Beitou_2F_Btn_State)
-
+        logging.debug(mission_list)
         for iterator in mission_list['msg']['missions']:
             if SKIP_DEFAULT_MISSION and iterator['name'] == 'default':
                 is_default = True
@@ -297,17 +297,15 @@ class MissionHandler:
 
         self.resend_preious_missions()
 
-    async def update_mission_status():
+    async def update_mission_status(mission_string): #call by TornadoScheduler, no slef available
         logging.debug("===> Start update mission")
-        global CacheMission
-        mission = CacheMission.get("mission")
+        mission = json.loads( str(mission_string).replace('\\', ''))
         self = MissionHandler
-
         try:
             if cacheSub.get('mission_control/states')['data'] is None:
-                cacheSub.update({"mission_control/states":{"data":json.loads(mission),"lastUpdateTime":datetime.now()}})
-            extMission = self.estimate_arrival_time_caculator(self, json.loads(mission), True)
-            logging.debug(extMission)
+                cacheSub.update({"mission_control/states":{"data":mission,"lastUpdateTime":datetime.now()}})
+            extend_mission = self.estimate_arrival_time_caculator(self,mission, True)
+            logging.debug(extend_mission)
         except  Exception as err:
             logging.debug(" Parse Server Side Event err: %s", str(err))
 
@@ -315,19 +313,19 @@ class MissionHandler:
             # Check previous and current mission is the same or not. If it is the same, then stop handle this update
             global DEFAULT_MISSSION_TIMESTAMP_SECOND
             global DEFAULT_MISSION_TIMESTAMP_NANOSECONE
-            if DEFAULT_MISSSION_TIMESTAMP_SECOND == extMission['msg']['stamp']['sec'] and DEFAULT_MISSION_TIMESTAMP_NANOSECONE == extMission['msg']['stamp']['nanosec']:
+            if DEFAULT_MISSSION_TIMESTAMP_SECOND == extend_mission['msg']['stamp']['sec'] and DEFAULT_MISSION_TIMESTAMP_NANOSECONE == extend_mission['msg']['stamp']['nanosec']:
                 logging.debug("The timestamp is the same as previous one, skip update")
             else:
-                DEFAULT_MISSSION_TIMESTAMP_SECOND = extMission['msg']['stamp']['sec']
-                DEFAULT_MISSION_TIMESTAMP_NANOSECONE = extMission['msg']['stamp']['nanosec']
-                extMission['isReset'] = False
-                self.mission = extMission
-                cacheSub.update({"mission_control/states":{"data":extMission,"lastUpdateTime":datetime.now()}})
+                DEFAULT_MISSSION_TIMESTAMP_SECOND = extend_mission['msg']['stamp']['sec']
+                DEFAULT_MISSION_TIMESTAMP_NANOSECONE = extend_mission['msg']['stamp']['nanosec']
+                extend_mission['isReset'] = False
+                self.mission = extend_mission
+                cacheSub.update({"mission_control/states":{"data":extend_mission,"lastUpdateTime":datetime.now()}})
 
                 await asyncio.wait_for(self.SendMissionToClient(self),EVENT_TIMTOUT)
 
                 # self.CallbackMissionSender(mission)
 
-                dbmission = copy.deepcopy(extMission)
+                dbmission = copy.deepcopy(extend_mission)
                 dbmission['msg']['timstamp'] = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
                 self.event_logger(self,dbmission['msg'])
