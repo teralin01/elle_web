@@ -6,7 +6,7 @@ from time import time
 from datetime import datetime
 import asyncio
 import nest_asyncio
-from control.system.cache_data import cache_subscribe_data as cacheSub
+from control.system.cache_data import cache_subscribe_data as cache_subscription
 from control.system.cache_data import scheduler as TornadoScheduler
 # from control.system.cache_data import cacheMission as CacheMission
 from control.controller_event import SSEHandler as EventHandler
@@ -58,7 +58,7 @@ class MissionHandler:
 
     def is_mission_duplication(self,mission_tag):
         target_mission_name = "remote"+str(mission_tag)
-        mission_data = cacheSub.get('mission_control/states')
+        mission_data = cache_subscription.get('mission_control/states')
         if mission_data is not None and mission_data['data'] is not None:
             mission_list = mission_data['data']
         else:
@@ -90,7 +90,7 @@ class MissionHandler:
         pass
 
     async def active_send_eta(self):
-        subscribe_data = cacheSub.get('mission_control/states')
+        subscribe_data = cache_subscription.get('mission_control/states')
         new_mission = self.mission
         if subscribe_data is not None:
             if subscribe_data['data'] is not None:
@@ -106,7 +106,7 @@ class MissionHandler:
         await asyncio.wait_for(self.SendMissionToClient(),EVENT_TIMTOUT)
 
     def parse_mission(self, raw_mission, amcl_pose):
-        subscribe_data = cacheSub.get('mission_control/states')
+        subscribe_data = cache_subscription.get('mission_control/states')
         raw_mission['msg']['mission_state'] = 0 #Init mision_state
         if subscribe_data is None:
             return raw_mission
@@ -126,7 +126,7 @@ class MissionHandler:
 
         if BEITOU_2F:
             mission_list['msg']['mission_state_icon'] = copy.deepcopy(Beitou_2F_Btn_State)
-        logging.debug(mission_list)
+
         for iterator in mission_list['msg']['missions']:
             if SKIP_DEFAULT_MISSION and iterator['name'] == 'default':
                 is_default = True
@@ -212,7 +212,7 @@ class MissionHandler:
 
 
             iterator['Total_ETA'] = round(total_eta)
-        logging.debug( "AMR pose"+ str(mission_list['AMCLPose']) + " Total time: " +  str(total_eta))
+        logging.debug( "AMR pose %s", str(mission_list['AMCLPose']))
 
         if SKIP_DEFAULT_MISSION and is_default:
             missionstr = DEFAULT_MISSION
@@ -224,7 +224,7 @@ class MissionHandler:
 
     def estimate_arrival_time_caculator(self, mission, call_by_event):
         amcl_pose = DEFAULT_AMCL
-        amcl_pose_string = cacheSub.get('amcl_pose')
+        amcl_pose_string = cache_subscription.get('amcl_pose')
         if amcl_pose_string is not None:
             if amcl_pose_string["data"] is not None:
                 amcl_pose_data = json.loads( (amcl_pose_string["data"]))
@@ -283,12 +283,12 @@ class MissionHandler:
 
     async def reset_mission_status(self):
         global RESEND_MISSION
-        RESEND_MISSION = cacheSub.get('mission_control/states')
+        RESEND_MISSION = cache_subscription.get('mission_control/states')
         logging.debug("Reset Cached mission to default")
         mission = DEFAULT_MISSION
         mission['reason']= "Reset mission due to Rosbridge connection reset"
 
-        cacheSub.update({"mission_control/states":{"data":mission,"lastUpdateTime":datetime.now()}})
+        cache_subscription.update({"mission_control/states":{"data":mission,"lastUpdateTime":datetime.now()}})
         logging.debug(self.mission)
 
         self.mission = DEFAULT_MISSION
@@ -302,10 +302,10 @@ class MissionHandler:
         mission = json.loads( str(mission_string).replace('\\', ''))
         self = MissionHandler
         try:
-            if cacheSub.get('mission_control/states')['data'] is None:
-                cacheSub.update({"mission_control/states":{"data":mission,"lastUpdateTime":datetime.now()}})
+            if cache_subscription.get('mission_control/states')['data'] is None:
+                cache_subscription.update({"mission_control/states":{"data":mission,"lastUpdateTime":datetime.now()}})
             extend_mission = self.estimate_arrival_time_caculator(self,mission, True)
-            logging.debug(extend_mission)
+            
         except  Exception as err:
             logging.debug(" Parse Server Side Event err: %s", str(err))
 
@@ -320,7 +320,7 @@ class MissionHandler:
                 DEFAULT_MISSION_TIMESTAMP_NANOSECONE = extend_mission['msg']['stamp']['nanosec']
                 extend_mission['isReset'] = False
                 self.mission = extend_mission
-                cacheSub.update({"mission_control/states":{"data":extend_mission,"lastUpdateTime":datetime.now()}})
+                cache_subscription.update({"mission_control/states":{"data":extend_mission,"lastUpdateTime":datetime.now()}})
 
                 await asyncio.wait_for(self.SendMissionToClient(self),EVENT_TIMTOUT)
 

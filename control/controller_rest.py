@@ -3,7 +3,7 @@ from datamodel.auth_model import AuthDB
 from jsonschema import validate
 import config
 # from control.system.RosConn import ROSWebSocketConn as ROSConn
-from control.system.cache_data import cache_subscribe_data as cacheSub
+from control.system.cache_data import cache_subscribe_data as cache_subscription
 from control.system.mission_handler import MissionHandler as mission_cache
 from http import HTTPStatus   #Refer to https://docs.python.org/3/library/http.html
 from control.system.hardware_status import HWInfoHandler as HWInfo
@@ -24,18 +24,18 @@ class RESTHandler(TornadoROSHandler):
         super(TornadoROSHandler,self).__init__(*args, **kwargs)
 
     def initialize(self):
-        self.cacheHit = False
+        self.cache_hit = False
         self.future = asyncio.get_running_loop().create_future()
         self.cache_rest_data = dict()
         self.rest_cache_period = 5
-        global cacheSub
+        global cache_subscription
 
     def prepare(self):
         cache = self.cache_rest_data.get(self.uri)
         if cache is None:
             self.cache_rest_data.update({self.uri:{'cacheData':None,'lastUpdateTime':datetime.now()}})
         elif (datetime.now() - cache['lastUpdateTime']).seconds < self.rest_cache_period and cache['cacheData'] is not None:
-            self.cacheHit = True
+            self.cache_hit = True
 
         if config.settings['hostIP'] == "":
             config.settings['hostIP'] = self.request.host
@@ -51,7 +51,7 @@ class RESTHandler(TornadoROSHandler):
 
     async def get(self,*args):
         self._status_code = HTTPStatus.CREATED.value
-        if self.cacheHit:
+        if self.cache_hit:
             logging.debug("Return cache data")
             self.rest_response(self.cache_rest_data.get(self.uri)['cacheData'])
 
@@ -62,20 +62,20 @@ class RESTHandler(TornadoROSHandler):
                 call_data = {'id':self.uri, 'op':"call_service",'type': "std_srvs/srv/Empty",'service': "/mission_control/trigger_button",'args': {} }
                 await self.ros_service_handler(call_data,None)
             else:
-                self.cacheHit = True
+                self.cache_hit = True
                 response_string = {"op": "service_response", "service": "/mission_control/trigger_button", "values": {"state":""}, "result": False,"reason": "Not allow to trigger button now.", "id": "/1.0/missions/release_wait_state"}
                 logging.debug("Release wait is not allow to trigger")
                 self.rest_response(response_string)
 
         elif self.uri == '/1.0/missions' or self.uri == '/1.0/missions/':
             #TODO add cache fomr mission status
-            subscribe_data = cacheSub.get('mission_control/states')
+            subscribe_data = cache_subscription.get('mission_control/states')
             if subscribe_data is not None:
                 if subscribe_data['data'] is None:
                     self._status_code = HTTPStatus.NO_CONTENT.value
                     self.rest_response({"result":False,"errno":102,"info":"Current cached date is None"})         
                 else:
-                    self.cacheHit = True
+                    self.cache_hit = True
                     self.cache_rest_data.update({self.uri:{'cacheData':subscribe_data,'lastUpdateTime':datetime.now()}})
                 self.rest_response(subscribe_data['data'])
             else:

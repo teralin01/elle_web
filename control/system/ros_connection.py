@@ -26,17 +26,11 @@ ROSBRIDGE_RETRY_MAX = 3
 ROSBRIDGE_RETRY_DELAY_TIME = 2
 RESUMIT_PERIOD = 5e-3   # 5 ms sleep
 SERVICE_CALL_TIMEOUT = 4
-show_debug = True
 recovery_mode = False # avoid auto unsubscribe topic during recovery mode
 checking_ros_connection = False
 
 class ROSWebSocketConn:
     def __init__(self):
-        global future_callback
-        global ros_commands
-        global ws_browser_clients
-        global subscribe_commands
-        # global cache_subscribe_data
         self.retry_counter = 0
         self.queue = []
         self.connect()
@@ -90,21 +84,21 @@ class ROSWebSocketConn:
         while True:
             if rws is not None:
                 # TornadoScheduler.add_job(missionHandler.ResetMissionStatus, run_date = datetime.now())
-                if show_debug:
-                    logging.debug("1: Submit predefined ROS command")
+                
+                logging.debug("1: Submit predefined ROS command")
                 recovery_mode = False
                 await self.subscribe_default_topics(self)
-                if show_debug:
-                    logging.debug("2: Submit runtime ROS command")
+                
+                logging.debug("2: Submit runtime ROS command")
                 await self.subscribe_runtime_topics(self)
-                if show_debug:
-                    logging.debug("3: Submit presubmit ROS command")
+                
+                logging.debug("3: Submit presubmit ROS command")
                 await self.resubmit_write_cmds(self)
                 break
             else:
                 idx = idx+1
-                if show_debug:
-                    logging.debug("Wait for connecting rosbridge, sequence %s", str(idx) )
+                
+                logging.debug("Wait for connecting rosbridge, sequence %s", str(idx) )
                 if idx > ROSBRIDGE_RETRY_MAX:
                     await self.connect(self)
             await asyncio.sleep(ROSBRIDGE_RETRY_PERIOD)
@@ -149,13 +143,12 @@ class ROSWebSocketConn:
 
                 subscribe_command_string = {"op":"subscribe","id":"ResubmitTopics_"+key,"topic": key,"type":topic_type,"throttle_rate":0,"queue_length":0}
                 await self.write(json_encode(subscribe_command_string))
-            if show_debug:
-                logging.debug("subscribe %s",str(subscribe_command_string))
+            
+            logging.debug("subscribe %s",str(subscribe_command_string))
 
 
     async def resubmit_write_cmds(self):
-        if show_debug:
-            logging.debug("Resubmit queuing ROS command")
+        logging.debug("Resubmit queuing ROS command")
 
         if hasattr(self,'queue'):
             length = len(self.queue)
@@ -242,8 +235,8 @@ class ROSWebSocketConn:
     async def write(self,msg):
         global rws
         global recovery_mode
-        if show_debug:
-            logging.debug(" -> write Message: %s ", msg)
+
+        logging.debug(" -> write Message: %s ", msg)
         if rws is not None:
             try:
                 await rws.write_message(msg)
@@ -268,7 +261,7 @@ class ROSWebSocketConn:
                 self.queue = []
             self.update_write_queue(self,msg)
 
-    def clearROSConn(self):
+    def clearROSConn():
         global checking_ros_connection
         logging.info("Before Clear ROS connection")
         if  checking_ros_connection: #Still not receive service call response after 5 seconds
@@ -280,24 +273,24 @@ class ROSWebSocketConn:
             nest_asyncio.apply()
             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.reconnect(ROSWebSocketConn)))
 
-    def testROSConn(self):
+    def testROSConn():
         nest_asyncio.apply()
         msg = {"op":"call_service","id":"TestRestServiceCall","service": "/amcl/get_state","type":"lifecycle_msgs/srv/GetState"}
-        asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.write(ROSWebSocketConn,json_encode(msg))))
+        asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.write(json_encode(msg))))
 
-    def double_check_ros_conn(self):
+    def double_check_ros_conn():
         loop = asyncio.get_event_loop()
-        loop.call_later(ROSBRIDGE_RETRY_DELAY_TIME-1,ROSWebSocketConn.testROSConn)  #send test reqeust before retry        
+        loop.call_later(ROSBRIDGE_RETRY_DELAY_TIME-1,ROSWebSocketConn.testROSConn)  #send test reqeust before retry  
         loop.call_later(ROSBRIDGE_RETRY_DELAY_TIME,ROSWebSocketConn.clearROSConn)
 
-    def recv_ros_message(msg): # receive data from rosbridge
+    def recv_ros_message(msg): # receive data from rosbridge. this callback is synchronous not async
         global rws
         global recovery_mode
         global checking_ros_connection
         if msg is None:
             logging.info("## Recv None from rosbridge, something wrong. CheckRosConn: %s", str(checking_ros_connection) + " RecoverMode:"+str(recovery_mode))        
             if checking_ros_connection is False and not recovery_mode : #only check connection once
-                ROSWebSocketConn.double_check_ros_conn(ROSWebSocketConn)
+                ROSWebSocketConn.double_check_ros_conn()
             checking_ros_connection = True
         else:
             if checking_ros_connection:

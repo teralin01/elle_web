@@ -5,26 +5,28 @@ from asyncio import Future
 from datetime import datetime
 from control.system.tornado_base_handler import TornadoBaseHandler
 from control.system.ros_connection import ROSWebSocketConn as ROSConn
-from control.system.cache_data import cache_subscribe_data as cacheSub
+from control.system.cache_data import cache_subscribe_data as cache_subscription
 
 
 class TornadoROSHandler(TornadoBaseHandler):
     def __init__(self,*args, **kwargs):
         super(TornadoROSHandler,self).__init__(*args, **kwargs)
-
+        self._status_code = HTTPStatus.OK.value
+        self.cache_hit = False
+        
     async def ros_service_handler(self,calldata,service_result):
         service_future = Future()
         unique_uri = self.uri + "_"+ str(datetime.timestamp(datetime.now()))
         logging.debug("Service call ID %s ",unique_uri)
         calldata['id'] = unique_uri
-        try:              
+        try:         
             await asyncio.wait_for( ROSConn.prepare_serviceCall_to_ROS(service_future,unique_uri,calldata) , timeout = self.rest_timeout_period)
             data = service_future.result()
 
             if None is service_result:
                 self.cache_hit = True  # The result of ROS2 Service call is no need to cache
                 self.rest_response(data)
-            else:    
+            else:
                 service_result.set_result(data)
 
         except asyncio.TimeoutError:
@@ -48,7 +50,7 @@ class TornadoROSHandler(TornadoBaseHandler):
     async def ros_subscribe_handler(self,calldata,sub_result,allow_cache):
         sub_future = Future()
         if allow_cache:
-            subdata = cacheSub.get(calldata['topic']) # Get cached subscribe data
+            subdata = cache_subscription.get(calldata['topic']) # Get cached subscribe data
         if  allow_cache and subdata is not None and subdata['data'] is not None:
             self.rest_response(subdata['data'])
         else:
@@ -91,14 +93,14 @@ class TornadoROSHandler(TornadoBaseHandler):
                 return False
  
     async def ros_publish_handler(self,calldata,need_return):
-        pubFuture = Future()
+        publish_future = Future()
         try:
-            await asyncio.wait_for( ROSConn.prepare_publish_to_ROS(pubFuture,self.uri,calldata) , timeout = self.rest_timeout_period)
+            await asyncio.wait_for( ROSConn.prepare_publish_to_ROS(publish_future,self.uri,calldata) , timeout = self.rest_timeout_period)
             if not need_return:
                 self.cache_hit = True # The result of publish is no need to cache
-                self.rest_response(pubFuture.result())
+                self.rest_response(publish_future.result())
             else:
-                data = pubFuture.result()
+                data = publish_future.result()
                 if data['result'] is True:
                     return True
                 else:

@@ -1,7 +1,7 @@
 from time import time
 import logging
 import config
-from control.system.cache_data import cache_subscribe_data as cacheSub
+from control.system.cache_data import cache_subscribe_data as cache_subscription
 from control.system.tornado_base_handler import TornadoBaseHandler
 browser_clients = set()
 
@@ -48,7 +48,7 @@ class SSEHandler(TornadoBaseHandler):
         logging.debug("RESTful Client connected => client count: %s", str(len(browser_clients)))
 
         #publish current mission to client
-        subdata = cacheSub.get('mission_control/states')
+        subdata = cache_subscription.get('mission_control/states')
         if subdata is not None:
             if subdata['data'] is not None:
                 #TODO NO ETA in cache
