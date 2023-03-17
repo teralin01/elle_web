@@ -19,7 +19,7 @@ subscribe_commands = SubscribeCommands()
 ros_commands = ROSCommands()
 topictable = SubscribeTypes()
 ws_browser_clients = set()
-rws = None
+# ros_websocket_connection = None
 future_callback = {}
 ROSBRIDGE_RETRY_PERIOD = 1
 ROSBRIDGE_RETRY_MAX = 3
@@ -31,16 +31,19 @@ checking_ros_connection = False
 
 class ROSWebSocketConn:
     def __init__(self):
+        self.initialize()
+
+    async def initialize(self):  #init by instance, not class
         self.retry_counter = 0
         self.queue = []
-        self.connect()
-        self.subscribe_default_topics()
+        await self.connect(self)
+        await self.subscribe_default_topics(self)
+        self.ros_websocket_connection = None
 
     async def connect(self):
-        global rws
         try:
-            rosbridge_uri = "ws://"+config.settings['hostIP']+":"+config.settings['rosbridgePort']  
-            rws = await tornado.websocket.websocket_connect(
+            rosbridge_uri = "ws://"+config.settings['hostIP']+":"+config.settings['rosbridgePort']
+            self.ros_websocket_connection = await tornado.websocket.websocket_connect(
                     url= rosbridge_uri,
                     on_message_callback=self.recv_ros_message,
                     max_message_size=int(config.settings['rosbridgeMsgSize']),
@@ -64,25 +67,23 @@ class ROSWebSocketConn:
             await self.connect(self)
 
     async def reconnect(self):
-        global rws
+        ros_websocket_connection = self.ros_websocket_connection
+        logging.debug(ros_websocket_connection)
         global recovery_mode
 
         if not recovery_mode:
             logging.info("Try to connect rosbridge: %s",str(datetime.now()))
             recovery_mode = True
             self.retry_counter = 0
-            if rws is not None:
-                rws.close()
-                rws = None
-            if rws is not None:
-                rws.close()
-                rws = None
+            if ros_websocket_connection is not None:
+                ros_websocket_connection.close()
+                ros_websocket_connection = None
             # cacheSubscribeData.clear()
 
             await self.connect(self)  #only connect once even call reconnect multi times
         idx = 0
         while True:
-            if rws is not None:
+            if self.ros_websocket_connection is not None:
                 # TornadoScheduler.add_job(missionHandler.ResetMissionStatus, run_date = datetime.now())
                 
                 logging.debug("1: Submit predefined ROS command")
@@ -233,18 +234,17 @@ class ROSWebSocketConn:
         self.queue.append(msg)
     @classmethod
     async def write(self,msg):
-        global rws
         global recovery_mode
 
         logging.debug(" -> write Message: %s ", msg)
-        if rws is not None:
+        if self.ros_websocket_connection is not None:
             try:
-                await rws.write_message(msg)
+                await self.ros_websocket_connection.write_message(msg)
             except Exception as exception_content:  # The rosbridge abnormal observe by write function
                 if not recovery_mode and not checking_ros_connection:
                     self.queue = []
                     logging.debug("## write to rosbridge exception %s", str(exception_content))
-                    rws = None
+                    self.ros_websocket_connection = None
                     await self.reconnect(self)
 
                 if not hasattr(self,'queue'):
@@ -265,10 +265,9 @@ class ROSWebSocketConn:
         global checking_ros_connection
         logging.info("Before Clear ROS connection")
         if  checking_ros_connection: #Still not receive service call response after 5 seconds
-            global rws
-            if rws is not None:
-                rws.close()
-                rws = None
+            if self.ros_websocket_connection is not None:
+                self.ros_websocket_connection.close()
+                self.ros_websocket_connection = None
             logging.info("Clear ROS connection, trying to reconnect")
             nest_asyncio.apply()
             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.reconnect(ROSWebSocketConn)))
@@ -284,7 +283,6 @@ class ROSWebSocketConn:
         loop.call_later(ROSBRIDGE_RETRY_DELAY_TIME,ROSWebSocketConn.clearROSConn)
 
     def recv_ros_message(msg): # receive data from rosbridge. this callback is synchronous not async
-        global rws
         global recovery_mode
         global checking_ros_connection
         if msg is None:
@@ -335,7 +333,8 @@ class ROSWebSocketConn:
                         topicidstr = browsers[0]
                         topicid = topicidstr[list(topicidstr.keys())[0]]
                         message = {"op":"unsubscribe","id":topicid,"topic": data['topic'] }
-                        rws.write_message(json_encode(message))
+                        # ros_websocket_connection.write_message(json_encode(message))
+                        ROSWebSocketConn.write(json_encode(message))
                         subscribe_commands.deleteOP(data['topic'])
                     except Exception as exception_content:
                         logging.debug("the browser client had been removed from ws_browser_clients- %s",exception_content)
