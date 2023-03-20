@@ -48,7 +48,6 @@ class Application(tornado.web.Application):
 
         logging.debug("==== Tornado Server started ====")
         try:
-            # asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSConn.reconnect(ROSConn)))
             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSConn.initialize(ROSConn)))
         except Exception as exception:
             logging.error("## Init rosbridge error %s", str(exception))

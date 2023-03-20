@@ -195,7 +195,7 @@ class ROSWebSocketConn:
         del future_callback[url]
 
     @classmethod
-    async def prepare_serviceCall_to_ROS(self,rest_callback,url,msg):
+    async def prepare_serviceCall_to_ROS(self,rest_callback,url,msg):        
         loop = asyncio.get_running_loop()
         future_object = loop.create_future()
         future_callback.update({url:future_object}) #append ros callback to dict
@@ -341,8 +341,7 @@ class ROSWebSocketConn:
 
             if data['op'] is 'service_response':
                 #send data back to web socket browser client
-                logging.debug(data['service'] + " " + "id" + data['id'] + " result" + str(data['result']))
-
+                logging.debug("Service Response: server name=> %s, service id=> %s, service result=> %s", data['service'] , data['id'] , str(data['result']))                
                 #response to web socket client
                 try:
                     browser = ros_commands.get(data['id'])
