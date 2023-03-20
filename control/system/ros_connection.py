@@ -227,7 +227,7 @@ class ROSWebSocketConn:
 
     def update_write_queue(self,msg):
         for item in self.queue:
-            if item is msg:  #Avoid duplicate message
+            if item == msg:  #Avoid duplicate message
                 logging.debug("Skip duplicate cmd: %s" , msg)
                 return
 
@@ -333,16 +333,13 @@ class ROSWebSocketConn:
                         topicidstr = browsers[0]
                         topicid = topicidstr[list(topicidstr.keys())[0]]
                         message = {"op":"unsubscribe","id":topicid,"topic": data['topic'] }
-                        # ros_websocket_connection.write_message(json_encode(message))
                         ROSWebSocketConn.write(json_encode(message))
                         subscribe_commands.deleteOP(data['topic'])
                     except Exception as exception_content:
                         logging.debug("the browser client had been removed from ws_browser_clients- %s",exception_content)
 
-            if data['op'] is 'service_response':
-                #send data back to web socket browser client
+            if data['op'] == 'service_response':
                 logging.debug("Service Response: server name=> %s, service id=> %s, service result=> %s", data['service'] , data['id'] , str(data['result']))                
-                #response to web socket client
                 try:
                     browser = ros_commands.get(data['id'])
                     if browser is not None:  # id match in rosCmds
