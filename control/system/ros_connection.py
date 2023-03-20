@@ -17,17 +17,15 @@ from control.system.cache_data import cache_subscribe_data
 
 subscribe_commands = SubscribeCommands()
 ros_commands = ROSCommands()
-topictable = SubscribeTypes()
+topic_table = SubscribeTypes()
 ws_browser_clients = set()
-# ros_websocket_connection = None
-future_callback = {}
+
 ROSBRIDGE_RETRY_PERIOD = 1
 ROSBRIDGE_RETRY_MAX = 3
 ROSBRIDGE_RETRY_DELAY_TIME = 2
 RESUMIT_PERIOD = 5e-3   # 5 ms sleep
 SERVICE_CALL_TIMEOUT = 4
-recovery_mode = False # avoid auto unsubscribe topic during recovery mode
-checking_ros_connection = False
+
 
 class ROSWebSocketConn:
     def __init__(self):
@@ -36,9 +34,24 @@ class ROSWebSocketConn:
     async def initialize(self):  #init by instance, not class
         self.retry_counter = 0
         self.queue = []
+        self.ros_websocket_connection = None
+        self.recovery_mode = False # avoid auto unsubscribe topic during recovery mode
+        self.checking_ros_connection = False
+        self.future_callback = {}
         await self.connect(self)
         await self.subscribe_default_topics(self)
-        self.ros_websocket_connection = None
+
+    def get_state(self,state_tag):
+        if state_tag == "recovery_mode":
+            return self.recovery_mode
+        elif state_tag == "checking_ros_connection":
+            return self.checking_ros_connection
+        elif state_tag == "ros_websocket_connection":
+            return self.ros_websocket_connection
+        elif state_tag == "future_callback":
+            return self.future_callback
+        else:
+            return None
 
     async def connect(self):
         try:
@@ -69,11 +82,10 @@ class ROSWebSocketConn:
     async def reconnect(self):
         ros_websocket_connection = self.ros_websocket_connection
         logging.debug(ros_websocket_connection)
-        global recovery_mode
 
-        if not recovery_mode:
+        if not self.recovery_mode:
             logging.info("Try to connect rosbridge: %s",str(datetime.now()))
-            recovery_mode = True
+            self.recovery_mode = True
             self.retry_counter = 0
             if ros_websocket_connection is not None:
                 ros_websocket_connection.close()
@@ -87,7 +99,7 @@ class ROSWebSocketConn:
                 # TornadoScheduler.add_job(missionHandler.ResetMissionStatus, run_date = datetime.now())
                 
                 logging.debug("1: Submit predefined ROS command")
-                recovery_mode = False
+                self.recovery_mode = False
                 await self.subscribe_default_topics(self)
                 
                 logging.debug("2: Submit runtime ROS command")
@@ -103,9 +115,7 @@ class ROSWebSocketConn:
                 if idx > ROSBRIDGE_RETRY_MAX:
                     await self.connect(self)
             await asyncio.sleep(ROSBRIDGE_RETRY_PERIOD)
-
-        # TODO Notify browser to reconnect, in order to avoid request mission
-
+        
     async def prepare_publish_to_ROS(self,rest_callback,url,data):
         advertise_message = {'op':'advertise','id':url,'latch':False,'topic':data['topic'],'type':data['type']}
         await self.write(json_encode(advertise_message))
@@ -135,7 +145,7 @@ class ROSWebSocketConn:
     async def subscribe_runtime_topics(self):
         global subscribe_commands
         for key,value in subscribe_commands.ros_Sub_Commands.items():
-            topic_type = topictable.get(key.lstrip("/")) # only subscribe to predefined types now
+            topic_type = topic_table.get(key.lstrip("/")) # only subscribe to predefined types now
             if topic_type is not None:
                 #skip newly subscribe topic in previous function
                 if cache_subscribe_data.get(key) is not None:
@@ -164,6 +174,7 @@ class ROSWebSocketConn:
         self.queue = []
     @classmethod
     async def prepare_subscribe_from_ros(self,rest_callback,subscribe_message,needcache):
+        future_callback = ROSWebSocketConn.get_state(ROSWebSocketConn,"future_callback")
         prev = cache_subscribe_data.get(subscribe_message['topic'])
         if needcache and prev is not None and prev['data'] is not None : # Cache hit, just return without new subscription
             result = {'result':True}
@@ -192,10 +203,12 @@ class ROSWebSocketConn:
             cache_subscribe_data.update({unsubscribe_message['topic']:None})
 
     def clear_service_call(self,url):
-        del future_callback[url]
+        del self.future_callback[url]
 
     @classmethod
-    async def prepare_serviceCall_to_ROS(self,rest_callback,url,msg):        
+    async def prepare_serviceCall_to_ROS(self,rest_callback,url,msg):
+        recovery_mode = ROSWebSocketConn.get_state(ROSWebSocketConn,"recovery_mode")
+        future_callback = ROSWebSocketConn.get_state(ROSWebSocketConn,"future_callback")
         loop = asyncio.get_running_loop()
         future_object = loop.create_future()
         future_callback.update({url:future_object}) #append ros callback to dict
@@ -234,17 +247,19 @@ class ROSWebSocketConn:
         self.queue.append(msg)
     @classmethod
     async def write(self,msg):
-        global recovery_mode
-
         logging.debug(" -> write Message: %s ", msg)
-        if self.ros_websocket_connection is not None:
+        ros_websocket_connection = ROSWebSocketConn.get_state(ROSWebSocketConn,"ros_websocket_connection")
+        recovery_mode = ROSWebSocketConn.get_state(ROSWebSocketConn,"recovery_mode")
+        checking_ros_connection = ROSWebSocketConn.get_state(ROSWebSocketConn,"checking_ros_connection")
+        
+        if ros_websocket_connection is not None:
             try:
-                await self.ros_websocket_connection.write_message(msg)
+                await ros_websocket_connection.write_message(msg)
             except Exception as exception_content:  # The rosbridge abnormal observe by write function
                 if not recovery_mode and not checking_ros_connection:
                     self.queue = []
                     logging.debug("## write to rosbridge exception %s", str(exception_content))
-                    self.ros_websocket_connection = None
+                    ros_websocket_connection = None
                     await self.reconnect(self)
 
                 if not hasattr(self,'queue'):
@@ -262,12 +277,13 @@ class ROSWebSocketConn:
             self.update_write_queue(self,msg)
 
     def clearROSConn():
-        global checking_ros_connection
+        checking_ros_connection = ROSWebSocketConn.get_state(ROSWebSocketConn,"checking_ros_connection")
+        ros_websocket_connection = ROSWebSocketConn.get_state(ROSWebSocketConn,"ros_websocket_connection")
         logging.info("Before Clear ROS connection")
         if  checking_ros_connection: #Still not receive service call response after 5 seconds
-            if self.ros_websocket_connection is not None:
-                self.ros_websocket_connection.close()
-                self.ros_websocket_connection = None
+            if ros_websocket_connection is not None:
+                ros_websocket_connection.close()
+                ros_websocket_connection = None
             logging.info("Clear ROS connection, trying to reconnect")
             nest_asyncio.apply()
             asyncio.get_event_loop().run_until_complete(asyncio.ensure_future(ROSWebSocketConn.reconnect(ROSWebSocketConn)))
@@ -283,8 +299,9 @@ class ROSWebSocketConn:
         loop.call_later(ROSBRIDGE_RETRY_DELAY_TIME,ROSWebSocketConn.clearROSConn)
 
     def recv_ros_message(msg): # receive data from rosbridge. this callback is synchronous not async
-        global recovery_mode
-        global checking_ros_connection
+        recovery_mode = ROSWebSocketConn.get_state(ROSWebSocketConn,"recovery_mode")
+        checking_ros_connection = ROSWebSocketConn.get_state(ROSWebSocketConn,"checking_ros_connection")
+        future_callback = ROSWebSocketConn.get_state(ROSWebSocketConn,"future_callback")
         if msg is None:
             logging.info("## Recv None from rosbridge, something wrong. CheckRosConn: %s", str(checking_ros_connection) + " RecoverMode:"+str(recovery_mode))        
             if checking_ros_connection is False and not recovery_mode : #only check connection once
