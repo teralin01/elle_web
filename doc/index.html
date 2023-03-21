@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Swagger UI</title>
+</head>
+<body class="swagger-section">
+<div id="swagger-ui-container" class="swagger-ui-wrap"></div>
+<style>
+    html {
+        box-sizing: border-box;
+        overflow: -moz-scrollbars-vertical;
+        overflow-y: scroll;
+    }
+
+    *,
+    *:before,
+    *:after {
+        box-sizing: inherit;
+    }
+
+    body {
+        margin: 0;
+        background: #fafafa;
+    }
+</style>
+<link rel="stylesheet" href="./resources/swagger-ui.min.css"
+      integrity="sha512-UoU6tKyF/ag2rLaiNmCqxNT+vAnxaTGRu7UdQv69kX3u7ZNY2W2RTx/ITk67YC3bfj0p5LPy0YOgbGjBQLXEGg=="
+      crossorigin="anonymous"/>
+<script src="./resources/swagger-ui-bundle.min.js"
+        integrity="sha512-7A1uEzdMT1hteOR1s3zBGzdVbhLAaKnKz1N8dGEvViUmeoec7UEyyLVRpVezYer0u9m0wJMtLQpBpGpc+X0tXQ=="
+        crossorigin="anonymous"></script>
+<script src="./resources/swagger-ui-standalone-preset.min.js"
+        integrity="sha512-OODuIoKisl5o35O0UGldXg3FhPVY3MTpS+wtYTTCSHHVlZUtt52cVYkIVUirBkclFa0LMITLGwOAR/yHBu3DgA=="
+        crossorigin="anonymous"></script>
+<script type="text/javascript">
+    (function () {
+        addEventListener('load', function () {
+            window.APP = new SwaggerUIBundle({
+                url: "{{ SWAGGER_URL }}",
+                //defaultModelsExpandDepth: {{ DISPLAY_MODELS }},
+                dom_id: "#swagger-ui-container",
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout",
+                validatorUrl: "https://validator.swagger.io/validator",
+            });
+        });
+    })();
+</script>
+</body>
+</html>

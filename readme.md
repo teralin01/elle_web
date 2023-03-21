@@ -47,5 +47,8 @@ loglevel=info
 
 ### Start supervisor
 - supervisorctl start all
-Stop
+### Stop supervisor
 - supervisorctl stop all
+
+### API document root path
+http://Target_To_Elle_IP/api/doc
