@@ -3,6 +3,8 @@ from datetime import datetime
 import logging
 import tornado.web
 import tornado.ioloop
+from tornado_swagger.model import register_swagger_model
+from tornado_swagger.parameter import register_swagger_parameter
 
 
 class TornadoBaseHandler(tornado.web.RequestHandler):
