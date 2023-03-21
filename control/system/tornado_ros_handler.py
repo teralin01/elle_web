@@ -19,7 +19,7 @@ class TornadoROSHandler(TornadoBaseHandler):
         unique_uri = self.uri + "_"+ str(datetime.timestamp(datetime.now()))
         logging.debug("Service call ID %s ",unique_uri)
         calldata['id'] = unique_uri
-        try:         
+        try:     
             await asyncio.wait_for( ROSConn.prepare_serviceCall_to_ROS(service_future,unique_uri,calldata) , timeout = self.rest_timeout_period)
             data = service_future.result()
 
@@ -32,8 +32,8 @@ class TornadoROSHandler(TornadoBaseHandler):
         except asyncio.TimeoutError:
             self._status_code = HTTPStatus.REQUEST_TIMEOUT.value
             logging.debug("##### REST Timeout, URL: %s ", unique_uri)
-            ROSConn.clear_service_call(unique_uri)
-            await ROSConn.reconnect()
+            ROSConn.clear_service_call(ROSConn,unique_uri)
+            await ROSConn.reconnect(ROSConn)
             if None is service_result:
                 self.rest_response(self.timeout_string)
             else:
@@ -41,7 +41,7 @@ class TornadoROSHandler(TornadoBaseHandler):
 
         except Exception as exception:
             self._status_code = HTTPStatus.REQUEST_TIMEOUT.value
-            logging.debug("## REST Default Error "+ self.uri + " "+ str(exception) + " " + str(self.request.body))
+            logging.debug("## REST Default Error %s, %s, %s", self.uri , str(exception) , str(self.request.body))
             if None is service_result:
                 self.rest_response(self.timeout_string)
             else:
@@ -71,7 +71,7 @@ class TornadoROSHandler(TornadoBaseHandler):
                 if None is sub_result:
                     self.rest_response(self.timeout_string)
                 else:
-                    return False     
+                    return False
     async def ros_unsubscribe_handler(self,calldata,need_return):
         unsub_future = Future()
         try:
@@ -95,7 +95,7 @@ class TornadoROSHandler(TornadoBaseHandler):
     async def ros_publish_handler(self,calldata,need_return):
         publish_future = Future()
         try:
-            await asyncio.wait_for( ROSConn.prepare_publish_to_ROS(publish_future,self.uri,calldata) , timeout = self.rest_timeout_period)
+            await asyncio.wait_for( ROSConn.prepare_publish_to_ROS(ROSConn,publish_future,self.uri,calldata) , timeout = self.rest_timeout_period)
             if not need_return:
                 self.cache_hit = True # The result of publish is no need to cache
                 self.rest_response(publish_future.result())

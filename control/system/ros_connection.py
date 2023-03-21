@@ -361,7 +361,7 @@ class ROSWebSocketConn:
                     browser = ros_commands.get(data['id'])
                     if browser is not None:  # id match in rosCmds
                         for cbws in ws_browser_clients:
-                            if len(browser) > 0 and str(cbws) is browser[0]:
+                            if len(browser) > 0 and str(cbws) == browser[0]:
                                 cbws.write_message(msg)
                                 ros_commands.remove(data['id'])
                 except Exception as exception_content:
