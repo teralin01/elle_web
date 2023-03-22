@@ -13,6 +13,8 @@ from control import controller_event
 from control.system.logger import Logger
 logger_init = Logger()
 
+NEED_EXPORT_SWAGGER = False
+
 class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
     def set_extra_headers(self, path):
         self.set_header("Cache-control", "no-cache")
@@ -25,6 +27,7 @@ class DefaultFileFallbackHandler(tornado.web.StaticFileHandler):
             root = os.path.abspath(root)
             absolute_path = os.path.join(root, self.default_filename)
         return absolute_path
+
 class Application(tornado.web.Application):
     _handlers = [
         tornado.web.url(r"/ws", controller_websocket.RosWebSocketHandler),
@@ -50,10 +53,12 @@ class Application(tornado.web.Application):
     def __init__(self):
         # Use tornado-swagger to gen docs https://github.com/mrk-andreev/tornado-swagger/wiki
         setup_swagger(self._handlers)
-        swagger_specification = export_swagger(self._handlers)
-        file_path = open("./doc/docs.json", "w", encoding="utf-8")
-        file_path.write(json.dumps(swagger_specification))
-        file_path.close()
+
+        if NEED_EXPORT_SWAGGER:
+            swagger_specification = export_swagger(self._handlers)
+            file_path = open("./doc/docs.json", "w", encoding="utf-8")
+            file_path.write(json.dumps(swagger_specification))
+            file_path.close()
 
         super(Application,self).__init__(self._handlers,**config.settings )
 
