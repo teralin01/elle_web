@@ -3,9 +3,9 @@ import json
 import asyncio
 import logging
 import tornado.web
-import config
 from tornado_swagger.setup import setup_swagger
 from tornado_swagger.setup import export_swagger
+import config
 from control import controller_main, controller_rest, controller_system,controller_websocket
 from control.system.ros_connection import ROSWebSocketConn as ROSConn
 from control.system.mission_handler import MissionHandler as missionHandler

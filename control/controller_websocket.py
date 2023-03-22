@@ -1,5 +1,6 @@
 import json
 import datetime
+import logging
 import tornado.web
 import tornado.websocket
 import tornado.ioloop
@@ -8,7 +9,6 @@ from control.system.ros_connection import ROSWebSocketConn as ROSConn
 from control.system.ros_connection import subscribe_commands
 from control.system.ros_connection import ros_commands
 from control.system.ros_connection import ws_browser_clients
-import logging
 
 class RosWebSocketHandler(tornado.websocket.WebSocketHandler):
     def check_origin(self, origin):

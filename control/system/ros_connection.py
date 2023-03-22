@@ -1,13 +1,13 @@
-import tornado.web
-import tornado.websocket
-import config
 import json
 import asyncio
 import os
-import nest_asyncio
 import logging
-from tornado.escape import json_encode
 from datetime import datetime
+import nest_asyncio
+from tornado.escape import json_encode
+import tornado.web
+import tornado.websocket
+import config
 from control.system.ros_utility import ROSCommands
 from control.system.ros_utility import SubscribeCommands
 from control.system.ros_utility import SubscribeTypes
@@ -258,7 +258,7 @@ class ROSWebSocketConn:
             except Exception as exception_content:  # The rosbridge abnormal observe by write function
                 if not recovery_mode and not checking_ros_connection:
                     self.queue = []
-                    logging.debug("## write to rosbridge exception %s", str(exception_content))
+                    logging.error("## write to rosbridge exception %s", str(exception_content))
                     ros_websocket_connection = None
                     await self.reconnect(self)
 
@@ -325,14 +325,14 @@ class ROSWebSocketConn:
                                     cbws.write_message(msg)
                                     topic_alive = True
                             except Exception as exception_content:
-                                logging.debug("ROS publish exception 1 %s", str(exception_content))
+                                logging.error("ROS publish exception 1 %s", str(exception_content))
                 #callback to REST client
                 cb = future_callback.get(data['topic'])
                 if cb is not None:
                     try:
                         cb.set_result(data)
                     except Exception as exception_content:
-                        logging.debug("Ros publish exception 2 %s", str(exception_content))
+                        logging.error("Ros publish exception 2 %s", str(exception_content))
                     topic_alive = True
                 #unsubscribe this topic if no browser client or REST client found
                 if cache_subscribe_data.get(data['topic']) is not None: # Default subscribe topic, shch as mission status
@@ -341,7 +341,7 @@ class ROSWebSocketConn:
                             TornadoScheduler.add_job(missionHandler.update_mission_status, \
                                 args = [msg], run_date = datetime.now())
                         except Exception as exception_content:
-                            logging.info("## Publish SSE fail msg: %s", str(exception_content))
+                            logging.error("## Publish SSE fail msg: %s", str(exception_content))
                     else:
                         cache_subscribe_data.update({data['topic']:{'data':msg,'lastUpdateTime':datetime.now()}})
                 elif topic_alive is None and not recovery_mode : # No way to publish
@@ -353,7 +353,7 @@ class ROSWebSocketConn:
                         ROSWebSocketConn.write(json_encode(message))
                         subscribe_commands.deleteOP(data['topic'])
                     except Exception as exception_content:
-                        logging.debug("the browser client had been removed from ws_browser_clients- %s",exception_content)
+                        logging.error("the browser client had been removed from ws_browser_clients- %s",exception_content)
 
             if data['op'] == 'service_response':
                 logging.debug("Service Response: server name=> %s, service id=> %s, service result=> %s", data['service'] , data['id'] , str(data['result']))                

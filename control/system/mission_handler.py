@@ -307,7 +307,7 @@ class MissionHandler:
             extend_mission = self.estimate_arrival_time_caculator(self,mission, True)
             
         except  Exception as err:
-            logging.debug(" Parse Server Side Event err: %s", str(err))
+            logging.error(" Parse Server Side Event err: %s", str(err))
 
         else:
             # Check previous and current mission is the same or not. If it is the same, then stop handle this update

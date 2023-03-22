@@ -1,23 +1,22 @@
 from datetime import datetime
-from datamodel.auth_model import AuthDB
-from jsonschema import validate
-import config
-# from control.system.RosConn import ROSWebSocketConn as ROSConn
-from control.system.cache_data import cache_subscribe_data as cache_subscription
-from control.system.mission_handler import MissionHandler as mission_cache
-from http import HTTPStatus   #Refer to https://docs.python.org/3/library/http.html
-from control.system.hardware_status import HWInfoHandler as HWInfo
-from control.system.json_validator_schema import mission_schema
-from datamodel import event_model
-from tornado.escape import json_decode, json_encode
-from datamodel import landmark_model as LM
-from datamodel import config_model as DBConfig
+import logging
 import asyncio
 from asyncio import Future
 import json
-import pynmcli
+from http import HTTPStatus   #Refer to https://docs.python.org/3/library/http.html
+#from datamodel.auth_model import AuthDB
+from tornado.escape import json_decode
+from jsonschema import validate
+from control.system.cache_data import cache_subscribe_data as cache_subscription
+from control.system.mission_handler import MissionHandler as mission_cache
+#from control.system.hardware_status import HWInfoHandler as HWInfo
+from control.system.json_validator_schema import mission_schema
 from control.system.tornado_ros_handler import TornadoROSHandler
-import logging
+import pynmcli
+from datamodel import event_model
+from datamodel import landmark_model as LM
+from datamodel import config_model as DBConfig
+import config
 
 class RESTHandler(TornadoROSHandler):
     def __init__(self, *args, **kwargs):
