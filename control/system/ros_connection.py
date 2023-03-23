@@ -315,7 +315,7 @@ class ROSWebSocketConn:
             data['values'] = {"state":"","result":""}
             data['reason'] = ""
             if data['op'] == 'publish':
-                logging.debug(" <- topic: %s", data['topic'])
+                # logging.debug(" <- topic: %s", data['topic'])
                 browsers = subscribe_commands.get(data['topic'])
                 topic_alive = None
                 if browsers is not None:               # Browser client exist

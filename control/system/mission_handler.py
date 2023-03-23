@@ -103,7 +103,10 @@ class MissionHandler:
         new_mission['msg']['stamp']['sec'] = int(time())
         self.mission = new_mission
         nest_asyncio.apply()
-        await asyncio.wait_for(self.SendMissionToClient(),EVENT_TIMTOUT)
+        try
+            await asyncio.wait_for(self.SendMissionToClient(),EVENT_TIMTOUT)
+        except asyncio.CancelledError:
+            logging.info("Send Event to Client fail")            
 
     def parse_mission(self, raw_mission, amcl_pose):
         subscribe_data = cache_subscription.get('mission_control/states')
@@ -322,7 +325,10 @@ class MissionHandler:
                 self.mission = extend_mission
                 cache_subscription.update({"mission_control/states":{"data":extend_mission,"lastUpdateTime":datetime.now()}})
 
-                await asyncio.wait_for(self.SendMissionToClient(self),EVENT_TIMTOUT)
+                try:
+                    await asyncio.wait_for(self.SendMissionToClient(self),EVENT_TIMTOUT)
+                except asyncio.CancelledError:
+                    logging.info("Send Event to Client fail")
 
                 # self.CallbackMissionSender(mission)
 
