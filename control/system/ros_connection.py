@@ -220,7 +220,7 @@ class ROSWebSocketConn:
             await future_object
             data = future_object.result() # Get result from ROS callback
             rest_callback.set_result(data)  # Save result to Rest callback
-            del future_callback[url]
+
         except asyncio.CancelledError:
             logging.error("## Service call error due to asyncio.CancelledError. Form URL: %s", url)
             await self.reconnect(self)
@@ -231,11 +231,12 @@ class ROSWebSocketConn:
                                 "mission_state":-1,    
                                 "missions":[]},
                                 "reason":"CancelledError exception, Rosbridge connection abnormal"})  # Save result to Rest callback
-            del future_callback[url]
 
         except Exception as exception_content:
             logging.error("## Service call error: msg %s",str(exception_content) )
             rest_callback.set_result({"result":False,"reason":str(exception_content)})  # Save result to Rest callback
+
+        finally:
             del future_callback[url]
 
     def update_write_queue(self,msg):

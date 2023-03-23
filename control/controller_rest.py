@@ -9,7 +9,6 @@ from tornado.escape import json_decode
 from jsonschema import validate
 from control.system.cache_data import cache_subscribe_data as cache_subscription
 from control.system.mission_handler import MissionHandler as mission_cache
-#from control.system.hardware_status import HWInfoHandler as HWInfo
 from control.system.json_validator_schema import mission_schema
 from control.system.tornado_ros_handler import TornadoROSHandler
 import pynmcli
@@ -430,8 +429,6 @@ class RESTHandler(TornadoROSHandler):
             ret = LM.delete_way_points(data)
             self.rest_response(ret)
 
-        await self.post(self,*args)
-        pass
     async def put(self,*args):
         """
         Description end-point
