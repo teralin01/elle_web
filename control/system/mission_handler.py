@@ -103,7 +103,7 @@ class MissionHandler:
         new_mission['msg']['stamp']['sec'] = int(time())
         self.mission = new_mission
         nest_asyncio.apply()
-        try
+        try:
             await asyncio.wait_for(self.SendMissionToClient(),EVENT_TIMTOUT)
         except asyncio.CancelledError:
             logging.info("Send Event to Client fail")            
