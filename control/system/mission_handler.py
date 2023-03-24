@@ -47,6 +47,7 @@ class MissionHandler:
         self.mission = DEFAULT_MISSION
         event_model.init_collection()
         TornadoScheduler.add_job(self.active_send_eta, 'interval', seconds = NOTIFY_CLIENT_DURATION)
+        logging.getLogger('apscheduler.executors.default').propagate = False
         logging.debug("Start Mission ActiveSendETA")
         TornadoScheduler.start()
 
