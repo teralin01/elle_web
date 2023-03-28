@@ -1,0 +1,19 @@
+{
+    "webhooks": {
+      "event_mission": {
+        "get": {
+          "requestBody": {
+            "description": "Information about a new pet in the system"
+          },
+          "responses": {
+            "200": {
+              "description": "Return a 200 status to indicate that the data was received successfully",
+              "schema": {
+                "$ref": "#/components/schemas/mission"
+              }
+            }
+          }
+        }
+      }
+    }
+  }

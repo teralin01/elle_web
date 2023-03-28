@@ -4,6 +4,7 @@ import json
 import asyncio
 import logging
 import tornado.web
+from tornado_swagger.const import API_OPENAPI_3
 from tornado_swagger.setup import setup_swagger
 from tornado_swagger.setup import export_swagger
 import config
@@ -48,7 +49,8 @@ class Application(tornado.web.Application):
                         description="This document focuses on standalone Elle environment",
                         api_version="1.0.0",
                         title="Elle REST API",
-                        contact="tera.lin@axiomtek.com.tw"
+                        contact="tera.lin@axiomtek.com.tw",
+                        api_definition_version=API_OPENAPI_3,
                     )
 
         if NEED_EXPORT_SWAGGER:

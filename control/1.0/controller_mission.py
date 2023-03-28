@@ -58,8 +58,8 @@ class RequestHandler(TornadoROSHandler):
           name: body
           description: Create mission
           required: false
-          schema:
-            $ref: '#/parameters/MissionItem'
+          schema: 
+            $ref: '#/components/parameters/MissionItem'
         responses:
           "201":
               description: successful operation
@@ -82,7 +82,7 @@ class RequestHandler(TornadoROSHandler):
           description: Create mission
           required: false
           schema:
-            $ref: '#/definitions/MissionModel'      
+            type: string      
         responses:
           "201":
             description: successful operation
@@ -94,11 +94,37 @@ class RequestHandler(TornadoROSHandler):
 class MissionItem:
     """
     ---
-    name: posts_id
+    name: mission
     in: path
-    description: ID of post
+    description: add a mission
     required: true
-    type: string
+    type: object
+    properties:
+      action_state:
+        type: integer
+        format: int32
+        minimum: 0
+        maximum: 5
+        example: 1
+      coordinate:
+        required:
+        - x
+        - y
+        - z
+        type: object
+        properties:
+          "x":
+            type: number
+            multipleOf: 0.001
+            example: 1.234
+          "y":
+            type: number
+            multipleOf: 0.001
+            example: 6.789
+          "z":
+            type: number
+            multipleOf: 0.00001
+            example: 1.23456
     """
 
 
@@ -119,4 +145,42 @@ class MissionModel:
         is_visible:
             type: boolean
             default: true
+    """
+    
+    
+@register_swagger_model
+class MissionElement:
+    """
+    ---
+    name: mission
+    in: path
+    description: add a mission
+    required: true
+    type: object
+    properties:
+      action_state:
+        type: integer
+        format: int32
+        minimum: 0
+        maximum: 5
+        example: 1
+      coordinate:
+        required:
+        - x
+        - y
+        - z
+        type: object
+        properties:
+          "x":
+            type: number
+            multipleOf: 0.001
+            example: 1.234
+          "y":
+            type: number
+            multipleOf: 0.001
+            example: 6.789
+          "z":
+            type: number
+            multipleOf: 0.00001
+            example: 1.23456
     """
