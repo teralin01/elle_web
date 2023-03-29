@@ -16,7 +16,7 @@ class RequestHandler(TornadoROSHandler):
         """        
         ---
         tags:
-        - Mission
+        - Missions
         summary: Call a predefined mission
         description: TBD
         produces:
@@ -58,9 +58,8 @@ class RequestHandler(TornadoROSHandler):
 class MissionTrigger:
     """
     ---
-    name: mission
     in: path
-    description: call a predefined mission
+    description: call a predefined mission with number
     required: true
     type: object
     properties:
