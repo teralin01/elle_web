@@ -67,29 +67,7 @@ class RequestHandler(TornadoROSHandler):
               description: fail to append mission
         """
 
-    async def put(self,*args):
-        """        
-        ---
-        tags:
-        - Mission
-        summary: Append a mission to queue
-        description: TBD
-        produces:
-        - application/json
-        parameters:
-        - in: body
-          name: body
-          description: Create mission
-          required: false
-          schema:
-            type: string      
-        responses:
-          "201":
-            description: successful operation
-          "408":
-            description: fail to append mission
-        """
-
+@register_swagger_model
 @register_swagger_parameter
 class MissionItem:
     """
@@ -100,87 +78,65 @@ class MissionItem:
     required: true
     type: object
     properties:
-      action_state:
-        type: integer
-        format: int32
-        minimum: 0
-        maximum: 5
-        example: 1
-      coordinate:
-        required:
-        - x
-        - y
-        - z
+      mission:
         type: object
         properties:
-          "x":
-            type: number
-            multipleOf: 0.001
-            example: 1.234
-          "y":
-            type: number
-            multipleOf: 0.001
-            example: 6.789
-          "z":
-            type: number
-            multipleOf: 0.00001
-            example: 1.23456
-    """
-
-
-@register_swagger_model
-class MissionModel:
-    """
-    ---
-    type: object
-    description: Post model representation
-    properties:
-        id:
-            type: integer
-            format: int64
-        title:
-            type: string
-        text:
-            type: string
-        is_visible:
+          overwrite_current_mission:
             type: boolean
-            default: true
-    """
-    
-    
-@register_swagger_model
-class MissionElement:
-    """
-    ---
-    name: mission
-    in: path
-    description: add a mission
-    required: true
-    type: object
-    properties:
-      action_state:
-        type: integer
-        format: int32
-        minimum: 0
-        maximum: 5
-        example: 1
-      coordinate:
+            example: false
+          set_as_default_mission:
+            type: boolean
+            example: false
+          first:
+            type: integer
+            format: int32
+            minimum: 0
+            example: 0
+          repeats:
+            type: integer
+            format: int32
+            example: 1
+          name:
+            type: string
+            minLength: 0
+            maxLength: 64
+          actions:
+            type: array
+            items:
+              type: object
+              minItems: 1
+              properties:
+                action_state:
+                    type: integer
+                    format: int32
+                    minimum: 0
+                    maximum: 5
+                    example: 1
+                coordinate:
+                    required:
+                    - x
+                    - y
+                    - z
+                    type: object
+                    properties:
+                    "x":
+                        type: number
+                        multipleOf: 0.001
+                        example: 1.234
+                    "y":
+                        type: number
+                        multipleOf: 0.001
+                        example: 6.789
+                    "z":
+                        type: number
+                        multipleOf: 0.00001
+                        example: 1.23456
         required:
-        - x
-        - y
-        - z
-        type: object
-        properties:
-          "x":
-            type: number
-            multipleOf: 0.001
-            example: 1.234
-          "y":
-            type: number
-            multipleOf: 0.001
-            example: 6.789
-          "z":
-            type: number
-            multipleOf: 0.00001
-            example: 1.23456
+          - overwrite_current_mission
+          - set_as_default_mission
+          - first
+          - repeats
+          - actions
+    required:
+      - mission
     """

@@ -47,52 +47,7 @@ class RequestHandler(TornadoROSHandler):
 
         return False
 
-    async def get(self,*args):
-        """
-        Description end-point
-        ---
-        tags:
-        - REST
-        summary: Create user
-        description: This can only be done by the logged in user.
-        operationId: examples.api.api.createUser
-        produces:
-        - application/json
-        parameters:
-        - in: body
-          name: body
-          description: Created user object
-          required: false
-          schema:
-            type: object
-            properties:
-              id:
-                type: integer
-                format: int64
-              username:
-                type:
-                  - "string"
-                  - "null"
-              firstName:
-                type: string
-              lastName:
-                type: string
-              email:
-                type: string
-              password:
-                type: string
-              phone:
-                type: string
-              userStatus:
-                type: integer
-                format: int32
-                description: User Status
-        responses:
-        "201":
-          description: successful operation
-        """        
-        
-        
+    async def get(self,*args):        
         self._status_code = HTTPStatus.CREATED.value
         if self.cache_hit:
             logging.debug("Return cache data")
@@ -187,49 +142,6 @@ class RequestHandler(TornadoROSHandler):
             self.rest_response(json.dumps(DBConfig.GetSingleUserConfig(self.uri[len('/1.0/config/user/'):])))
 
     async def post(self,*args):
-        """
-        Description end-point
-        ---
-        tags:
-        - REST
-        summary: Create user
-        description: This can only be done by the logged in user.
-        operationId: examples.api.api.createUser
-        produces:
-        - application/json
-        parameters:
-        - in: body
-          name: body
-          description: Created user object
-          required: false
-          schema:
-            type: object
-            properties:
-              id:
-                type: integer
-                format: int64
-              username:
-                type:
-                  - "string"
-                  - "null"
-              firstName:
-                type: string
-              lastName:
-                type: string
-              email:
-                type: string
-              password:
-                type: string
-              phone:
-                type: string
-              userStatus:
-                type: integer
-                format: int32
-                description: User Status
-        responses:
-        "201":
-          description: successful operation
-        """           
         self._status_code = HTTPStatus.CREATED.value
         err_return = None
         try:
@@ -370,49 +282,6 @@ class RequestHandler(TornadoROSHandler):
                 self.rest_response(default_string)
 
     async def delete(self,*args):
-        """
-        Description end-point
-        ---
-        tags:
-        - REST
-        summary: Create user
-        description: This can only be done by the logged in user.
-        operationId: examples.api.api.createUser
-        produces:
-        - application/json
-        parameters:
-        - in: body
-          name: body
-          description: Created user object
-          required: false
-          schema:
-            type: object
-            properties:
-              id:
-                type: integer
-                format: int64
-              username:
-                type:
-                  - "string"
-                  - "null"
-              firstName:
-                type: string
-              lastName:
-                type: string
-              email:
-                type: string
-              password:
-                type: string
-              phone:
-                type: string
-              userStatus:
-                type: integer
-                format: int32
-                description: User Status
-        responses:
-        "201":
-          description: successful operation
-        """           
         self._status_code = HTTPStatus.CREATED.value
         error_return = None
         try:
@@ -430,49 +299,6 @@ class RequestHandler(TornadoROSHandler):
             self.rest_response(ret)
 
     async def put(self,*args):
-        """
-        Description end-point
-        ---
-        tags:
-        - Example
-        summary: Create user
-        description: This can only be done by the logged in user.
-        operationId: examples.api.api.createUser
-        produces:
-        - application/json
-        parameters:
-        - in: body
-          name: body
-          description: Created user object
-          required: false
-          schema:
-            type: object
-            properties:
-              id:
-                type: integer
-                format: int64
-              username:
-                type:
-                  - "string"
-                  - "null"
-              firstName:
-                type: string
-              lastName:
-                type: string
-              email:
-                type: string
-              password:
-                type: string
-              phone:
-                type: string
-              userStatus:
-                type: integer
-                format: int32
-                description: User Status
-        responses:
-        "201":
-          description: successful operation
-        """           
         self._status_code = HTTPStatus.CREATED.value
         try:
             data = json_decode(self.request.body)
