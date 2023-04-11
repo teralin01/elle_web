@@ -1,80 +1,23 @@
-from datetime import datetime
-import logging
-import asyncio
-from asyncio import Future
-import json
-from http import HTTPStatus
 from tornado_swagger.model import register_swagger_model
 from tornado_swagger.parameter import register_swagger_parameter
-from control.system.tornado_ros_handler import TornadoROSHandler
-from control.system.cache_data import cache_subscribe_data as cache_subscription
-from control.system.mission_handler import MissionHandler as mission_cache
-from control.system.json_validator_schema import mission_schema
 
-
-class RequestHandler(TornadoROSHandler):
-    def __init__(self, *args, **kwargs):
-        super(TornadoROSHandler,self).__init__(*args, **kwargs)
-
-    def initialize(self):
-        self.cache_hit = False
-        self.future = asyncio.get_running_loop().create_future()
-        self.cache_rest_data = dict()
-        self.rest_cache_period = 5
-        global cache_subscription
-
-    def prepare(self):
-        cache = self.cache_rest_data.get(self.uri)
-        if cache is None:
-            self.cache_rest_data.update({self.uri:{'cacheData':None,'lastUpdateTime':datetime.now()}})
-        elif (datetime.now() - cache['lastUpdateTime']).seconds < self.rest_cache_period and cache['cacheData'] is not None:
-            self.cache_hit = True
-            
-    async def get(self,*args):
-        """
-        ---
-        tags:
-        - Missions
-        summary: Get mission state
-        description: list all missions as array
-        produces:
-        - application/json        
-        responses:
-          "200":
-              description: show mission array
-              content:
-                application/json:
-                  schema:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/MissionUnit'
-          "400":
-            description: Invalid status value
-        """
-
-    async def post(self,*args):
-        """        
-        ---
-        tags:
-        - Missions
-        summary: Append a mission to queue
-        description: TBD
-        produces:
-        - application/json
-        parameters:
-        - in: body
-          name: body
-          description: Create mission
-          required: false
-          schema: 
-            $ref: '#/components/parameters/MissionItem'
-        responses:
-          "201":
-              description: successful operation
-          "408":
-              description: fail to append mission
-        """
-
+@register_swagger_parameter
+class MissionActivityTrigger:
+    """
+    ---
+    name: trigger mission activity
+    description: set mission state to start/stop/reload/skip/abort
+    type: object
+    properties:
+      command:
+        type: integer
+        format: int32
+        minimum: 0
+        maximum: 4
+        example: 0  
+    required:
+    - command    
+    """
 
 @register_swagger_parameter
 class MissionItem:
@@ -83,7 +26,6 @@ class MissionItem:
     name: missions
     in: path
     description: add a mission
-    required: true
     type: object
     properties:
       mission:
@@ -127,15 +69,15 @@ class MissionItem:
                     - z
                     type: object
                     properties:
-                    "x":
+                      x:
                         type: number
                         multipleOf: 0.001
                         example: 1.234
-                    "y":
+                      y:
                         type: number
                         multipleOf: 0.001
                         example: 6.789
-                    "z":
+                      z:
                         type: number
                         multipleOf: 0.00001
                         example: 1.23456
@@ -145,8 +87,8 @@ class MissionItem:
           - first
           - repeats
           - actions
-    required:
-      - mission
+    required: 
+    - mission
     """
 
 @register_swagger_model
@@ -154,7 +96,6 @@ class MissionUnit:
     """
     ---
     description: a unit of mission
-    required: true
     type: object
     properties:
       mission:
@@ -199,15 +140,15 @@ class MissionUnit:
                     - z
                     type: object
                     properties:
-                    "x":
+                      x:
                         type: number
                         multipleOf: 0.001
                         example: 1.234
-                    "y":
+                      y:
                         type: number
                         multipleOf: 0.001
                         example: 6.789
-                    "z":
+                      z:
                         type: number
                         multipleOf: 0.00001
                         example: 1.23456
@@ -217,6 +158,6 @@ class MissionUnit:
           - first
           - repeats
           - actions
-    required:
-      - mission
+    required: 
+    - mission
     """

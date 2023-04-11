@@ -11,10 +11,11 @@ import config
 from control import controller_main,controller_websocket
 from control.system.ros_connection import ROSWebSocketConn as ROSConn
 from control.system.mission_handler import MissionHandler as missionHandler
+from control.system.json_validator import JsonValidator
 from control.system.logger import Logger
 logger_init = Logger()
 
-NEED_EXPORT_SWAGGER = False
+NEED_EXPORT_SWAGGER = True
 CONTROLLER_FILE_PATH = r'/root/elle/control/'
 
 class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
@@ -53,6 +54,8 @@ class Application(tornado.web.Application):
                         api_definition_version=API_OPENAPI_3,
                     )
 
+        self.json_validator = JsonValidator(export_swagger(self._routes, api_definition_version = API_OPENAPI_3)) # export openAPI obj to JSON validator
+        
         if NEED_EXPORT_SWAGGER:
             swagger_specification = export_swagger(self._routes)
             file_path = open("./doc/docs.json", "w", encoding="utf-8")
