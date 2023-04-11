@@ -53,8 +53,10 @@ class Application(tornado.web.Application):
                         contact="tera.lin@axiomtek.com.tw",
                         api_definition_version=API_OPENAPI_3,
                     )
-
-        self.json_validator = JsonValidator(export_swagger(self._routes, api_definition_version = API_OPENAPI_3)) # export openAPI obj to JSON validator
+        try:
+            self.json_validator = JsonValidator(export_swagger(self._routes, api_definition_version = API_OPENAPI_3)) # export openAPI obj to JSON validator
+        except Exception as exception:
+            logging.error(exception)
         
         if NEED_EXPORT_SWAGGER:
             swagger_specification = export_swagger(self._routes)

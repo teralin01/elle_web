@@ -15,18 +15,18 @@ class RequestHandler(TornadoROSHandler):
     def __init__(self, *args, **kwargs):
         super(TornadoROSHandler,self).__init__(*args, **kwargs)
 
-    def initialize(self):
-        self.cache_hit = False
-        self.future = asyncio.get_running_loop().create_future()
-        self.cache_rest_data = dict()
-        self.rest_cache_period = 5
+    # def initialize(self):
+    #     self.cache_hit = False
+    #     self.future = asyncio.get_running_loop().create_future()
+    #     self.cache_rest_data = dict()
+    #     self.rest_cache_period = 5
 
-    def prepare(self):
-        cache = self.cache_rest_data.get(self.uri)
-        if cache is None:
-            self.cache_rest_data.update({self.uri:{'cacheData':None,'lastUpdateTime':datetime.now()}})
-        elif (datetime.now() - cache['lastUpdateTime']).seconds < self.rest_cache_period and cache['cacheData'] is not None:
-            self.cache_hit = True
+    # def prepare(self):
+    #     cache = self.cache_rest_data.get(self.uri)
+    #     if cache is None:
+    #         self.cache_rest_data.update({self.uri:{'cacheData':None,'lastUpdateTime':datetime.now()}})
+    #     elif (datetime.now() - cache['lastUpdateTime']).seconds < self.rest_cache_period and cache['cacheData'] is not None:
+    #         self.cache_hit = True
 
     def get(self,*args):
         """
@@ -86,21 +86,7 @@ class RequestHandler(TornadoROSHandler):
               description: fail to append mission
         """
 
-        self._status_code = HTTPStatus.CREATED.value
-        try:
-            data = json_decode(self.request.body)
-            logging.debug(data)
-
-            validating_return = JsonValidator.validate_paramater_schema(JsonValidator,data, self.request.uri, 'post')
-            if not validating_return:
-                raise ValueError("JSON Validating fail")
-
-        except ValueError as exception:
-            logging.error(exception)
-            self._status_code = HTTPStatus.BAD_REQUEST.value
-            self.rest_response({'result':False,'reason':str(exception)})
-
-        else:
+        if self.validating_success:
             call_data = {'type': "elle_interfaces/msg/MissionControlMission",'topic': "mission_control/mission",'msg':data['mission']}
             await self.ros_publish_handler(call_data,False)
 
@@ -130,39 +116,26 @@ class RequestHandler(TornadoROSHandler):
           "405":
               description: Not allow to change mission by this method 
         """
-        self._status_code = HTTPStatus.CREATED.value
+
         default_return = {
-            "op": "service_response", "topic": "/mission_control/command","backendMsg":"Not support parameter", 
-            "reason":"",
+            "reason":"Not support parameter",
             "values":{"state":"","result":""},
             "result": False,"msg":{
             "state":0,    
             "mission_state":0,    
             "missions":[]} }        
-        try:
-            data = json_decode(self.request.body)
-            logging.debug(data)
-            
-            validating_return = JsonValidator.validate_paramater_schema(JsonValidator, data, self.request.uri, 'put')
-            if not validating_return:
-                raise ValueError("JSON Validating fail")
-                
-        except ValueError as exception:
-            logging.error(exception)
-            self._status_code = HTTPStatus.BAD_REQUEST.value
-            self.rest_response(default_return)
-        else:
+        if self.validating_success:
             mission = mission_cache.get_mission(mission_cache)
 
-            if int(data['command']) == 1 or int(data['command']) == 2:#Not support stop,reload mission
+            if int(self.request_data['command']) == 1 or int(self.request_data['command']) == 2:#Not support stop,reload mission
                 self.rest_response(default_return)
-            elif int(data['command']) == 0 and mission['msg']['state'] == 0: # allow to start mission only when mission state is 0
-                service_call_parameters = {'id':self.uri, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':int(data['command'])} }
+            elif int(self.request_data['command']) == 0 and mission['msg']['state'] == 0: # allow to start mission only when mission state is 0
+                service_call_parameters = {'id':self.uri, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':int(self.request_data['command'])} }
                 await self.ros_service_handler(service_call_parameters,None)
-            elif int(data['command']) == 3 or int(data['command']) == 4:
-                service_call_parameters = {'id':self.uri, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':int(data['command'])} }
+            elif int(self.request_data['command']) == 3 or int(self.request_data['command']) == 4:
+                service_call_parameters = {'id':self.uri, 'op':"call_service",'type': "elle_interfaces/srv/MissionControlCmd",'service': "/mission_control/command",'args': {'command':int(self.request_data['command'])} }
                 await self.ros_service_handler(service_call_parameters,None)
             else:
                 self._status_code = HTTPStatus.METHOD_NOT_ALLOWED.value
-                default_return['backendMsg'] = "Not support at this time"
+                default_return['reason'] = "Not support at this time"
                 self.rest_response(default_return)

@@ -48,26 +48,27 @@ class JsonValidator():
             boolen: Either pass or fail
             
         Raises:
-            ValueError: if JSON format is invalid
+            ValidationError: if JSON format is invalid
+            SchemaError: if JSON schema is invalid
+            
         """
         return_value = False
+        reason = "None"
         logging.debug("Validating para: %s , %s, %s",validate_content, request_url, request_http_method )
         if None is JsonValidator.validator_schema:
             logging.error("!!!!!! No validator schema found !!!!!!!!")
-            return False
+            raise ImportError("No Validator schema found")
         try:
             target_schema = JsonValidator.validator_schema['paths'][request_url][request_http_method]['parameters'][0]['schema']
             target_schema["$schema"] = "http://json-schema.org/draft-04/schema#"
             validate(instance=validate_content, schema=target_schema)#Throw SchemaError or VaildationError exception if error
             return_value = True
         except SchemaError as exception:
-            logging.error("JSON Schema error %s",exception)
-            raise
+            reason = str(exception.message)
         except ValidationError as exception:
-            logging.error("JSON Validation error %s",exception)
-            raise
+            reason = str(exception.message)
         finally:
-            return return_value
+            return return_value,reason
 
     def validate_response_schema(self,validate_content, request_url, request_http_method, response_code):
         """The core function to validate JSON schema

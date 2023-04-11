@@ -3,17 +3,44 @@ from datetime import datetime
 import logging
 import tornado.web
 import tornado.ioloop
+from tornado.escape import json_decode
+from control.system.json_validator import JsonValidator
+from jsonschema import SchemaError
+from jsonschema import ValidationError
 
 class TornadoBaseHandler(tornado.web.RequestHandler):
     def __init__(self,*args, **kwargs):
         super(TornadoBaseHandler,self).__init__(*args, **kwargs)
         self.set_default_headers()
         self._status_code = HTTPStatus.OK.value
-        self.timeout_string = {"result":False}
+        self.timeout_string = {"result":False,"reason":"Request Timeout"}
         self.rest_timeout_period = 10
         self.cache_hit = False
         self.uri = self.request.path
         self.cache_rest_data = dict()
+        self.request_data = None
+        self.validating_success = False
+
+    def prepare(self):
+        if self.request.method == 'GET':
+            pass # Skip input content validation
+        elif self.request.method == 'POST' or self.request.method == "PUT":
+            self._status_code = HTTPStatus.CREATED.value
+
+            try:
+                self.request_data = json_decode(self.request.body)
+                logging.debug(self.request_data)
+                self.validating_success,reason = JsonValidator.validate_paramater_schema(JsonValidator, self.request_data, self.request.uri, self.request.method.lower())
+                if not self.validating_success:
+                    self.error_response(reason)
+            except (ValueError,SchemaError,ValidationError,ImportError) as exception:
+                self.error_response(str(exception.message))
+
+    def error_response(self,reason):
+        logging.error("Validation error %s: ",reason)
+        self._status_code = HTTPStatus.BAD_REQUEST.value
+        default_return = {"result": False,"reason":reason}
+        self.rest_response(default_return)
 
     def set_default_headers(self):
         if self.application.settings.get('debug'): # debug mode is True then support CORS
