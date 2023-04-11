@@ -1,11 +1,11 @@
 from datetime import datetime
 import logging
-import asyncio
 from http import HTTPStatus
 from tornado.escape import json_decode
 from tornado_swagger.parameter import register_swagger_parameter
 from control.system.tornado_ros_handler import TornadoROSHandler
 from control.system.mission_handler import MissionHandler as mission_cache
+from control.system.json_validator import JsonValidator
 from datamodel import event_model
 
 class RequestHandler(TornadoROSHandler):
@@ -13,7 +13,7 @@ class RequestHandler(TornadoROSHandler):
         super(TornadoROSHandler,self).__init__(*args, **kwargs)
 
     async def post(self,*args):
-        """        
+        """
         ---
         tags:
         - Missions
@@ -25,9 +25,8 @@ class RequestHandler(TornadoROSHandler):
         - in: body
           name: body
           description: match predefined mission number
-          required: true
-          schema: 
-            $ref: '#/components/parameters/MissionTrigger'
+          schema:
+            $ref: '#/components/parameters/PredefinedMissionTrigger'
         responses:
           "201":
               description: successful operation
@@ -39,12 +38,15 @@ class RequestHandler(TornadoROSHandler):
         try:
             data = json_decode(self.request.body)
             logging.debug(data)
-            
-        except Exception as exception:
+
+            validating_return = JsonValidator.validate_paramater_schema(JsonValidator,data, self.request.uri, 'post')
+            if not validating_return:
+                raise ValueError("JSON Validating fail")
+        except ValueError as exception:
             logging.debug(err_return)
             self._status_code = HTTPStatus.BAD_REQUEST.value
             self.rest_response({'result':False,'reason':str(exception)})
-        else:                                
+        else:
             if mission_cache.is_mission_duplication(mission_cache,data['remote_number']):
                 event_model.save_mission_act({"status":"reject","action":data['remote_number'],"timestamp": datetime.now().strftime("%m/%d/%Y, %H:%M:%S")})    
                 default_string = {"result": False, "values": {"state": "", "result": ""}, "msg": {"state": 0, "mission_state": -1, "missions": []}, "reason": "Mission is duplicated, reject this request temperatory"}
@@ -55,12 +57,11 @@ class RequestHandler(TornadoROSHandler):
                 await self.ros_service_handler(call_data,None)
 
 @register_swagger_parameter
-class MissionTrigger:
+class PredefinedMissionTrigger:
     """
     ---
     in: path
     description: call a predefined mission with number
-    required: true
     type: object
     properties:
       remote_number:
@@ -69,5 +70,7 @@ class MissionTrigger:
         minimum: 1
         maximum: 4
         example: 4   
+    required: 
+    - remote_number
     """
     
