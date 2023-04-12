@@ -35,6 +35,8 @@ class TornadoBaseHandler(tornado.web.RequestHandler):
                     self.error_response(reason)
             except (ValueError,SchemaError,ValidationError,ImportError) as exception:
                 self.error_response(str(exception.message))
+            except Exception as exception:
+                self.error_response(str(exception))
 
     def error_response(self,reason):
         logging.error("Validation error %s: ",reason)

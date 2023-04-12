@@ -1,5 +1,5 @@
 import logging
-import copy
+from openapi_schema_to_json_schema import to_json_schema
 from jsonref import replace_refs
 from jsonref import JsonRefError
 from jsonschema import validate
@@ -24,7 +24,9 @@ class JsonValidator():
             raise ValueError("No openapi_schema data found")
 
         try:
-            deref = replace_refs(openapi_schema)
+            options = {"supportPatternProperties": True}
+            converted_json = to_json_schema(openapi_schema, options) #converts from OpenAPI 3.0 to JSON Schema Draft 4.
+            deref = replace_refs(converted_json)
             JsonValidator.validator_schema = deref
         except ValueError as exception:
             logging.error("init JSON fail %s",exception)
