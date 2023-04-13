@@ -4,9 +4,12 @@ import json
 import asyncio
 import logging
 import tornado.web
-from tornado_swagger.const import API_OPENAPI_3
-from tornado_swagger.setup import setup_swagger
-from tornado_swagger.setup import export_swagger
+# from tornado_swagger.const import API_OPENAPI_3
+# from tornado_swagger.setup import setup_swagger
+# from tornado_swagger.setup import export_swagger
+from packages.tornado_swagger.tornado_swagger.const import API_OPENAPI_3
+from packages.tornado_swagger.tornado_swagger.setup import setup_swagger
+from packages.tornado_swagger.tornado_swagger.setup import export_swagger
 import config
 from control import controller_main,controller_websocket
 from control.system.ros_connection import ROSWebSocketConn as ROSConn
