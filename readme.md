@@ -20,7 +20,7 @@
 - pip3 install nest_asyncio==1.5.6
 - pip3 install apscheduler==3.10.0
 - pip3 install tornado-swagger==1.4.5
-
+- pip3 install pyyaml==6.0
 
 # How to run Elle web
 ## Config file path:

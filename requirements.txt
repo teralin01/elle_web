@@ -11,3 +11,4 @@ pynmcli==1.0.5
 roslibpy==1.4.2
 tornado==6.2
 tornado-swagger==6.0
+pyyaml==6.0

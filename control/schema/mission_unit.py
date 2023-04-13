@@ -1,5 +1,5 @@
-from tornado_swagger.model import register_swagger_model
-from tornado_swagger.parameter import register_swagger_parameter
+from packages.tornado_swagger.model import register_swagger_model
+from packages.tornado_swagger.parameter import register_swagger_parameter
 
 @register_swagger_parameter
 class MissionActivityTrigger:

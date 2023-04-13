@@ -2,7 +2,7 @@ from datetime import datetime
 import logging
 from http import HTTPStatus
 
-from tornado_swagger.parameter import register_swagger_parameter
+from packages.tornado_swagger.parameter import register_swagger_parameter
 from control.system.tornado_ros_handler import TornadoROSHandler
 from control.system.mission_handler import MissionHandler as mission_cache
 
