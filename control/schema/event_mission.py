@@ -1,4 +1,4 @@
-from tornado_swagger.model import register_swagger_model
+from packages.tornado_openapi.model import register_swagger_model
 @register_swagger_model
 class MissionEvent:
     """

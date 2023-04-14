@@ -24,7 +24,7 @@ class RequestHandler(TornadoROSHandler):
               description: show mission array
         """
         
-            # Check mission stage
+        # Check mission stage
         mission = mission_cache.get_mission(mission_cache)
         if mission['msg']['actionPtr'] == 5 and mission['msg']['action_state'] == 1: # The action is Wait and status in 1
             call_data = {'id':self.uri, 'op':"call_service",'type': "std_srvs/srv/Empty",'service': "/mission_control/trigger_button",'args': {} }
