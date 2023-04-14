@@ -72,22 +72,24 @@ class RequestHandler(TornadoROSHandler):
         description: The mission will be bypass to ROS via publish  
         produces:
         - application/json
-        parameters:
-        - in: body
-          name: body
+        requestBody:
           description: Create mission
-          required: false
-          schema: 
-            $ref: '#/components/parameters/MissionItem'
+          required: true
+          content:
+            application/json:          
+              schema: 
+                $ref: '#/components/parameters/MissionItem'
         responses:
           "201":
               description: successful operation
           "400":
               description: fail to append mission
+          "500":
+              description: Internal Server Error
         """
 
         if self.validating_success:
-            call_data = {'type': "elle_interfaces/msg/MissionControlMission",'topic': "mission_control/mission",'msg':data['mission']}
+            call_data = {'type': "elle_interfaces/msg/MissionControlMission",'topic': "mission_control/mission",'msg':self.request_data['mission']}
             await self.ros_publish_handler(call_data,False)
 
 
@@ -100,14 +102,12 @@ class RequestHandler(TornadoROSHandler):
         description: This API is used to start/stop/skip/reset current mission
         produces:
         - application/json
-        parameters:
-        - in: body
-          name: body
-          description: set mission state
-          required: true
-          type: object
-          schema: 
-            $ref: '#/components/parameters/MissionActivityTrigger'
+        requestBody:
+          description: trigger a mission state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/parameters/MissionActivityTrigger'
         responses:
           "201":
               description: successful operation

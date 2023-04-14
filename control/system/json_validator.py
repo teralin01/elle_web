@@ -61,7 +61,7 @@ class JsonValidator():
             logging.error("!!!!!! No validator schema found !!!!!!!!")
             raise ImportError("No Validator schema found")
         try:
-            target_schema = JsonValidator.validator_schema['paths'][request_url][request_http_method]['parameters'][0]['schema']
+            target_schema = JsonValidator.validator_schema['paths'][request_url][request_http_method]['requestBody']['content']['application/json']['schema']
             target_schema["$schema"] = "http://json-schema.org/draft-04/schema#"
             validate(instance=validate_content, schema=target_schema)#Throw SchemaError or VaildationError exception if error
             return_value = True

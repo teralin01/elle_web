@@ -21,12 +21,12 @@ class RequestHandler(TornadoROSHandler):
         description: TBD
         produces:
         - application/json
-        parameters:
-        - in: body
-          name: body
+        requestBody:
           description: match predefined mission number
-          schema:
-            $ref: '#/components/parameters/PredefinedMissionTrigger'
+          content:
+            application/json:              
+              schema:
+                $ref: '#/components/parameters/PredefinedMissionTrigger'
         responses:
           "201":
               description: successful operation

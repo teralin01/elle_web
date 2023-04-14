@@ -4,6 +4,7 @@ import logging
 import tornado.web
 import tornado.ioloop
 from tornado.escape import json_decode
+from json.decoder import JSONDecodeError
 from control.system.json_validator import JsonValidator
 from jsonschema import SchemaError
 from jsonschema import ValidationError
@@ -33,10 +34,10 @@ class TornadoBaseHandler(tornado.web.RequestHandler):
                 self.validating_success,reason = JsonValidator.validate_paramater_schema(JsonValidator, self.request_data, self.request.uri, self.request.method.lower())
                 if not self.validating_success:
                     self.error_response(reason)
-            except (ValueError,SchemaError,ValidationError,ImportError) as exception:
-                self.error_response(str(exception.message))
-            except Exception as exception:
+            except (JSONDecodeError, TypeError, ValueError,) as exception: #the exceptions for decode
                 self.error_response(str(exception))
+            except (SchemaError,ValidationError,ImportError) as exception: #the exceptions for JSON validation
+                self.error_response(str(exception.message))
 
     def error_response(self,reason):
         logging.error("Validation error %s: ",reason)
