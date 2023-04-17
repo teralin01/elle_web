@@ -9,7 +9,6 @@ from control.schema.mission_unit import MissionActivityTrigger #The openAPI and 
 from control.system.tornado_ros_handler import TornadoROSHandler
 from control.system.cache_data import cache_subscribe_data as cache_subscription
 from control.system.mission_handler import MissionHandler as mission_cache
-from control.system.json_validator import JsonValidator
 
 class RequestHandler(TornadoROSHandler):
     def __init__(self, *args, **kwargs):

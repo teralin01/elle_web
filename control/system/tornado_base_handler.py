@@ -27,17 +27,19 @@ class TornadoBaseHandler(tornado.web.RequestHandler):
             pass # Skip input content validation
         elif self.request.method == 'POST' or self.request.method == "PUT":
             self._status_code = HTTPStatus.CREATED.value
-
-            try:
-                self.request_data = json_decode(self.request.body)
-                logging.debug(self.request_data)
-                self.validating_success,reason = JsonValidator.validate_paramater_schema(JsonValidator, self.request_data, self.request.uri, self.request.method.lower())
-                if not self.validating_success:
-                    self.error_response(reason)
-            except (JSONDecodeError, TypeError, ValueError,) as exception: #the exceptions for decode
-                self.error_response(str(exception))
-            except (SchemaError,ValidationError,ImportError) as exception: #the exceptions for JSON validation
-                self.error_response(str(exception.message))
+            if self.request.headers.get("Content-Type", "").startswith("application/json"):
+                try:
+                    self.request_data = json_decode(self.request.body)
+                    logging.debug(self.request_data)
+                    self.validating_success,reason = JsonValidator.validate_paramater_schema(JsonValidator, self.request_data, self.request.uri, self.request.method.lower())
+                    if not self.validating_success:
+                        self.error_response(reason)
+                except (JSONDecodeError, TypeError, ValueError,) as exception: #the exceptions for decode
+                    self.error_response(str(exception))
+                except (SchemaError,ValidationError,ImportError) as exception: #the exceptions for JSON validation
+                    self.error_response(str(exception.message))
+            else:
+                self.error_response("Not supported Content type")
 
     def error_response(self,reason):
         logging.error("Validation error %s: ",reason)
