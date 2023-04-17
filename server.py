@@ -1,6 +1,3 @@
-# import tornado.ioloop
-import tornado.web
-import tornado.httpserver
 import asyncio
 import debugpy
 import config
@@ -13,8 +10,7 @@ async def main():
      app = Application()
      app.listen(config.options['port'])
      await asyncio.Event().wait()
-     # tornado.ioloop.IOLoop.instance().start()
-     
+
 if __name__ == "__main__":
      asyncio.run(main())
 
