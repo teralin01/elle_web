@@ -52,15 +52,13 @@ class RequestHandler(TornadoROSHandler):
         subscribe_data = cache_subscription.get('mission_control/states')
         if subscribe_data is not None:
             if subscribe_data['data'] is None:
-                self._status_code = HTTPStatus.NO_CONTENT.value
-                self.rest_response({"result":False,"info":"Current cached date is None"})
+                self.rest_response({"result":False,"info":"No mission data"})
             else:
                 self.cache_hit = True
                 self.cache_rest_data.update({self.uri:{'cacheData':subscribe_data,'lastUpdateTime':datetime.now()}})
             self.rest_response(subscribe_data['data'])
         else:
-            self._status_code = HTTPStatus.NO_CONTENT.value
-            self.rest_response({"result":False,"info":"Backend have never receieve mission data"})
+            self.rest_response({"result":False,"info":"Not mission data"})
 
     async def post(self,*args):
         """        
