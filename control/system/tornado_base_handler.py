@@ -23,6 +23,9 @@ class TornadoBaseHandler(tornado.web.RequestHandler):
         self.validating_success = False
 
     def prepare(self):
+        if not self.get_secure_cookie("elle_web"):
+            self.set_secure_cookie("elle_web",datetime.now().strftime("%Y-%m-%dT%H:%M:%S"), max_age=30)
+
         if self.request.method == 'GET':
             pass # Skip input content validation
         elif self.request.method == 'POST' or self.request.method == "PUT":
