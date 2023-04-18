@@ -29,7 +29,7 @@ class RequestHandler(TornadoROSHandler):
         responses:
           "201":
               description: successful operation
-          "408":
+          "400":
               description: fail to append mission              
         """
         if self.validating_success:

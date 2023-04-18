@@ -81,12 +81,6 @@ class MissionItem:
                         type: number
                         multipleOf: 0.00001
                         example: 1.23456
-        required:
-          - overwrite_current_mission
-          - set_as_default_mission
-          - first
-          - repeats
-          - actions
     required: 
     - mission
     """

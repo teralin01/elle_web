@@ -1,6 +1,4 @@
 from datetime import datetime
-import logging
-import asyncio
 from http import HTTPStatus
 from tornado.escape import json_decode
 from control.schema.mission_unit import MissionUnit #The openAPI and JSON validating rule for response
@@ -42,23 +40,25 @@ class RequestHandler(TornadoROSHandler):
               content:
                 application/json:
                   schema:
-                    type: array
-                    items:
                       $ref: '#/components/parameters/MissionItem'
           "204":
             description: No content
         """
 
         subscribe_data = cache_subscription.get('mission_control/states')
+        ret = {}
         if subscribe_data is not None:
             if subscribe_data['data'] is None:
-                self.rest_response({"result":False,"info":"No mission data"})
+                ret = {"result":False,"reason":"Not mission data","mission":{}}
             else:
                 self.cache_hit = True
                 self.cache_rest_data.update({self.uri:{'cacheData':subscribe_data,'lastUpdateTime':datetime.now()}})
-            self.rest_response(subscribe_data['data'])
+                ret = subscribe_data['data']
+                ret['result'] = True
         else:
-            self.rest_response({"result":False,"info":"Not mission data"})
+            ret = {"result":False,"reason":"Not mission data","mission":{}}
+
+        self.rest_response(ret)
 
     async def post(self,*args):
         """        
